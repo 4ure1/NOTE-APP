@@ -12,7 +12,8 @@ function createWindow(): void {
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      webviewTag: true
     }
   })
 
@@ -124,6 +125,22 @@ ipcMain.handle('delete-note', (_event, fileName: string) => {
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.electron')
+  app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+
+  app.on('web-contents-created', (_, contents) => {
+    contents.session.webRequest.onBeforeSendHeaders((details, callback) => {
+      const { requestHeaders } = details
+      for (const key in requestHeaders) {
+        if (key.toLowerCase() === 'user-agent') {
+          requestHeaders[key] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+        }
+        if (key.toLowerCase().startsWith('sec-ch-ua')) {
+          delete requestHeaders[key]
+        }
+      }
+      callback({ cancel: false, requestHeaders })
+    })
+  })
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
