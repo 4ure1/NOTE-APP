@@ -1,6 +1,6 @@
 # note-app
 
-An Electron application with React and TypeScript
+Vibe coding an Electron application with React and TypeScript
 
 ## Recommended IDE Setup
 
