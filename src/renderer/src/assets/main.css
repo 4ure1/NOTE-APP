@@ -169,3 +169,47 @@ code {
     display: none;
   }
 }
+
+/* Nouvelles classes d'animation pour le Markdown */
+@keyframes gradient-anim {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.anim-gradient {
+  background: linear-gradient(270deg, #ff0055, #00d2ff, #ff8a00, #ff0055);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: gradient-anim 3s ease infinite;
+  font-weight: 900;
+}
+
+@keyframes pulse-glow {
+  0% { text-shadow: 0 0 5px #00ff00; transform: scale(1); }
+  50% { text-shadow: 0 0 20px #00ff00, 0 0 30px #00ff00; transform: scale(1.05); }
+  100% { text-shadow: 0 0 5px #00ff00; transform: scale(1); }
+}
+
+.anim-pulse {
+  display: inline-block;
+  color: #fff;
+  animation: pulse-glow 2s infinite;
+  font-weight: bold;
+}
+
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-2px) rotate(-2deg); }
+  50% { transform: translateX(2px) rotate(2deg); }
+  75% { transform: translateX(-2px) rotate(-2deg); }
+  100% { transform: translateX(0); }
+}
+
+.anim-shake {
+  display: inline-block;
+  color: #ff3333;
+  animation: shake 0.5s infinite;
+  font-weight: bold;
+}

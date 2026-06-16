@@ -3,7 +3,12 @@ import { electronAPI } from '@electron-toolkit/preload'
 
 const api = {
   listMarkdownFiles: () => ipcRenderer.invoke('list-markdown-files'),
-  createNote: (title: string) => ipcRenderer.invoke('create-note', title)
+  createNote: (title: string) => ipcRenderer.invoke('create-note', title),
+  createSpecificNote: (title: string) => ipcRenderer.invoke('create-specific-note', title),
+  renameNote: (oldName: string, newName: string) => ipcRenderer.invoke('rename-note', oldName, newName),
+  readNote: (fileName: string) => ipcRenderer.invoke('read-note', fileName),
+  writeNote: (fileName: string, content: string) => ipcRenderer.invoke('write-note', fileName, content),
+  deleteNote: (fileName: string) => ipcRenderer.invoke('delete-note', fileName)
 }
 
 if (process.contextIsolated) {
