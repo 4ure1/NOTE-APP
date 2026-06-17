@@ -1,34 +1,66 @@
 :root {
+  /* Modern YouTube / Obsidian Theme Colors */
+  --app-bg: #0f0f0f;
+  --sidebar-bg: #212121;
+  --element-bg: #272727;
+  --element-bg-hover: #3f3f3f;
+  
+  --text-primary: #f1f1f1;
+  --text-secondary: #aaaaaa;
+  
+  --accent-color: #3ea6ff;
+  --accent-color-hover: #6ebcff;
+  
+  --border-color: #333333;
+  --border-subtle: #2a2a2a;
+  
+  --danger-color: #ff5555;
+  --danger-bg-hover: rgba(255, 85, 85, 0.1);
+
+  /* Override @uiw/react-md-editor vars to match our theme */
+  --color-canvas-default: var(--app-bg);
+  --color-canvas-subtle: var(--app-bg);
+  --color-border-default: transparent;
+  --color-border-muted: var(--border-color);
+  --color-neutral-muted: rgba(255, 255, 255, 0.1);
+  --color-fg-default: var(--text-primary);
+  --color-fg-muted: var(--text-secondary);
+}
+
+[data-color-mode*='dark'], [data-color-mode*='dark'] body, .w-md-editor[data-color-mode="dark"] {
+  --color-canvas-default: var(--app-bg) !important;
+  --color-canvas-subtle: var(--app-bg) !important;
+  --color-border-default: transparent !important;
+  --color-border-muted: var(--border-color) !important;
+  --color-neutral-muted: rgba(255, 255, 255, 0.1) !important;
+  --color-fg-default: var(--text-primary) !important;
+  --color-fg-muted: var(--text-secondary) !important;
+}
+
+:root {
+  
+  /* Legacy ev variables (keeping just in case some components rely on them) */
   --ev-c-white: #ffffff;
   --ev-c-white-soft: #f8f8f8;
   --ev-c-white-mute: #f2f2f2;
 
-  --ev-c-black: #1b1b1f;
-  --ev-c-black-soft: #222222;
-  --ev-c-black-mute: #282828;
+  --ev-c-black: var(--app-bg);
+  --ev-c-black-soft: var(--sidebar-bg);
+  --ev-c-black-mute: var(--element-bg);
 
   --ev-c-gray-1: #515c67;
   --ev-c-gray-2: #414853;
   --ev-c-gray-3: #32363f;
 
-  --ev-c-text-1: rgba(255, 255, 245, 0.86);
-  --ev-c-text-2: rgba(235, 235, 245, 0.6);
+  --ev-c-text-1: var(--text-primary);
+  --ev-c-text-2: var(--text-secondary);
   --ev-c-text-3: rgba(235, 235, 245, 0.38);
 
-  --ev-button-alt-border: transparent;
-  --ev-button-alt-text: var(--ev-c-text-1);
-  --ev-button-alt-bg: var(--ev-c-gray-3);
-  --ev-button-alt-hover-border: transparent;
-  --ev-button-alt-hover-text: var(--ev-c-text-1);
-  --ev-button-alt-hover-bg: var(--ev-c-gray-2);
-}
+  --color-background: var(--app-bg);
+  --color-background-soft: var(--sidebar-bg);
+  --color-background-mute: var(--element-bg);
 
-:root {
-  --color-background: var(--ev-c-black);
-  --color-background-soft: var(--ev-c-black-soft);
-  --color-background-mute: var(--ev-c-black-mute);
-
-  --color-text: var(--ev-c-text-1);
+  --color-text: var(--text-primary);
 }
 
 *,
@@ -39,6 +71,10 @@
   font-weight: normal;
 }
 
+input, button, textarea {
+  font-family: inherit;
+}
+
 ul {
   list-style: none;
 }
@@ -47,9 +83,11 @@ body {
   min-height: 100vh;
   color: var(--color-text);
   background: var(--color-background);
-  line-height: 1.6;
+  line-height: 1.65;
   font-family:
-    Inter,
+    'Söhne',
+    'Inter',
+    system-ui,
     -apple-system,
     BlinkMacSystemFont,
     'Segoe UI',
@@ -64,4 +102,105 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Force MDEditor to use uniform background without breaking its internal transparency */
+.w-md-editor,
+.w-md-editor-content,
+.w-md-editor-preview,
+.wmde-markdown,
+.wmde-markdown-var {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Ensure raw text fallback color is correct without overriding syntax highlighting */
+.w-md-editor-text-pre {
+  color: var(--text-primary);
+}
+
+/* Custom Syntax Highlighting for raw editor (VS Code Dark style) */
+.w-md-editor-text-pre .token.tag {
+  color: #569cd6 !important; /* Blue for tags */
+}
+.w-md-editor-text-pre .token.punctuation {
+  color: #808080 !important; /* Gray for brackets */
+}
+.w-md-editor-text-pre .token.attr-name {
+  color: #9cdcfe !important; /* Light blue for attributes */
+}
+.w-md-editor-text-pre .token.attr-value,
+.w-md-editor-text-pre .token.string {
+  color: #ce9178 !important; /* Orange for values */
+}
+.w-md-editor-text-pre .token.title,
+.w-md-editor-text-pre .token.bold {
+  color: #4fc1ff !important;
+  font-weight: bold;
+}
+.w-md-editor-text-pre .token.comment {
+  color: #6a9955 !important;
+}
+
+/* Fullscreen mode: hide editor text, show only preview, and cover whole screen */
+.w-md-editor.w-md-editor-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 999999 !important;
+  background-color: var(--app-bg) !important;
+}
+
+.w-md-editor-fullscreen .w-md-editor-text {
+  display: none !important;
+}
+.w-md-editor-fullscreen .w-md-editor-preview {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 1 !important;
+}
+.w-md-editor-fullscreen .wmde-markdown {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Zoom support */
+.w-md-editor-text, .wmde-markdown {
+  zoom: var(--editor-zoom, 100%);
+}
+
+/* Fix MDEditor Toolbar background */
+.w-md-editor-toolbar {
+  background-color: var(--app-bg) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+/* Custom Minimalist Scrollbars (VS Code / macOS style) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background-color: transparent;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  border: 2px solid var(--app-bg);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }

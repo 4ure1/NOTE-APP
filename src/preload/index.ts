@@ -8,7 +8,8 @@ const api = {
   renameNote: (oldName: string, newName: string) => ipcRenderer.invoke('rename-note', oldName, newName),
   readNote: (fileName: string) => ipcRenderer.invoke('read-note', fileName),
   writeNote: (fileName: string, content: string) => ipcRenderer.invoke('write-note', fileName, content),
-  deleteNote: (fileName: string) => ipcRenderer.invoke('delete-note', fileName)
+  deleteNote: (fileName: string) => ipcRenderer.invoke('delete-note', fileName),
+  createNoteWithContent: (fileName: string, content: string) => ipcRenderer.invoke('create-note-with-content', fileName, content)
 }
 
 if (process.contextIsolated) {

@@ -1,10 +1,37 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, session } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import fs from 'fs'
 import os from 'os'
 
 function createWindow(): void {
+  const CHROME_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+  const FIREFOX_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0'
+
+  session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
+    const isGoogleAuth = details.url.includes('accounts.google.com') || 
+                         details.url.includes('oauth') || 
+                         details.url.includes('auth') || 
+                         details.url.includes('login') || 
+                         details.url.includes('signin')
+    
+    details.requestHeaders['User-Agent'] = isGoogleAuth ? FIREFOX_UA : CHROME_UA
+    
+    if (isGoogleAuth) {
+      for (const key in details.requestHeaders) {
+        if (key.toLowerCase().startsWith('sec-ch-ua')) {
+          delete details.requestHeaders[key]
+        }
+      }
+    }
+    
+    callback({ requestHeaders: details.requestHeaders })
+  })
+
+  session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
+    callback(['notifications', 'media', 'geolocation', 'clipboard-read'].includes(permission))
+  })
+
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -19,6 +46,37 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
+  })
+
+  mainWindow.webContents.on('did-attach-webview', (_, webviewContents) => {
+    webviewContents.setUserAgent(CHROME_UA)
+    webviewContents.setWindowOpenHandler((details) => {
+      const url = details.url
+      if (
+        url.includes('accounts.google.com') ||
+        url.includes('oauth') ||
+        url.includes('auth') ||
+        url.includes('login') ||
+        url.includes('signin')
+      ) {
+        const authWindow = new BrowserWindow({
+          width: 500,
+          height: 650,
+          parent: mainWindow,
+          modal: false,
+          autoHideMenuBar: true,
+          webPreferences: { nodeIntegration: false, contextIsolation: true }
+        })
+        authWindow.webContents.setUserAgent(FIREFOX_UA)
+        authWindow.loadURL(url)
+        authWindow.webContents.on('will-navigate', (_e, navUrl) => {
+          if (navUrl.includes('claude.ai') || navUrl.includes('anthropic.com')) authWindow.close()
+        })
+        return { action: 'deny' }
+      }
+      shell.openExternal(url)
+      return { action: 'deny' }
+    })
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -123,24 +181,23 @@ ipcMain.handle('delete-note', (_event, fileName: string) => {
   return false
 })
 
+ipcMain.handle('create-note-with-content', (_event, fileName: string, content: string) => {
+  const notesDir = join(os.homedir(), 'Notes')
+  if (!fs.existsSync(notesDir)) fs.mkdirSync(notesDir, { recursive: true })
+  
+  const filePath = join(notesDir, fileName)
+  if (fs.existsSync(filePath)) {
+    const existing = fs.readFileSync(filePath, 'utf-8')
+    fs.writeFileSync(filePath, existing + '\n\n---\n\n' + content, 'utf-8')
+  } else {
+    fs.writeFileSync(filePath, content, 'utf-8')
+  }
+  return fileName
+})
+
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.electron')
-  app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
-
-  app.on('web-contents-created', (_, contents) => {
-    contents.session.webRequest.onBeforeSendHeaders((details, callback) => {
-      const { requestHeaders } = details
-      for (const key in requestHeaders) {
-        if (key.toLowerCase() === 'user-agent') {
-          requestHeaders[key] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
-        }
-        if (key.toLowerCase().startsWith('sec-ch-ua')) {
-          delete requestHeaders[key]
-        }
-      }
-      callback({ cancel: false, requestHeaders })
-    })
-  })
+  app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
