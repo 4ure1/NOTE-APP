@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run typecheck)",
+      "Bash(npm run typecheck:node)",
+      "Bash(npm run typecheck:web)",
+      "Bash(npm run lint)",
+      "Bash(npx eslint *)",
+      "Bash(npm test)",
+      "Bash(npx vitest run *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "PowerShell(npm run typecheck)",
+      "PowerShell(npm run typecheck:node)",
+      "PowerShell(npm run typecheck:web)",
+      "PowerShell(npm run lint)",
+      "PowerShell(npx eslint *)",
+      "PowerShell(npm test)",
+      "PowerShell(npx vitest run *)",
+      "PowerShell(git status)",
+      "PowerShell(git diff *)",
+      "PowerShell(git log *)"
+    ],
+    "ask": [
+      "Bash(npm run dev)",
+      "Bash(npm start)",
+      "PowerShell(npm run dev)",
+      "PowerShell(npm start)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "PowerShell(git commit *)",
+      "PowerShell(git push *)"
+    ],
+    "deny": [
+      "Read(//c/Users/amvre/Notes/**)",
+      "Edit(//c/Users/amvre/Notes/**)",
+      "Read(**/.env)",
+      "Read(**/.env.*)"
+    ]
+  }
+}

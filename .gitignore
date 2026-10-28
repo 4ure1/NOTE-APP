@@ -4,3 +4,23 @@ out
 .DS_Store
 .eslintcache
 *.log*
+# Build et release
+*.tsbuildinfo
+release/
+coverage/
+# Secrets
+.env
+.env.*
+# Données générées par l'app dans le dossier de test
+test-vault/.history/
+test-vault/.trash/
+test-vault/.snippets/
+test-vault/.templates/
+test-vault/.config.json
+test-vault/securite/PREUVE.txt
+# Restes d'autres outils
+.agent/
+.kilo/
+# Claude Code (fichiers locaux ; .claude/settings.json et .claude/skills/ restent versionnés)
+.claude/settings.local.json
+CLAUDE.local.md

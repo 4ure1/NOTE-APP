@@ -1,0 +1,1015 @@
+{
+  "version": 1,
+  "trigger": "/",
+  "snippets": [
+    {
+      "prefix": "page",
+      "name": "Page complète (thème sombre)",
+      "description": "Squelette HTML avec tout le CSS inclus",
+      "category": "Structure",
+      "scope": "html",
+      "body": [
+        "<!DOCTYPE html>",
+        "<html lang=\"fr\">",
+        "<head>",
+        "<meta charset=\"UTF-8\">",
+        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">",
+        "<title>${1:Titre}</title>",
+        "<style>",
+        "  :root{",
+        "    --bg: #1e1e1e;",
+        "    --card: #2d2d30;",
+        "    --border: #3e3e42;",
+        "    --text: #d4d4d4;",
+        "    --text-dim: #9d9d9d;",
+        "    --blue: #4fc1ff;",
+        "    --purple: #c586c0;",
+        "    --orange: #ce9178;",
+        "    --green: #6a9955;",
+        "    --yellow: #dcdcaa;",
+        "    --red: #f48771;",
+        "  }",
+        "  * { box-sizing: border-box; }",
+        "  body{",
+        "    background: #252526;",
+        "    color: var(--text);",
+        "    font-family: Georgia, Cambria, 'Times New Roman', serif;",
+        "    line-height: 1.65;",
+        "    margin: 0;",
+        "    padding: 40px 18px 80px;",
+        "  }",
+        "  .container{ max-width: 960px; margin: 0 auto; }",
+        "",
+        "  h1{",
+        "    text-align: center;",
+        "    font-family: 'Trebuchet MS', sans-serif;",
+        "    font-size: 2.3em;",
+        "    font-weight: 800;",
+        "    background: linear-gradient(90deg, var(--blue), var(--purple), var(--orange), var(--green), var(--yellow), var(--blue));",
+        "    background-size: 400% 100%;",
+        "    -webkit-background-clip: text;",
+        "    background-clip: text;",
+        "    -webkit-text-fill-color: transparent;",
+        "    animation: gradientMove 6s linear infinite;",
+        "    margin-bottom: 6px;",
+        "    letter-spacing: 0.5px;",
+        "  }",
+        "  @keyframes gradientMove{",
+        "    0%{ background-position: 0% 50%; }",
+        "    100%{ background-position: 400% 50%; }",
+        "  }",
+        "  .subtitle{ text-align:center; font-style:italic; color:#bdbdbd; font-size:1.05em; margin-bottom:40px; }",
+        "",
+        "  h2{",
+        "    font-family: 'Trebuchet MS', sans-serif;",
+        "    color: var(--blue);",
+        "    border-bottom: 2px solid var(--border);",
+        "    padding-bottom: 10px;",
+        "    margin-top: 55px;",
+        "    margin-bottom: 20px;",
+        "    font-size: 1.5em;",
+        "  }",
+        "  h3{",
+        "    font-family: 'Trebuchet MS', sans-serif;",
+        "    color: var(--purple);",
+        "    margin-top: 30px;",
+        "    font-size: 1.15em;",
+        "  }",
+        "  p { margin: 12px 0; }",
+        "",
+        "  .step{",
+        "    background: var(--card);",
+        "    border-left: 6px solid var(--blue);",
+        "    border-radius: 6px;",
+        "    padding: 18px 22px;",
+        "    margin: 22px 0;",
+        "  }",
+        "  .step.purple{ border-left-color: var(--purple); }",
+        "  .step.orange{ border-left-color: var(--orange); }",
+        "  .step.green{ border-left-color: var(--green); }",
+        "  .step.red{ border-left-color: var(--red); }",
+        "",
+        "  .label{",
+        "    display:block;",
+        "    font-family:'Trebuchet MS', sans-serif;",
+        "    font-weight:bold;",
+        "    color: var(--blue);",
+        "    margin-bottom:10px;",
+        "    font-size:0.95em;",
+        "    letter-spacing:0.3px;",
+        "  }",
+        "  .step.purple .label{ color: var(--purple); }",
+        "  .step.orange .label{ color: var(--orange); }",
+        "  .step.green .label{ color: var(--green); }",
+        "  .step.red .label{ color: var(--red); }",
+        "",
+        "  .result{",
+        "    background: linear-gradient(135deg, rgba(79,193,255,0.08), rgba(197,134,192,0.08));",
+        "    border: 2px solid var(--green);",
+        "    border-radius: 8px;",
+        "    padding: 18px 22px;",
+        "    margin: 22px 0;",
+        "    text-align: center;",
+        "  }",
+        "  .result.bad{ border-color: var(--red); background: linear-gradient(135deg, rgba(244,135,113,0.1), rgba(206,145,120,0.05)); }",
+        "  .result.warn{ border-color: var(--yellow); background: linear-gradient(135deg, rgba(220,220,170,0.1), rgba(206,145,120,0.05)); }",
+        "  .result .label{",
+        "    text-transform: uppercase;",
+        "    color: var(--yellow);",
+        "    font-size:0.85em;",
+        "    letter-spacing:1.5px;",
+        "    margin-bottom:8px;",
+        "  }",
+        "  .result .value{ font-size:1.2em; font-weight:bold; color: var(--text); line-height:1.8; }",
+        "",
+        "  .note{",
+        "    border: 2px dashed var(--yellow);",
+        "    border-radius: 6px;",
+        "    padding: 16px 20px;",
+        "    margin: 22px 0;",
+        "    background: rgba(220,220,170,0.04);",
+        "  }",
+        "  .note .label{ color: var(--yellow); font-size:0.9em; margin-bottom:8px; }",
+        "",
+        "  table{",
+        "    width:100%;",
+        "    border-collapse: collapse;",
+        "    margin: 20px 0;",
+        "    font-family:'Trebuchet MS', sans-serif;",
+        "    font-size:0.95em;",
+        "  }",
+        "  th, td{ border:1px solid var(--border); padding:10px 14px; text-align:left; vertical-align:top; }",
+        "  th{ background: rgba(79,193,255,0.12); color: var(--blue); font-weight:700; }",
+        "  tr:nth-child(even) td{ background: rgba(255,255,255,0.02); }",
+        "",
+        "  ul, ol{ margin:10px 0 10px 24px; }",
+        "  li{ margin:6px 0; }",
+        "",
+        "  .keyword{ color: var(--orange); font-weight:bold; }",
+        "  code{",
+        "    font-family: Consolas, 'Courier New', monospace;",
+        "    background: rgba(255,255,255,0.07);",
+        "    padding: 1px 6px;",
+        "    border-radius: 4px;",
+        "    color: var(--yellow);",
+        "    font-size: 0.92em;",
+        "  }",
+        "",
+        "  /* ---- Blocs de code ---- */",
+        "  pre{",
+        "    background: #1e1e1e;",
+        "    border: 1px solid var(--border);",
+        "    border-radius: 6px;",
+        "    padding: 14px 16px;",
+        "    overflow-x: auto;",
+        "    margin: 8px 0 14px;",
+        "    font-family: Consolas, 'Courier New', monospace;",
+        "    font-size: 0.85em;",
+        "    line-height: 1.5;",
+        "    color: var(--text);",
+        "  }",
+        "  pre .k{ color: #569cd6; }       /* mots-clés */",
+        "  pre .t{ color: #4ec9b0; }       /* types / classes */",
+        "  pre .f{ color: var(--yellow); } /* fonctions */",
+        "  pre .s{ color: var(--orange); } /* chaînes */",
+        "  pre .n{ color: #b5cea8; }       /* nombres */",
+        "  pre .c{ color: var(--green); font-style: italic; } /* commentaires */",
+        "",
+        "  .duo{",
+        "    display: grid;",
+        "    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);",
+        "    gap: 16px;",
+        "    margin: 18px 0;",
+        "    width: 100%;",
+        "    max-width: 100%;",
+        "  }",
+        "  .duo > div, .duo > *{",
+        "    min-width: 0;",
+        "    max-width: 100%;",
+        "  }",
+        "  @media (max-width: 800px){",
+        "    .duo{ grid-template-columns: 1fr !important; }",
+        "  }",
+        "  .lang{",
+        "    display:inline-block;",
+        "    font-family:'Trebuchet MS', sans-serif;",
+        "    font-size:0.75em;",
+        "    font-weight:bold;",
+        "    letter-spacing:1.5px;",
+        "    padding:3px 12px;",
+        "    border-radius:4px;",
+        "    color:#1e1e1e;",
+        "  }",
+        "  .lang.java{ background:#e8a33d; }",
+        "  .lang.py{ background:#5fa3d9; }",
+        "  .lang.c{ background:#a0a0a0; }",
+        "",
+        "  .tag{",
+        "    display:inline-block;",
+        "    font-family:'Trebuchet MS', sans-serif;",
+        "    font-size:0.75em;",
+        "    font-weight:bold;",
+        "    padding:2px 10px;",
+        "    border-radius:20px;",
+        "    margin-left:8px;",
+        "  }",
+        "  .tag.b{ background:rgba(79,193,255,0.2); color:var(--blue); border:1px solid var(--blue); }",
+        "  .tag.p{ background:rgba(197,134,192,0.2); color:var(--purple); border:1px solid var(--purple); }",
+        "  .tag.o{ background:rgba(206,145,120,0.2); color:var(--orange); border:1px solid var(--orange); }",
+        "  .tag.g{ background:rgba(106,153,85,0.2); color:var(--green); border:1px solid var(--green); }",
+        "",
+        "  .figure{",
+        "    background: var(--card);",
+        "    border: 1px solid var(--border);",
+        "    border-radius: 8px;",
+        "    padding: 14px;",
+        "    margin: 22px 0;",
+        "    text-align:center;",
+        "  }",
+        "  .figure svg{ max-width:100%; height:auto; }",
+        "  .figure .caption{",
+        "    font-family:'Trebuchet MS', sans-serif;",
+        "    font-size:0.85em;",
+        "    color: var(--text-dim);",
+        "    margin-top:8px;",
+        "    font-style: italic;",
+        "  }",
+        "",
+        "  .quiz-item{",
+        "    background: var(--card);",
+        "    border: 1px solid var(--border);",
+        "    border-radius: 6px;",
+        "    padding: 16px 20px;",
+        "    margin: 16px 0;",
+        "  }",
+        "  .quiz-item .q-title{",
+        "    font-family:'Trebuchet MS', sans-serif;",
+        "    color: var(--orange);",
+        "    font-weight:bold;",
+        "    margin-bottom:10px;",
+        "  }",
+        "  details{",
+        "    margin-top:10px;",
+        "    background: rgba(106,153,85,0.06);",
+        "    border-left:4px solid var(--green);",
+        "    padding:8px 14px;",
+        "    border-radius:4px;",
+        "  }",
+        "  details summary{ cursor:pointer; color: var(--green); font-family:'Trebuchet MS', sans-serif; font-weight:bold; }",
+        "  details[open] summary{ margin-bottom:8px; }",
+        "",
+        "  .divider{ text-align:center; color: var(--text-dim); margin:40px 0; letter-spacing:6px; }",
+        "  footer{ text-align:center; color: var(--text-dim); margin-top:60px; font-family:'Trebuchet MS', sans-serif; font-size:0.85em; }",
+        "",
+        "  /* High-visibility Syntax Highlighting for VS Code Dark Theme */",
+        "  pre .k, .code-view .k, span.k { color: #569cd6 !important; font-weight: bold; }",
+        "  pre .t, .code-view .t, span.t { color: #4ec9b0 !important; font-weight: 500; }",
+        "  pre .f, .code-view .f, span.f { color: #dcdcaa !important; }",
+        "  pre .s, .code-view .s, span.s { color: #ce9178 !important; }",
+        "  pre .n, .code-view .n, span.n { color: #b5cea8 !important; }",
+        "  pre .c, .code-view .c, span.c:not(.lang) { color: #6a9955 !important; font-style: italic; }",
+        "</style>",
+        "</head>",
+        "<body>",
+        "<div class=\"container\">",
+        "",
+        "  <h1>${2:Titre}</h1>",
+        "  <p class=\"subtitle\">${3:Sous-titre}</p>",
+        "",
+        "  <h2>${4:1. Première section}</h2>",
+        "",
+        "  $0",
+        "",
+        "  <footer>${5:Fiche générée pour révision}</footer>",
+        "",
+        "</div>",
+        "</body>",
+        "</html>"
+      ],
+      "id": "page"
+    },
+    {
+      "prefix": "h1",
+      "name": "Titre principal (H1)",
+      "description": "<h1> Titre principal",
+      "category": "Structure",
+      "scope": "html",
+      "body": [
+        "<h1>${1:Titre principal}</h1>",
+        "",
+        "$0"
+      ],
+      "id": "h1"
+    },
+    {
+      "prefix": "h2",
+      "name": "Titre de section",
+      "description": "<h2> bleu avec filet",
+      "category": "Structure",
+      "scope": "html",
+      "body": [
+        "<h2>${1:1. Titre de section}</h2>",
+        "",
+        "$0"
+      ],
+      "id": "h2"
+    },
+    {
+      "prefix": "h3",
+      "name": "Sous-titre",
+      "description": "<h3> violet",
+      "category": "Structure",
+      "scope": "html",
+      "body": [
+        "<h3>${1:Sous-titre}</h3>",
+        "",
+        "$0"
+      ],
+      "id": "h3"
+    },
+    {
+      "prefix": "sep",
+      "name": "Séparateur de section",
+      "description": "Commentaire visuel pour repérer les sections",
+      "category": "Structure",
+      "scope": "html",
+      "body": [
+        "<!-- =========================================================== -->",
+        "<h2>${1:Titre}</h2>",
+        "",
+        "$0"
+      ],
+      "id": "sep"
+    },
+    {
+      "prefix": "divider",
+      "name": "Séparateur ⸻",
+      "description": "Ligne décorative centrée",
+      "category": "Structure",
+      "scope": "html",
+      "body": [
+        "<div class=\"divider\">⸻</div>"
+      ],
+      "id": "divider"
+    },
+    {
+      "prefix": "footer",
+      "name": "Pied de page",
+      "description": "<footer> discret",
+      "category": "Structure",
+      "scope": "html",
+      "body": [
+        "<footer>${1:Fiche générée pour révision}</footer>"
+      ],
+      "id": "footer"
+    },
+    {
+      "prefix": "step",
+      "name": "Bloc step bleu",
+      "description": "Bloc .step avec bordure bleu",
+      "category": "Blocs",
+      "scope": "html",
+      "body": [
+        "<div class=\"step\">",
+        "  <span class=\"label\">${1:Titre}</span>",
+        "  ${2:Contenu}",
+        "</div>",
+        "",
+        "$0"
+      ],
+      "id": "step"
+    },
+    {
+      "prefix": "step-purple",
+      "name": "Bloc step violet",
+      "description": "Bloc .step avec bordure violet",
+      "category": "Blocs",
+      "scope": "html",
+      "body": [
+        "<div class=\"step purple\">",
+        "  <span class=\"label\">${1:Titre}</span>",
+        "  ${2:Contenu}",
+        "</div>",
+        "",
+        "$0"
+      ],
+      "id": "step-purple"
+    },
+    {
+      "prefix": "step-orange",
+      "name": "Bloc step orange",
+      "description": "Bloc .step avec bordure orange",
+      "category": "Blocs",
+      "scope": "html",
+      "body": [
+        "<div class=\"step orange\">",
+        "  <span class=\"label\">${1:Titre}</span>",
+        "  ${2:Contenu}",
+        "</div>",
+        "",
+        "$0"
+      ],
+      "id": "step-orange"
+    },
+    {
+      "prefix": "step-green",
+      "name": "Bloc step vert",
+      "description": "Bloc .step avec bordure vert",
+      "category": "Blocs",
+      "scope": "html",
+      "body": [
+        "<div class=\"step green\">",
+        "  <span class=\"label\">${1:Titre}</span>",
+        "  ${2:Contenu}",
+        "</div>",
+        "",
+        "$0"
+      ],
+      "id": "step-green"
+    },
+    {
+      "prefix": "step-red",
+      "name": "Bloc step rouge",
+      "description": "Bloc .step avec bordure rouge",
+      "category": "Blocs",
+      "scope": "html",
+      "body": [
+        "<div class=\"step red\">",
+        "  <span class=\"label\">${1:Titre}</span>",
+        "  ${2:Contenu}",
+        "</div>",
+        "",
+        "$0"
+      ],
+      "id": "step-red"
+    },
+    {
+      "prefix": "note",
+      "name": "Note (analogie)",
+      "description": "Bloc .note en pointillés jaunes",
+      "category": "Blocs",
+      "scope": "html",
+      "body": [
+        "<div class=\"note\">",
+        "  <span class=\"label\">🧠 ${1:Analogie du quotidien}</span>",
+        "  <p>${2:Texte}</p>",
+        "</div>",
+        "",
+        "$0"
+      ],
+      "id": "note"
+    },
+    {
+      "prefix": "piege",
+      "name": "Note (piège / attention)",
+      "description": "Bloc .note avec ⚠️",
+      "category": "Blocs",
+      "scope": "html",
+      "body": [
+        "<div class=\"note\">",
+        "  <span class=\"label\">⚠️ ${1:Petit piège de réflexion}</span>",
+        "  <p>${2:Texte}</p>",
+        "</div>",
+        "",
+        "$0"
+      ],
+      "id": "piege"
+    },
+    {
+      "prefix": "result",
+      "name": "Résultat (vert)",
+      "description": "Bloc .result centré, bordure verte",
+      "category": "Blocs",
+      "scope": "html",
+      "body": [
+        "<div class=\"result\">",
+        "  <span class=\"label\">${1:À retenir}</span>",
+        "  <div class=\"value\">${2:Texte}</div>",
+        "</div>",
+        "",
+        "$0"
+      ],
+      "id": "result"
+    },
+    {
+      "prefix": "result-warn",
+      "name": "Résultat (jaune)",
+      "description": "Bloc .result.warn pour les points importants",
+      "category": "Blocs",
+      "scope": "html",
+      "body": [
+        "<div class=\"result warn\">",
+        "  <span class=\"label\">⚠️ ${1:Point important}</span>",
+        "  <div class=\"value\" style=\"font-size:1.05em\">${2:Texte}</div>",
+        "</div>",
+        "",
+        "$0"
+      ],
+      "id": "result-warn"
+    },
+    {
+      "prefix": "result-bad",
+      "name": "Résultat (rouge)",
+      "description": "Bloc .result.bad pour les erreurs",
+      "category": "Blocs",
+      "scope": "html",
+      "body": [
+        "<div class=\"result bad\">",
+        "  <span class=\"label\">${1:Erreur}</span>",
+        "  <div class=\"value\">${2:Texte}</div>",
+        "</div>",
+        "",
+        "$0"
+      ],
+      "id": "result-bad"
+    },
+    {
+      "prefix": "retenir",
+      "name": "À retenir absolument",
+      "description": "Récapitulatif de fin de fiche",
+      "category": "Blocs",
+      "scope": "html",
+      "body": [
+        "<div class=\"result warn\">",
+        "  <span class=\"label\">🎯 À retenir absolument</span>",
+        "  <div class=\"value\" style=\"font-size:1.05em\">",
+        "    ${1:Point 1}<br>",
+        "    ${2:Point 2}<br>",
+        "    ${3:Point 3}",
+        "  </div>",
+        "</div>",
+        "",
+        "$0"
+      ],
+      "id": "retenir"
+    },
+    {
+      "prefix": "duo",
+      "name": "Deux colonnes",
+      "description": "Grille .duo (comparaison côte à côte)",
+      "category": "Mise en page",
+      "scope": "html",
+      "body": [
+        "<div class=\"duo\">",
+        "  <div>",
+        "    ${1:Colonne gauche}",
+        "  </div>",
+        "  <div>",
+        "    ${2:Colonne droite}",
+        "  </div>",
+        "</div>",
+        "",
+        "$0"
+      ],
+      "id": "duo"
+    },
+    {
+      "prefix": "cards",
+      "name": "Trois cartes",
+      "description": "Grille auto-adaptative de 3 .step",
+      "category": "Mise en page",
+      "scope": "html",
+      "body": [
+        "<div class=\"duo\" style=\"grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));\">",
+        "  <div class=\"step orange\">",
+        "    <span class=\"label\">${1:Carte 1}</span>",
+        "    <ul style=\"margin-left:18px\">",
+        "      <li>${2:point}</li>",
+        "    </ul>",
+        "  </div>",
+        "  <div class=\"step purple\">",
+        "    <span class=\"label\">${3:Carte 2}</span>",
+        "    <ul style=\"margin-left:18px\">",
+        "      <li>${4:point}</li>",
+        "    </ul>",
+        "  </div>",
+        "  <div class=\"step\">",
+        "    <span class=\"label\">${5:Carte 3}</span>",
+        "    <ul style=\"margin-left:18px\">",
+        "      <li>${6:point}</li>",
+        "    </ul>",
+        "  </div>",
+        "</div>",
+        "",
+        "$0"
+      ],
+      "id": "cards"
+    },
+    {
+      "prefix": "table",
+      "name": "Tableau",
+      "description": "Tableau HTML stylé (2 colonnes)",
+      "category": "Mise en page",
+      "scope": "html",
+      "body": [
+        "<table>",
+        "  <tr><th>${1:Colonne 1}</th><th>${2:Colonne 2}</th></tr>",
+        "  <tr><td>${3:}</td><td>${4:}</td></tr>",
+        "  <tr><td>${5:}</td><td>${6:}</td></tr>",
+        "</table>",
+        "",
+        "$0"
+      ],
+      "id": "table"
+    },
+    {
+      "prefix": "table3",
+      "name": "Tableau 3 colonnes",
+      "description": "Tableau HTML stylé (3 colonnes)",
+      "category": "Mise en page",
+      "scope": "html",
+      "body": [
+        "<table>",
+        "  <tr><th>${1:Colonne 1}</th><th>${2:Colonne 2}</th><th>${3:Colonne 3}</th></tr>",
+        "  <tr><td>${4:}</td><td>${5:}</td><td>${6:}</td></tr>",
+        "</table>",
+        "",
+        "$0"
+      ],
+      "id": "table3"
+    },
+    {
+      "prefix": "figure",
+      "name": "Figure SVG + légende",
+      "description": "Cadre .figure avec SVG et légende",
+      "category": "Mise en page",
+      "scope": "html",
+      "body": [
+        "<div class=\"figure\">",
+        "  <svg viewBox=\"0 0 900 300\" xmlns=\"http://www.w3.org/2000/svg\" font-family=\"Trebuchet MS, sans-serif\">",
+        "    ${1:<!-- dessin -->}",
+        "  </svg>",
+        "  <div class=\"caption\">${2:Légende}</div>",
+        "</div>",
+        "",
+        "$0"
+      ],
+      "id": "figure"
+    },
+    {
+      "prefix": "code-java",
+      "name": "Code JAVA",
+      "description": "Badge JAVA + bloc <pre> (texte sélectionné conservé)",
+      "category": "Code",
+      "scope": "html",
+      "body": [
+        "<span class=\"lang java\">JAVA</span>",
+        "<pre>${TM_SELECTED_TEXT:$1}</pre>",
+        "",
+        "$0"
+      ],
+      "id": "code-java"
+    },
+    {
+      "prefix": "code-py",
+      "name": "Code PYTHON",
+      "description": "Badge PYTHON + bloc <pre> (texte sélectionné conservé)",
+      "category": "Code",
+      "scope": "html",
+      "body": [
+        "<span class=\"lang py\">PYTHON</span>",
+        "<pre>${TM_SELECTED_TEXT:$1}</pre>",
+        "",
+        "$0"
+      ],
+      "id": "code-py"
+    },
+    {
+      "prefix": "code-c",
+      "name": "Code C",
+      "description": "Badge C + bloc <pre> (texte sélectionné conservé)",
+      "category": "Code",
+      "scope": "html",
+      "body": [
+        "<span class=\"lang c\">C</span>",
+        "<pre>${TM_SELECTED_TEXT:$1}</pre>",
+        "",
+        "$0"
+      ],
+      "id": "code-c"
+    },
+    {
+      "prefix": "code",
+      "name": "Code sans langage",
+      "description": "Bloc <pre> seul",
+      "category": "Code",
+      "scope": "html",
+      "body": [
+        "<pre>${TM_SELECTED_TEXT:$1}</pre>",
+        "",
+        "$0"
+      ],
+      "id": "code"
+    },
+    {
+      "prefix": "duo-code",
+      "name": "Java / Python côte à côte",
+      "description": "Deux colonnes avec badges et <pre>",
+      "category": "Code",
+      "scope": "html",
+      "body": [
+        "<div class=\"duo\">",
+        "  <div>",
+        "    <span class=\"lang java\">JAVA</span>",
+        "<pre>${1:// code Java}</pre>",
+        "  </div>",
+        "  <div>",
+        "    <span class=\"lang py\">PYTHON</span>",
+        "<pre>${2:# code Python}</pre>",
+        "  </div>",
+        "</div>",
+        "",
+        "$0"
+      ],
+      "id": "duo-code"
+    },
+    {
+      "prefix": "hk",
+      "name": "Coloration : mot-clé",
+      "description": "Entoure la sélection de <span class=\"k\">",
+      "category": "Code",
+      "scope": "html",
+      "body": [
+        "<span class=\"k\">${TM_SELECTED_TEXT:$1}</span>$0"
+      ],
+      "id": "hk"
+    },
+    {
+      "prefix": "ht",
+      "name": "Coloration : type / classe",
+      "description": "Entoure la sélection de <span class=\"t\">",
+      "category": "Code",
+      "scope": "html",
+      "body": [
+        "<span class=\"t\">${TM_SELECTED_TEXT:$1}</span>$0"
+      ],
+      "id": "ht"
+    },
+    {
+      "prefix": "hf",
+      "name": "Coloration : fonction",
+      "description": "Entoure la sélection de <span class=\"f\">",
+      "category": "Code",
+      "scope": "html",
+      "body": [
+        "<span class=\"f\">${TM_SELECTED_TEXT:$1}</span>$0"
+      ],
+      "id": "hf"
+    },
+    {
+      "prefix": "hs",
+      "name": "Coloration : chaîne",
+      "description": "Entoure la sélection de <span class=\"s\">",
+      "category": "Code",
+      "scope": "html",
+      "body": [
+        "<span class=\"s\">${TM_SELECTED_TEXT:$1}</span>$0"
+      ],
+      "id": "hs"
+    },
+    {
+      "prefix": "hn",
+      "name": "Coloration : nombre",
+      "description": "Entoure la sélection de <span class=\"n\">",
+      "category": "Code",
+      "scope": "html",
+      "body": [
+        "<span class=\"n\">${TM_SELECTED_TEXT:$1}</span>$0"
+      ],
+      "id": "hn"
+    },
+    {
+      "prefix": "hc",
+      "name": "Coloration : commentaire",
+      "description": "Entoure la sélection de <span class=\"c\">",
+      "category": "Code",
+      "scope": "html",
+      "body": [
+        "<span class=\"c\">${TM_SELECTED_TEXT:$1}</span>$0"
+      ],
+      "id": "hc"
+    },
+    {
+      "prefix": "kw",
+      "name": "Mot-clé orange",
+      "description": "<span class=\"keyword\">",
+      "category": "Texte",
+      "scope": "html",
+      "body": [
+        "<span class=\"keyword\">${TM_SELECTED_TEXT:$1}</span>$0"
+      ],
+      "id": "kw"
+    },
+    {
+      "prefix": "ic",
+      "name": "Code en ligne",
+      "description": "<code> jaune",
+      "category": "Texte",
+      "scope": "html",
+      "body": [
+        "<code>${TM_SELECTED_TEXT:$1}</code>$0"
+      ],
+      "id": "ic"
+    },
+    {
+      "prefix": "tag-b",
+      "name": "Étiquette bleu",
+      "description": "Pastille .tag bleu",
+      "category": "Texte",
+      "scope": "html",
+      "body": [
+        "<span class=\"tag b\">${1:TAG}</span>$0"
+      ],
+      "id": "tag-b"
+    },
+    {
+      "prefix": "tag-p",
+      "name": "Étiquette violet",
+      "description": "Pastille .tag violet",
+      "category": "Texte",
+      "scope": "html",
+      "body": [
+        "<span class=\"tag p\">${1:TAG}</span>$0"
+      ],
+      "id": "tag-p"
+    },
+    {
+      "prefix": "tag-o",
+      "name": "Étiquette orange",
+      "description": "Pastille .tag orange",
+      "category": "Texte",
+      "scope": "html",
+      "body": [
+        "<span class=\"tag o\">${1:TAG}</span>$0"
+      ],
+      "id": "tag-o"
+    },
+    {
+      "prefix": "tag-g",
+      "name": "Étiquette vert",
+      "description": "Pastille .tag vert",
+      "category": "Texte",
+      "scope": "html",
+      "body": [
+        "<span class=\"tag g\">${1:TAG}</span>$0"
+      ],
+      "id": "tag-g"
+    },
+    {
+      "prefix": "qcm",
+      "name": "Question QCM",
+      "description": "Question à 4 choix avec correction repliable",
+      "category": "Quiz",
+      "scope": "html",
+      "body": [
+        "<div class=\"quiz-item\">",
+        "  <div class=\"q-title\">Question ${1:1} (QCM) — ${2:Énoncé ?}</div>",
+        "  <p>A) ${3:}<br>",
+        "  B) ${4:}<br>",
+        "  C) ${5:}<br>",
+        "  D) ${6:}</p>",
+        "  <details><summary>Voir la correction</summary>",
+        "    <p><strong>Réponse : ${7|A,B,C,D|}.</strong> ${8:Explication}</p>",
+        "  </details>",
+        "</div>",
+        "",
+        "$0"
+      ],
+      "id": "qcm"
+    },
+    {
+      "prefix": "vf",
+      "name": "Question Vrai/Faux",
+      "description": "Affirmation avec correction repliable",
+      "category": "Quiz",
+      "scope": "html",
+      "body": [
+        "<div class=\"quiz-item\">",
+        "  <div class=\"q-title\">Question ${1:1} (Vrai/Faux) — « ${2:Affirmation} »</div>",
+        "  <details><summary>Voir la correction</summary>",
+        "    <p><strong>${3|Vrai,Faux|}.</strong> ${4:Explication}</p>",
+        "  </details>",
+        "</div>",
+        "",
+        "$0"
+      ],
+      "id": "vf"
+    },
+    {
+      "prefix": "details",
+      "name": "Section repliable",
+      "description": "<details> vert",
+      "category": "Quiz",
+      "scope": "html",
+      "body": [
+        "<details><summary>${1:Voir la correction}</summary>",
+        "  <p>${2:Contenu}</p>",
+        "</details>",
+        "",
+        "$0"
+      ],
+      "id": "details"
+    },
+    {
+      "prefix": "ul",
+      "name": "Liste à puces",
+      "description": "<ul>",
+      "category": "Texte",
+      "scope": "html",
+      "body": [
+        "<ul>",
+        "  <li>${1:élément}</li>",
+        "  <li>${2:élément}</li>",
+        "</ul>",
+        "",
+        "$0"
+      ],
+      "id": "ul"
+    },
+    {
+      "prefix": "ol",
+      "name": "Liste numérotée",
+      "description": "<ol>",
+      "category": "Texte",
+      "scope": "html",
+      "body": [
+        "<ol>",
+        "  <li>${1:élément}</li>",
+        "  <li>${2:élément}</li>",
+        "</ol>",
+        "",
+        "$0"
+      ],
+      "id": "ol"
+    },
+    {
+      "prefix": "fm",
+      "name": "Frontmatter",
+      "description": "En-tête YAML de note",
+      "category": "Markdown",
+      "scope": "markdown",
+      "body": [
+        "---",
+        "title: ${1:Titre}",
+        "date: ${CURRENT_YEAR}-${CURRENT_MONTH}-${CURRENT_DATE}",
+        "tags: [${2:}]",
+        "---",
+        "",
+        "$0"
+      ],
+      "id": "fm"
+    },
+    {
+      "prefix": "todo",
+      "name": "Tâche",
+      "description": "Case à cocher",
+      "category": "Markdown",
+      "scope": "markdown",
+      "body": [
+        "- [ ] ${1:Tâche}",
+        "$0"
+      ],
+      "id": "todo"
+    },
+    {
+      "prefix": "callout",
+      "name": "Callout",
+      "description": "Encadré style Obsidian",
+      "category": "Markdown",
+      "scope": "markdown",
+      "body": [
+        "> [!${1|note,tip,warning,important|}] ${2:Titre}",
+        "> ${3:Texte}",
+        "",
+        "$0"
+      ],
+      "id": "callout"
+    },
+    {
+      "prefix": "tbl",
+      "name": "Tableau Markdown",
+      "description": "Tableau 2 colonnes",
+      "category": "Markdown",
+      "scope": "markdown",
+      "body": [
+        "| ${1:Col 1} | ${2:Col 2} |",
+        "| --- | --- |",
+        "| ${3:} | ${4:} |",
+        "",
+        "$0"
+      ],
+      "id": "tbl"
+    },
+    {
+      "prefix": "date",
+      "name": "Date du jour",
+      "description": "JJ/MM/AAAA",
+      "category": "Divers",
+      "scope": "all",
+      "body": [
+        "${CURRENT_DATE}/${CURRENT_MONTH}/${CURRENT_YEAR}"
+      ],
+      "id": "date"
+    }
+  ]
+}

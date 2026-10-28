@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOTE-APP — Galerie des 3 Directions de Design</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #090a0d;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      background: #111318;
+      border-bottom: 1px solid #1f232b;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .title-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .badge {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    h1 {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: #f8fafc;
+    }
+
+    .nav-tabs {
+      display: flex;
+      background: #181b22;
+      border: 1px solid #232733;
+      border-radius: 6px;
+      padding: 3px;
+      gap: 3px;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 120ms ease;
+    }
+    .tab-btn:hover {
+      color: #f1f5f9;
+      background: #20242e;
+    }
+    .tab-btn.active {
+      background: #282e3b;
+      color: #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+    .tab-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    .view-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .external-link {
+      color: #38bdf8;
+      font-size: 12px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .external-link:hover {
+      text-decoration: underline;
+    }
+
+    iframe {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #000000;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title-area">
+      <span class="badge">Phase 1</span>
+      <h1>NOTE-APP — Explorateur des 3 Directions Graphiques</h1>
+    </div>
+
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchMockup('direction-1-linear-technical.html', this)">
+        <span class="tab-dot" style="background: #38bdf8;"></span>
+        <span>1. Linear Technical (Recommandée)</span>
+      </button>
+      <button class="tab-btn" onclick="switchMockup('direction-2-paper-and-ink.html', this)">
+        <span class="tab-dot" style="background: #d97736;"></span>
+        <span>2. Paper & Ink (Éditorial)</span>
+      </button>
+      <button class="tab-btn" onclick="switchMockup('direction-3-monolith-slate.html', this)">
+        <span class="tab-dot" style="background: #22c55e;"></span>
+        <span>3. Monolith Slate (Minéral)</span>
+      </button>
+    </div>
+
+    <div class="view-actions">
+      <a id="ext-link" class="external-link" href="direction-1-linear-technical.html" target="_blank">
+        Ouvrir dans un nouvel onglet ↗
+      </a>
+    </div>
+  </header>
+
+  <iframe id="preview-frame" src="direction-1-linear-technical.html"></iframe>
+
+  <script>
+    function switchMockup(url, btn) {
+      document.getElementById('preview-frame').src = url;
+      document.getElementById('ext-link').href = url;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+  </script>
+</body>
+</html>

@@ -1,215 +1,282 @@
 @import './base.css';
 
-body {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
   overflow: hidden;
-  background-image: url('./wavy-lines.svg');
-  background-size: cover;
+  background-color: var(--app-bg);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.011em;
   user-select: none;
 }
 
-code {
-  font-weight: 600;
-  padding: 3px 5px;
-  border-radius: 2px;
-  background-color: var(--color-background-mute);
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    SF Mono,
-    Menlo,
-    Consolas,
-    Liberation Mono,
-    monospace;
-  font-size: 85%;
+/* Callout Box - matching user mockup dark amber tone */
+.callout-box {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-left: 3.5px solid #d97706;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin: 20px 0;
+  color: #fde68a;
+  font-style: italic;
+  font-size: 14.5px;
+  line-height: 1.65;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
-#root {
-  display: flex;
+/* Metadata pill tags */
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  transition: all 0.15s ease;
+}
+.tag-pill-green {
+  background-color: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+.tag-pill-blue {
+  background-color: rgba(59, 130, 246, 0.12);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+.tag-pill-purple {
+  background-color: rgba(168, 85, 247, 0.12);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+.tag-pill-amber {
+  background-color: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.tag-pill-neutral {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #d1d5db;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Markdown Document Styling */
+.wmde-markdown {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif !important;
+  color: #c4c4c4 !important;
+  background: transparent !important;
+  padding: 0 16px 40px 16px !important;
+}
+
+.wmde-markdown h1,
+.wmde-markdown h2,
+.wmde-markdown h3,
+.wmde-markdown h4 {
+  color: #f3f4f6 !important;
+  font-weight: 600 !important;
+  border-bottom: none !important;
+  letter-spacing: -0.015em !important;
+}
+
+.wmde-markdown h1 {
+  font-size: 26px !important;
+  margin-top: 24px !important;
+  margin-bottom: 12px !important;
+}
+
+.wmde-markdown h2 {
+  font-size: 20px !important;
+  margin-top: 28px !important;
+  margin-bottom: 12px !important;
+}
+
+.wmde-markdown h3 {
+  font-size: 17px !important;
+  margin-top: 20px !important;
+  margin-bottom: 8px !important;
+}
+
+.wmde-markdown p {
+  font-size: 14.5px !important;
+  line-height: 1.75 !important;
+  color: #c4c4c4 !important;
+  margin-bottom: 16px !important;
+}
+
+.wmde-markdown strong {
+  color: #f3f4f6 !important;
+  font-weight: 600 !important;
+}
+
+.wmde-markdown ol {
+  list-style: decimal !important;
+  padding-left: 24px !important;
+  margin: 14px 0 !important;
+}
+
+.wmde-markdown ul {
+  list-style: disc !important;
+  padding-left: 24px !important;
+  margin: 14px 0 !important;
+}
+
+.wmde-markdown li {
+  font-size: 14.5px !important;
+  line-height: 1.7 !important;
+  color: #c4c4c4 !important;
+  margin-bottom: 8px !important;
+}
+
+.wmde-markdown mark,
+.highlight-amber {
+  background-color: rgba(245, 158, 11, 0.16) !important;
+  color: #fbbf24 !important;
+  border-bottom: 1.5px solid #d97706 !important;
+  padding: 1px 4px !important;
+  border-radius: 3px !important;
+  font-weight: 500 !important;
+}
+
+/* Keyboard shortcut badges (kbd) */
+kbd {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
-  margin-bottom: 80px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 11px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Mono', Monaco, monospace;
+  color: var(--text-muted);
+  line-height: 1.2;
 }
 
-.logo {
-  margin-bottom: 20px;
-  -webkit-user-drag: none;
-  height: 128px;
-  width: 128px;
-  will-change: filter;
-  transition: filter 300ms;
-}
-
-.logo:hover {
-  filter: drop-shadow(0 0 1.2em #6988e6aa);
-}
-
-.creator {
-  font-size: 14px;
-  line-height: 16px;
-  color: var(--ev-c-text-2);
-  font-weight: 600;
-  margin-bottom: 10px;
-}
-
-.text {
-  font-size: 28px;
-  color: var(--ev-c-text-1);
-  font-weight: 700;
-  line-height: 32px;
-  text-align: center;
-  margin: 0 10px;
-  padding: 16px 0;
-}
-
-.tip {
-  font-size: 16px;
-  line-height: 24px;
-  color: var(--ev-c-text-2);
-  font-weight: 600;
-}
-
-.react {
-  background: -webkit-linear-gradient(315deg, #087ea4 55%, #7c93ee);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 700;
-}
-
-.ts {
-  background: -webkit-linear-gradient(315deg, #3178c6 45%, #f0dc4e);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 700;
-}
-
-.actions {
-  display: flex;
-  padding-top: 32px;
-  margin: -6px;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-}
-
-.action {
-  flex-shrink: 0;
-  padding: 6px;
-}
-
-.action a {
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-block;
-  border: 1px solid transparent;
-  text-align: center;
-  font-weight: 600;
-  white-space: nowrap;
-  border-radius: 20px;
-  padding: 0 20px;
-  line-height: 38px;
-  font-size: 14px;
-  border-color: var(--ev-button-alt-border);
-  color: var(--ev-button-alt-text);
-  background-color: var(--ev-button-alt-bg);
-}
-
-.action a:hover {
-  border-color: var(--ev-button-alt-hover-border);
-  color: var(--ev-button-alt-hover-text);
-  background-color: var(--ev-button-alt-hover-bg);
-}
-
-.versions {
-  position: absolute;
-  bottom: 30px;
-  margin: 0 auto;
-  padding: 15px 0;
-  font-family: 'Menlo', 'Lucida Console', monospace;
+/* Tree hover actions button */
+.tree-action-btn {
   display: inline-flex;
-  overflow: hidden;
   align-items: center;
-  border-radius: 22px;
-  background-color: #202127;
-  backdrop-filter: blur(24px);
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background-color 0.15s, color 0.15s;
 }
-
-.versions li {
-  display: block;
-  float: left;
-  border-right: 1px solid var(--ev-c-gray-1);
-  padding: 0 20px;
-  font-size: 14px;
-  line-height: 14px;
-  opacity: 0.8;
-  &:last-child {
-    border: none;
-  }
+.tree-row:hover .tree-action-btn {
+  opacity: 1;
 }
-
-@media (max-width: 720px) {
-  .text {
-    font-size: 20px;
-  }
-}
-
-@media (max-width: 620px) {
-  .versions {
-    display: none;
-  }
-}
-
-@media (max-width: 350px) {
-  .tip,
-  .actions {
-    display: none;
-  }
-}
-
-/* Nouvelles classes d'animation pour le Markdown */
-@keyframes gradient-anim {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.anim-gradient {
-  background: linear-gradient(270deg, #ff0055, #00d2ff, #ff8a00, #ff0055);
-  background-size: 300% 300%;
-  -webkit-background-clip: text;
-  color: transparent;
-  animation: gradient-anim 3s ease infinite;
-  font-weight: 900;
-}
-
-@keyframes pulse-glow {
-  0% { text-shadow: 0 0 5px #00ff00; transform: scale(1); }
-  50% { text-shadow: 0 0 20px #00ff00, 0 0 30px #00ff00; transform: scale(1.05); }
-  100% { text-shadow: 0 0 5px #00ff00; transform: scale(1); }
-}
-
-.anim-pulse {
-  display: inline-block;
+.tree-action-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
   color: #fff;
-  animation: pulse-glow 2s infinite;
-  font-weight: bold;
 }
 
-@keyframes shake {
-  0% { transform: translateX(0); }
-  25% { transform: translateX(-2px) rotate(-2deg); }
-  50% { transform: translateX(2px) rotate(2deg); }
-  75% { transform: translateX(-2px) rotate(-2deg); }
-  100% { transform: translateX(0); }
+/* ==========================================================================
+   Modern Minimalist Formatting Toolbar for MDEditor
+   ========================================================================== */
+.w-md-editor-toolbar {
+  background: rgba(24, 24, 27, 0.75) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 8px !important;
+  padding: 3px 6px !important;
+  margin: 6px 0 16px 0 !important;
+  min-height: 36px !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+  transition: all 0.2s ease !important;
 }
 
-.anim-shake {
-  display: inline-block;
-  color: #ff3333;
-  animation: shake 0.5s infinite;
-  font-weight: bold;
+.w-md-editor-toolbar ul {
+  display: flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
+
+.w-md-editor-toolbar li {
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.w-md-editor-toolbar li > button {
+  height: 28px !important;
+  min-width: 28px !important;
+  padding: 0 6px !important;
+  border-radius: 6px !important;
+  color: #a1a1aa !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s !important;
+}
+
+.w-md-editor-toolbar li > button:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.w-md-editor-toolbar li > button:active,
+.w-md-editor-toolbar li.active > button {
+  background-color: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
+}
+
+.w-md-editor-toolbar-divider {
+  width: 1px !important;
+  height: 16px !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  margin: 0 4px !important;
+  padding: 0 !important;
+}
+
+/* Dropdown for Headings */
+.w-md-editor-toolbar-child {
+  background-color: #18181b !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65) !important;
+  padding: 4px !important;
+  z-index: 1000 !important;
+}
+
+.w-md-editor-toolbar-child li {
+  display: block !important;
+}
+
+.w-md-editor-toolbar-child li > button {
+  width: 100% !important;
+  height: 28px !important;
+  border-radius: 5px !important;
+  padding: 0 10px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  color: #d4d4d8 !important;
+  font-size: 12.5px !important;
+}
+
+.w-md-editor-toolbar-child li > button:hover {
+  background-color: #27272a !important;
+  color: #ffffff !important;
+}
+

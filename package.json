@@ -8,11 +8,13 @@
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
+    "test": "vitest run",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
+    "dev:safe": "node scripts/dev-safe.mjs",
     "build": "npm run typecheck && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
@@ -23,9 +25,16 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
+    "@monaco-editor/react": "^4.7.0",
     "@uiw/react-md-editor": "^4.1.1",
+    "docx": "^9.15.0",
+    "highlight.js": "^11.12.0",
+    "minisearch": "^7.2.0",
+    "monaco-editor": "^0.57.0",
+    "pdfjs-dist": "^4.10.38",
     "rehype-sanitize": "^6.0.0",
-    "remark-wiki-link": "^2.0.1"
+    "remark-wiki-link": "^2.0.1",
+    "textarea-caret": "^3.1.0"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
@@ -34,6 +43,7 @@
     "@types/node": "^22.19.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@types/textarea-caret": "^3.0.4",
     "@vitejs/plugin-react": "^5.1.1",
     "electron": "^39.2.6",
     "electron-builder": "^26.0.12",
@@ -42,10 +52,12 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
+    "happy-dom": "^21.0.4",
     "prettier": "^3.7.4",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "typescript": "^5.9.3",
-    "vite": "^7.2.6"
+    "vite": "^7.2.6",
+    "vitest": "^5.0.5"
   }
 }

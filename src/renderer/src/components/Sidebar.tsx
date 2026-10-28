@@ -1,364 +1,1557 @@
-import { useEffect, useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+import { TreeNode } from '../types'
+import {
+  FolderIcon,
+  FolderOpenIcon,
+  ChevronRight,
+  ChevronDown,
+  PlusIcon,
+  SearchIcon,
+  ClockIcon,
+  TrashIcon,
+  DraftsIcon,
+  PinIcon,
+  SettingsIcon,
+  HelpCircleIcon,
+  SidebarToggleIcon,
+  FolderPlusIcon,
+  KanbanIcon,
+  HtmlIcon,
+  MarkdownIcon,
+  SparklesIcon,
+  ClaudeIcon,
+  ChatGPTIcon,
+  GeminiIcon,
+  PdfIcon,
+  YouTubeIcon,
+  ColumnsIcon,
+  getFileIcon
+} from './Icons'
 
 interface SidebarProps {
   onSelectFiles: (files: string[]) => void
   selectedFiles: string[]
   files: string[]
   fetchFiles: () => void
+  treeNodes?: TreeNode[]
+  activeAI?: 'agent' | 'claude' | 'chatgpt' | 'gemini'
+  onSelectAI?: (ai: 'agent' | 'claude' | 'chatgpt' | 'gemini') => void
   
   editingFile: string | null
   setEditingFile: (file: string | null) => void
   editValue: string
   setEditValue: (val: string) => void
+  
   onDeleteNotes: (files: string[]) => void
-  onCreateNote: () => void
+  onCreateNote: (parentFolder?: string, title?: string, templateType?: 'html' | 'md') => void
+  onCreateFolder?: (parentFolder: string, name: string) => void
   submitRename: () => void
+  
+  favorites?: string[]
+  onToggleFavorite?: (filePath: string) => void
+  
+  activeView?: 'all' | 'drafts' | 'deleted' | 'workflow' | 'recent' | 'youtube'
+  setActiveView?: (view: 'all' | 'drafts' | 'deleted' | 'workflow' | 'recent' | 'youtube') => void
+  
+  deletedCount?: number
+  draftsCount?: number
+  onEmptyTrash?: () => void
+  
+  onOpenSettings?: () => void
+  onOpenSearch?: () => void
+  onToggleSidebar?: () => void
+  
   width?: number
+  onMoveItem?: (sourcePath: string, targetFolderPath: string) => void
+  onOpenSideBySide?: (filePath: string) => void
+  onOpenNewSession?: (folderPath: string) => void
 }
 
-function Sidebar({
+export default function Sidebar({
   onSelectFiles,
   selectedFiles,
-  files,
+  onOpenSideBySide,
+  files: _files,
   fetchFiles,
+  treeNodes = [],
   editingFile,
   setEditingFile,
   editValue,
   setEditValue,
   onDeleteNotes,
   onCreateNote,
+  onCreateFolder,
   submitRename,
-  width = 250
+  favorites = [],
+  onToggleFavorite,
+  activeView = 'all',
+  setActiveView,
+  deletedCount = 0,
+  draftsCount = 0,
+  onEmptyTrash,
+  onOpenSettings,
+  onOpenSearch,
+  onToggleSidebar,
+  activeAI = 'claude',
+  onSelectAI,
+  width = 260,
+  onMoveItem,
+  onOpenNewSession
 }: SidebarProps) {
-  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, file: string } | null>(null)
-  const [lastClickedFile, setLastClickedFile] = useState<string | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const [dragStartIndex, setDragStartIndex] = useState<number | null>(null)
+  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('sidebar_open_folders')
+      if (saved) return JSON.parse(saved)
+    } catch {}
+    return {}
+  })
 
   useEffect(() => {
-    fetchFiles()
+    try {
+      localStorage.setItem('sidebar_open_folders', JSON.stringify(openFolders))
+    } catch {}
+  }, [openFolders])
+
+  // Assurer que le dossier parent de la note actuellement ouverte est déplié
+  useEffect(() => {
+    if (selectedFiles.length > 0 && selectedFiles[0]) {
+      const parts = selectedFiles[0].split('/')
+      if (parts.length > 1) {
+        setOpenFolders((prev) => {
+          let updated = false
+          const next = { ...prev }
+          let current = ''
+          for (let i = 0; i < parts.length - 1; i++) {
+            current = current ? `${current}/${parts[i]}` : parts[i]
+            if (!next[current]) {
+              next[current] = true
+              updated = true
+            }
+          }
+          return updated ? next : prev
+        })
+      }
+    }
+  }, [selectedFiles])
+
+  const [favouritesOpen, setFavouritesOpen] = useState(true)
+  const [foldersOpen, setFoldersOpen] = useState(true)
+  
+  // Creation modal/inline input
+  const [creatingInFolder, setCreatingInFolder] = useState<{ parentPath: string; type: 'file' | 'folder' } | null>(null)
+  const [newItemName, setNewItemName] = useState('')
+  const creationInputRef = useRef<HTMLInputElement>(null)
+
+  // Context menu
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; itemPath: string; isFolder: boolean } | null>(null)
+
+  // Drag & drop state
+  const [draggingPath, setDraggingPath] = useState<string | null>(null)
+  const [dragOverFolder, setDragOverFolder] = useState<string | null>(null)
+
+  useEffect(() => {
+    const handleClickOutside = () => setContextMenu(null)
+    window.addEventListener('click', handleClickOutside)
+    return () => window.removeEventListener('click', handleClickOutside)
   }, [])
 
   useEffect(() => {
-    const handleCloseMenu = () => setContextMenu(null)
-    const handleMouseUp = () => {
-      setIsDragging(false)
-      setDragStartIndex(null)
+    if (creatingInFolder && creationInputRef.current) {
+      creationInputRef.current.focus()
     }
-    window.addEventListener('click', handleCloseMenu)
-    window.addEventListener('mouseup', handleMouseUp)
-    return () => {
-      window.removeEventListener('click', handleCloseMenu)
-      window.removeEventListener('mouseup', handleMouseUp)
+  }, [creatingInFolder])
+
+  const toggleFolder = (path: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setOpenFolders((prev) => ({ ...prev, [path]: !prev[path] }))
+  }
+
+  const handleStartCreate = (parentPath: string, type: 'file' | 'folder', e: React.MouseEvent) => {
+    e.stopPropagation()
+    // Open parent folder if closed
+    if (parentPath) {
+      setOpenFolders((prev) => ({ ...prev, [parentPath]: true }))
     }
-  }, [])
+    setCreatingInFolder({ parentPath, type })
+    setNewItemName('')
+  }
+
+  // Detect the template type from the typed name
+  const detectTemplateType = (name: string): 'html' | 'md' => {
+    const lower = name.toLowerCase()
+    if (lower.endsWith('.html') || lower.endsWith('.htm')) return 'html'
+    return 'md'
+  }
+
+  const handleFinishCreate = async () => {
+    if (!creatingInFolder) return
+    const name = newItemName.trim()
+    if (name) {
+      if (creatingInFolder.type === 'folder' && onCreateFolder) {
+        await onCreateFolder(creatingInFolder.parentPath, name)
+      } else {
+        const templateType = detectTemplateType(name)
+        await onCreateNote(creatingInFolder.parentPath, name, templateType)
+      }
+    }
+    setCreatingInFolder(null)
+    setNewItemName('')
+  }
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const currentTargetFolderRef = useRef<string>('')
+
+  // Importer un ou des fichiers PDF
+  const handleImportPdf = async (targetFolder = '') => {
+    currentTargetFolderRef.current = targetFolder
+    if (window.api?.importPdfDialog) {
+      try {
+        const imported = await window.api.importPdfDialog(targetFolder)
+        if (imported && imported.length > 0) {
+          fetchFiles()
+          onSelectFiles([imported[0]])
+          if (targetFolder) {
+            setOpenFolders((prev) => ({ ...prev, [targetFolder]: true }))
+          }
+          return
+        }
+      } catch (err) {
+        console.warn('Native dialog failed, fallback to file input:', err)
+        fileInputRef.current?.click()
+        return
+      }
+    } else {
+      fileInputRef.current?.click()
+    }
+  }
+
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    const targetFolder = currentTargetFolderRef.current || ''
+    const importedList: string[] = []
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      const filePath = (file as any).path
+      if (filePath && window.api?.importFileFromPath) {
+        const rel = await window.api.importFileFromPath(filePath, targetFolder)
+        if (rel) importedList.push(rel)
+      } else if (window.api?.savePdfBinary) {
+        const buffer = await file.arrayBuffer()
+        const rel = await window.api.savePdfBinary(file.name, buffer, targetFolder)
+        if (rel) importedList.push(rel)
+      }
+    }
+
+    if (importedList.length > 0) {
+      fetchFiles()
+      onSelectFiles([importedList[0]])
+      if (targetFolder) {
+        setOpenFolders((prev) => ({ ...prev, [targetFolder]: true }))
+      }
+    }
+    e.target.value = ''
+  }
+
+  // Recursive tree renderer
+  const renderTree = (nodes: TreeNode[], depth = 0) => {
+    return nodes.map((node) => {
+      const isFolder = node.type === 'folder'
+      const isOpen = !!openFolders[node.relativePath]
+      const isSelected = selectedFiles.includes(node.relativePath)
+      const isEditing = editingFile === node.relativePath
+      const isFav = favorites.includes(node.relativePath)
+
+      return (
+        <div key={node.id} style={{ display: 'flex', flexDirection: 'column' }}>
+          <div
+            className="tree-row"
+            draggable
+            onDragStart={(e) => {
+              e.stopPropagation()
+              setDraggingPath(node.relativePath)
+              e.dataTransfer.setData('text/plain', node.relativePath)
+              e.dataTransfer.setData('application/x-note-path', node.relativePath)
+              e.dataTransfer.effectAllowed = 'move'
+            }}
+            onDragEnd={() => {
+              setDraggingPath(null)
+              setDragOverFolder(null)
+            }}
+            onDragOver={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              e.dataTransfer.dropEffect = 'move'
+              const targetFolder = isFolder
+                ? node.relativePath
+                : (node.relativePath.includes('/') ? node.relativePath.substring(0, node.relativePath.lastIndexOf('/')) : '')
+              setDragOverFolder(targetFolder)
+            }}
+            onDragLeave={(e) => {
+              e.stopPropagation()
+              if (e.currentTarget.contains(e.relatedTarget as Node)) return
+              setDragOverFolder(null)
+            }}
+            onDrop={async (e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              const targetFolder = isFolder
+                ? node.relativePath
+                : (node.relativePath.includes('/') ? node.relativePath.substring(0, node.relativePath.lastIndexOf('/')) : '')
+
+              // Glisser-déposer de fichiers externes (ex: PDF depuis Windows Explorer)
+              if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                const droppedFiles = Array.from(e.dataTransfer.files)
+                let firstImported = ''
+                for (const f of droppedFiles) {
+                  const srcPath = (f as any).path
+                  if (srcPath && window.api?.importFileFromPath) {
+                    const importedRel = await window.api.importFileFromPath(srcPath, targetFolder)
+                    if (importedRel && !firstImported) {
+                      firstImported = importedRel
+                    }
+                  }
+                }
+                if (firstImported) {
+                  fetchFiles()
+                  onSelectFiles([firstImported])
+                  if (targetFolder) {
+                    setOpenFolders((prev) => ({ ...prev, [targetFolder]: true }))
+                  }
+                }
+                setDraggingPath(null)
+                setDragOverFolder(null)
+                return
+              }
+
+              const source = e.dataTransfer.getData('application/x-note-path') || e.dataTransfer.getData('text/plain') || draggingPath
+
+              if (source && source !== targetFolder) {
+                console.log('[Sidebar Move]', source, '->', targetFolder)
+                onMoveItem?.(source, targetFolder)
+                if (targetFolder) {
+                  setOpenFolders((prev) => ({ ...prev, [targetFolder]: true }))
+                }
+              }
+              setDraggingPath(null)
+              setDragOverFolder(null)
+            }}
+            onClick={(e) => {
+              if (isFolder) {
+                toggleFolder(node.relativePath, e)
+              } else {
+                if (setActiveView) setActiveView('all')
+                onSelectFiles([node.relativePath])
+              }
+            }}
+            onContextMenu={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setContextMenu({
+                x: e.clientX,
+                y: e.clientY,
+                itemPath: node.relativePath,
+                isFolder
+              })
+              if (!isFolder) {
+                onSelectFiles([node.relativePath])
+              }
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              paddingLeft: `${14 + depth * 14}px`,
+              paddingRight: '10px',
+              paddingTop: '5px',
+              paddingBottom: '5px',
+              margin: '1px 6px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              color: isSelected ? '#ffffff' : isFolder ? '#d1d5db' : '#9ca3af',
+              backgroundColor: isFolder && dragOverFolder === node.relativePath
+                ? 'rgba(56, 189, 248, 0.15)'
+                : isSelected ? 'var(--element-active)' : 'transparent',
+              fontWeight: isSelected ? 500 : 400,
+              boxShadow: isFolder && dragOverFolder === node.relativePath
+                ? '0 0 10px rgba(56, 189, 248, 0.3)'
+                : isSelected ? '0 1px 4px rgba(0, 0, 0, 0.25)' : 'none',
+              border: isFolder && dragOverFolder === node.relativePath
+                ? '1px solid #38bdf8'
+                : '1px solid transparent',
+              transition: 'background-color 0.15s, color 0.15s, border-color 0.1s',
+              opacity: draggingPath === node.relativePath ? 0.35 : 1,
+              ...({ WebkitUserDrag: 'element' } as React.CSSProperties)
+            }}
+            onMouseEnter={(e) => {
+              if (!isSelected) {
+                e.currentTarget.style.backgroundColor = 'var(--element-bg)'
+                e.currentTarget.style.color = '#e5e7eb'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isSelected) {
+                e.currentTarget.style.backgroundColor = 'transparent'
+                e.currentTarget.style.color = isFolder ? '#d1d5db' : '#9ca3af'
+              }
+            }}
+          >
+            {/* Folder chevron */}
+            {isFolder ? (
+              <span
+                onClick={(e) => toggleFolder(node.relativePath, e)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  marginRight: '6px',
+                  opacity: 0.7,
+                  cursor: 'pointer'
+                }}
+              >
+                {isOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+              </span>
+            ) : (
+              <span style={{ width: '13px', marginRight: '6px' }} />
+            )}
+
+            {/* Icon */}
+            <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: '7px', color: isSelected ? '#ffffff' : '#9ca3af' }}>
+              {isFolder ? (
+                node.name.toLowerCase().includes('equal') ? (
+                  <span style={{ color: '#4ade80', display: 'inline-flex', alignItems: 'center' }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="#4ade80" stroke="#4ade80" strokeWidth="2">
+                      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                    </svg>
+                  </span>
+                ) : (
+                  isOpen ? <FolderOpenIcon size={14} style={{ color: '#e0af68' }} /> : <FolderIcon size={14} style={{ color: '#e0af68' }} />
+                )
+              ) : (
+                getFileIcon(node.name, 14, isSelected)
+              )}
+            </span>
+
+            {/* Name or Inline Edit */}
+            {isEditing ? (
+              <input
+                autoFocus
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={submitRename}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') submitRename()
+                  if (e.key === 'Escape') setEditingFile(null)
+                }}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  flex: 1,
+                  background: 'var(--element-bg-hover)',
+                  border: '1px solid var(--accent-color)',
+                  color: '#fff',
+                  borderRadius: '4px',
+                  padding: '1px 5px',
+                  fontSize: '13px',
+                  outline: 'none'
+                }}
+              />
+            ) : (
+              <span
+                style={{
+                  flex: 1,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {isFolder ? node.name : node.name.replace(/\.(html|htm|md)$/i, '')}
+              </span>
+            )}
+
+            {/* Action buttons on hover */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+              {isFolder && (
+                <>
+                  {onOpenNewSession && (
+                    <button
+                      className="tree-action-btn"
+                      title="Nouvelle séance de cours"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onOpenNewSession(node.relativePath)
+                      }}
+                    >
+                      <span style={{ fontSize: '11px', lineHeight: 1 }}>🎓</span>
+                    </button>
+                  )}
+                  <button
+                    className="tree-action-btn"
+                    title="Nouvelle note dans ce dossier"
+                    onClick={(e) => handleStartCreate(node.relativePath, 'file', e)}
+                  >
+                    <PlusIcon size={12} />
+                  </button>
+                  <button
+                    className="tree-action-btn"
+                    title="Nouveau sous-dossier"
+                    onClick={(e) => handleStartCreate(node.relativePath, 'folder', e)}
+                  >
+                    <FolderPlusIcon size={12} />
+                  </button>
+                </>
+              )}
+              {!isFolder && onToggleFavorite && (
+                <button
+                  className="tree-action-btn"
+                  title={isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                  style={{ opacity: isFav ? 1 : undefined, color: isFav ? 'var(--accent-color)' : undefined }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onToggleFavorite(node.relativePath)
+                  }}
+                >
+                  <PinIcon size={12} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Child nodes */}
+          {isFolder && isOpen && (
+            <div>
+              {/* If inline creating in this folder */}
+              {creatingInFolder?.parentPath === node.relativePath && (
+                <div style={{ display: 'flex', alignItems: 'center', paddingLeft: `${14 + (depth + 1) * 14}px`, margin: '3px 8px' }}>
+                  {creatingInFolder!.type === 'folder' ? (
+                    <FolderIcon size={13} style={{ marginRight: '6px', flexShrink: 0 }} />
+                  ) : detectTemplateType(newItemName) === 'html' ? (
+                    <HtmlIcon size={13} style={{ marginRight: '6px', flexShrink: 0, color: '#e34f26' }} />
+                  ) : (
+                    <MarkdownIcon size={13} style={{ marginRight: '6px', flexShrink: 0 }} />
+                  )}
+                  <input
+                    ref={creationInputRef}
+                    placeholder={creatingInFolder!.type === 'folder' ? 'Nom du dossier...' : 'nom.html ou nom (→.md)'}
+                    value={newItemName}
+                    onChange={(e) => setNewItemName(e.target.value)}
+                    onBlur={handleFinishCreate}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleFinishCreate()
+                      if (e.key === 'Escape') setCreatingInFolder(null)
+                    }}
+                    style={{
+                      flex: 1,
+                      background: 'var(--element-bg)',
+                      border: `1px solid ${detectTemplateType(newItemName) === 'html' && newItemName ? '#e34f26' : 'var(--accent-color)'}`,
+                      color: '#fff',
+                      borderRadius: '4px',
+                      padding: '2px 6px',
+                      fontSize: '12px',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+              )}
+              {node.children && renderTree(node.children, depth + 1)}
+            </div>
+          )}
+        </div>
+      )
+    })
+  }
 
   return (
-    <div
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Backspace' && selectedFiles.length > 0 && !editingFile) {
-          e.preventDefault()
-          onDeleteNotes(selectedFiles)
-        }
-      }}
+    <aside
       style={{
         width: `${width}px`,
         minWidth: `${width}px`,
-        borderRight: '1px solid var(--border-color)',
         backgroundColor: 'var(--sidebar-bg)',
-        color: 'var(--text-primary)',
+        borderRight: '1px solid var(--border-color)',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'space-between',
         height: '100%',
         userSelect: 'none',
-        outline: 'none'
+        overflow: 'hidden'
       }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flexGrow: 1 }}>
-        {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '16px 14px 8px 14px',
-            marginBottom: '4px'
-          }}
-        >
-          <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 'bold', letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Notes</h3>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,application/pdf"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleFileInputChange}
+      />
+      {/* Top Window Dots & Toggle Bar */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '14px 16px 10px 16px',
+          borderBottom: '1px solid var(--border-subtle)'
+        }}
+      >
+        {/* Sélecteur d'IA : Agent, Claude, ChatGPT, Gemini */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          {/* Agent IA */}
           <button
-            onClick={onCreateNote}
+            onClick={() => onSelectAI?.('agent')}
+            title="Activer l'Agent IA"
             style={{
-              background: 'transparent',
-              color: 'var(--text-secondary)',
-              border: 'none',
-              borderRadius: '8px',
-              width: '28px',
-              height: '28px',
-              fontSize: '18px',
-              cursor: 'pointer',
+              width: '24px',
+              height: '24px',
+              borderRadius: '6px',
+              border: activeAI === 'agent' ? '1px solid rgba(16, 185, 129, 0.45)' : '1px solid transparent',
+              backgroundColor: activeAI === 'agent' ? 'rgba(16, 185, 129, 0.16)' : 'transparent',
+              color: activeAI === 'agent' ? '#34d399' : '#71717a',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              lineHeight: '28px',
-              transition: 'all 0.2s'
+              cursor: 'pointer',
+              padding: 0,
+              transition: 'all 0.15s ease'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--element-bg)';
-              e.currentTarget.style.color = 'var(--text-primary)';
+              if (activeAI !== 'agent') {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
+                e.currentTarget.style.color = '#34d399'
+              }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = 'var(--text-secondary)';
+              if (activeAI !== 'agent') {
+                e.currentTarget.style.backgroundColor = 'transparent'
+                e.currentTarget.style.color = '#71717a'
+              }
             }}
           >
-            +
+            <SparklesIcon size={13} color={activeAI === 'agent' ? '#34d399' : 'currentColor'} />
           </button>
-        </div>
-        {/* File List */}
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0, overflowY: 'auto', flexGrow: 1 }}>
-          {/* Option virtuelle "Claude Code" */}
-          <li
-            onClick={() => {
-              onSelectFiles(['__claude_code__'])
-              setLastClickedFile('__claude_code__')
-            }}
-            onContextMenu={(e) => e.preventDefault()}
+
+          {/* Claude */}
+          <button
+            onClick={() => onSelectAI?.('claude')}
+            title="Activer Claude"
             style={{
-              padding: '8px 10px',
-              cursor: 'pointer',
-              borderRadius: '8px',
-              margin: '4px 8px',
-              backgroundColor: selectedFiles.includes('__claude_code__') ? 'var(--element-bg)' : 'transparent',
-              color: selectedFiles.includes('__claude_code__') ? 'var(--text-primary)' : 'var(--text-secondary)',
-              fontWeight: selectedFiles.includes('__claude_code__') ? '600' : 'normal',
+              width: '24px',
+              height: '24px',
+              borderRadius: '6px',
+              border: activeAI === 'claude' ? '1px solid rgba(217, 119, 87, 0.45)' : '1px solid transparent',
+              backgroundColor: activeAI === 'claude' ? 'rgba(217, 119, 87, 0.16)' : 'transparent',
+              color: activeAI === 'claude' ? '#D97757' : '#71717a',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              transition: 'background-color 0.2s, color 0.2s'
+              justifyContent: 'center',
+              cursor: 'pointer',
+              padding: 0,
+              transition: 'all 0.15s ease'
             }}
             onMouseEnter={(e) => {
-              if (!selectedFiles.includes('__claude_code__')) {
-                e.currentTarget.style.backgroundColor = 'var(--element-bg)'
-                e.currentTarget.style.color = 'var(--text-primary)'
+              if (activeAI !== 'claude') {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
+                e.currentTarget.style.color = '#D97757'
               }
             }}
             onMouseLeave={(e) => {
-              if (!selectedFiles.includes('__claude_code__')) {
+              if (activeAI !== 'claude') {
                 e.currentTarget.style.backgroundColor = 'transparent'
-                e.currentTarget.style.color = 'var(--text-secondary)'
+                e.currentTarget.style.color = '#71717a'
               }
             }}
           >
-            <svg width="16" height="16" fill="#D97757" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ filter: selectedFiles.includes('__claude_code__') ? 'drop-shadow(0 0 4px rgba(217,119,87,0.5))' : 'none' }}><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg>
-            Claude
-          </li>
+            <ClaudeIcon size={13} />
+          </button>
 
-          {files.map((file, index) => {
-            const isEditing = editingFile === file
-            const displayName = file.replace('.md', '')
-
-            const handleNoteClick = (e: React.MouseEvent) => {
-              if (isEditing) return
-
-              let newSelection: string[] = []
-
-              if (e.ctrlKey || e.metaKey) {
-                if (selectedFiles.includes(file)) {
-                  newSelection = selectedFiles.filter((f) => f !== file)
-                } else {
-                  const cleanPrev = selectedFiles.filter((f) => f !== '__claude_code__')
-                  newSelection = [...cleanPrev, file]
-                }
-              } else if (e.shiftKey && lastClickedFile && lastClickedFile !== '__claude_code__') {
-                const startIdx = files.indexOf(lastClickedFile)
-                const endIdx = files.indexOf(file)
-                if (startIdx !== -1 && endIdx !== -1) {
-                  const min = Math.min(startIdx, endIdx)
-                  const max = Math.max(startIdx, endIdx)
-                  newSelection = files.slice(min, max + 1)
-                } else {
-                  newSelection = [file]
-                }
-              } else {
-                newSelection = [file]
+          {/* ChatGPT */}
+          <button
+            onClick={() => onSelectAI?.('chatgpt')}
+            title="Activer ChatGPT"
+            style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '6px',
+              border: activeAI === 'chatgpt' ? '1px solid rgba(255, 255, 255, 0.45)' : '1px solid transparent',
+              backgroundColor: activeAI === 'chatgpt' ? 'rgba(255, 255, 255, 0.16)' : 'transparent',
+              color: activeAI === 'chatgpt' ? '#ffffff' : '#71717a',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              padding: 0,
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => {
+              if (activeAI !== 'chatgpt') {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
+                e.currentTarget.style.color = '#ffffff'
               }
+            }}
+            onMouseLeave={(e) => {
+              if (activeAI !== 'chatgpt') {
+                e.currentTarget.style.backgroundColor = 'transparent'
+                e.currentTarget.style.color = '#71717a'
+              }
+            }}
+          >
+            <ChatGPTIcon size={13} />
+          </button>
 
-              onSelectFiles(newSelection)
-              setLastClickedFile(file)
-            }
-            
-            return (
-              <li
-                key={file}
-                onClick={handleNoteClick}
-                onMouseDown={(e) => {
-                  if (e.button !== 0 || isEditing) return
-                  setIsDragging(true)
-                  setDragStartIndex(index)
-                  if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                    onSelectFiles([file])
-                    setLastClickedFile(file)
-                  }
-                }}
-                onContextMenu={(e) => {
-                  e.preventDefault()
-                  if (!selectedFiles.includes(file)) {
-                    onSelectFiles([file])
-                    setLastClickedFile(file)
-                  }
-                  setContextMenu({
-                    x: e.clientX,
-                    y: e.clientY,
-                    file: file
-                  })
-                }}
-                style={{
-                  padding: '8px 10px',
-                  cursor: 'pointer',
-                  borderRadius: '8px',
-                  margin: '4px 8px',
-                  backgroundColor: isEditing ? 'var(--element-bg)' : (selectedFiles.includes(file) ? 'var(--element-bg-hover)' : 'transparent'),
-                  color: selectedFiles.includes(file) ? 'var(--accent-color)' : 'var(--text-primary)',
-                  border: '1px solid ' + (selectedFiles.includes(file) ? 'var(--border-subtle)' : 'transparent'),
-                  fontWeight: selectedFiles.includes(file) ? '600' : 'normal',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  transition: 'background-color 0.2s, color 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  if (isDragging && dragStartIndex !== null) {
-                    const min = Math.min(dragStartIndex, index)
-                    const max = Math.max(dragStartIndex, index)
-                    const newSelection = files.slice(min, max + 1)
-                    onSelectFiles(newSelection)
-                    setLastClickedFile(file)
-                  }
-                  if (!isEditing && !selectedFiles.includes(file)) {
-                    e.currentTarget.style.backgroundColor = 'var(--element-bg)'
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isEditing && !selectedFiles.includes(file)) {
-                    e.currentTarget.style.backgroundColor = 'transparent'
-                  }
-                }}
-              >
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    onBlur={submitRename}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') submitRename()
-                      if (e.key === 'Escape') setEditingFile(null)
-                    }}
-                    autoFocus
-                    placeholder={file.replace('.md', '')}
-                    style={{
-                      width: '100%',
-                      background: 'var(--app-bg)',
-                      color: 'var(--text-primary)',
-                      border: '1px solid var(--accent-color)',
-                      borderRadius: '4px',
-                      padding: '4px 8px',
-                      outline: 'none',
-                      fontSize: '14px',
-                      fontFamily: 'inherit'
-                    }}
-                  />
-                ) : (
-                  displayName
-                )}
-              </li>
-            )
-          })}
-        </ul>
+          {/* Gemini */}
+          <button
+            onClick={() => onSelectAI?.('gemini')}
+            title="Activer Gemini"
+            style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '6px',
+              border: activeAI === 'gemini' ? '1px solid rgba(66, 133, 244, 0.45)' : '1px solid transparent',
+              backgroundColor: activeAI === 'gemini' ? 'rgba(66, 133, 244, 0.16)' : 'transparent',
+              color: activeAI === 'gemini' ? '#4285f4' : '#71717a',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              padding: 0,
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => {
+              if (activeAI !== 'gemini') {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
+                e.currentTarget.style.color = '#4285f4'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (activeAI !== 'gemini') {
+                e.currentTarget.style.backgroundColor = 'transparent'
+                e.currentTarget.style.color = '#71717a'
+              }
+            }}
+          >
+            <GeminiIcon size={13} />
+          </button>
+        </div>
+
+        {/* Sidebar Toggle button */}
+        {onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            title="Masquer la barre latérale (Ctrl+B)"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              padding: '4px',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+          >
+            <SidebarToggleIcon size={16} />
+          </button>
+        )}
       </div>
 
-      {/* Context Menu Dropdown */}
+      {/* Main scrollable navigation body */}
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '10px 6px' }}>
+        
+        {/* Quick Action Buttons with Shortcuts */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '14px' }}>
+          <button
+            onClick={(e) => handleStartCreate('', 'file', e)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '7px 10px',
+              borderRadius: '6px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-primary)',
+              fontSize: '13px',
+              cursor: 'pointer',
+              transition: 'background-color 0.15s'
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <PlusIcon size={15} style={{ color: 'var(--accent-color)' }} />
+              <span>New Note</span>
+            </span>
+            <kbd>Ctrl+N</kbd>
+          </button>
+
+          <button
+            onClick={() => handleImportPdf('')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '7px 10px',
+              borderRadius: '6px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-primary)',
+              fontSize: '13px',
+              cursor: 'pointer',
+              transition: 'background-color 0.15s'
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <PdfIcon size={15} />
+              <span>Importer un PDF</span>
+            </span>
+          </button>
+
+          <button
+            onClick={onOpenSearch}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '7px 10px',
+              borderRadius: '6px',
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-primary)',
+              fontSize: '13px',
+              cursor: 'pointer',
+              transition: 'background-color 0.15s'
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <SearchIcon size={15} style={{ color: 'var(--text-secondary)' }} />
+              <span>Search</span>
+            </span>
+            <kbd>Ctrl+S</kbd>
+          </button>
+
+          <button
+            onClick={() => setActiveView && setActiveView(activeView === 'recent' ? 'all' : 'recent')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '7px 10px',
+              borderRadius: '6px',
+              background: activeView === 'recent' ? 'var(--element-active)' : 'transparent',
+              border: 'none',
+              color: activeView === 'recent' ? '#fff' : 'var(--text-primary)',
+              fontSize: '13px',
+              cursor: 'pointer',
+              transition: 'background-color 0.15s'
+            }}
+            onMouseEnter={(e) => {
+              if (activeView !== 'recent') e.currentTarget.style.backgroundColor = 'var(--element-bg)'
+            }}
+            onMouseLeave={(e) => {
+              if (activeView !== 'recent') e.currentTarget.style.backgroundColor = 'transparent'
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ClockIcon size={15} style={{ color: activeView === 'recent' ? '#38bdf8' : 'var(--text-secondary)' }} />
+              <span>Recent</span>
+            </span>
+            <kbd>Ctrl+R</kbd>
+          </button>
+        </div>
+
+        {/* System Views (Workflow, Drafts, Deleted) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '18px', paddingBottom: '12px', borderBottom: '1px solid var(--border-subtle)' }}>
+          <button
+            onClick={() => setActiveView && setActiveView('workflow')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '6px 10px',
+              borderRadius: '6px',
+              background: activeView === 'workflow' ? 'var(--element-active)' : 'transparent',
+              border: 'none',
+              color: activeView === 'workflow' ? '#fff' : 'var(--text-secondary)',
+              fontSize: '13px',
+              cursor: 'pointer',
+              transition: 'background-color 0.15s'
+            }}
+            onMouseEnter={(e) => {
+              if (activeView !== 'workflow') e.currentTarget.style.backgroundColor = 'var(--element-bg)'
+            }}
+            onMouseLeave={(e) => {
+              if (activeView !== 'workflow') e.currentTarget.style.backgroundColor = 'transparent'
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <KanbanIcon size={15} style={{ color: activeView === 'workflow' ? '#38bdf8' : 'inherit' }} />
+              <span>Workflow</span>
+            </span>
+            <span style={{ fontSize: '10px', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.12)', border: '1px solid rgba(56, 189, 248, 0.25)', padding: '1px 6px', borderRadius: '10px' }}>
+              Board
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveView && setActiveView('youtube')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '6px 10px',
+              borderRadius: '6px',
+              background: activeView === 'youtube' ? 'var(--element-active)' : 'transparent',
+              border: 'none',
+              color: activeView === 'youtube' ? '#fff' : 'var(--text-secondary)',
+              fontSize: '13px',
+              cursor: 'pointer',
+              transition: 'background-color 0.15s'
+            }}
+            onMouseEnter={(e) => {
+              if (activeView !== 'youtube') e.currentTarget.style.backgroundColor = 'var(--element-bg)'
+            }}
+            onMouseLeave={(e) => {
+              if (activeView !== 'youtube') e.currentTarget.style.backgroundColor = 'transparent'
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <YouTubeIcon size={16} />
+              <span>YouTube</span>
+            </span>
+            <span style={{ fontSize: '10px', color: '#f87171', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)', padding: '1px 6px', borderRadius: '10px' }}>
+              Onglets
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveView && setActiveView('drafts')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '6px 10px',
+              borderRadius: '6px',
+              background: activeView === 'drafts' ? 'var(--element-active)' : 'transparent',
+              border: 'none',
+              color: activeView === 'drafts' ? '#fff' : 'var(--text-secondary)',
+              fontSize: '13px',
+              cursor: 'pointer',
+              transition: 'background-color 0.15s'
+            }}
+            onMouseEnter={(e) => {
+              if (activeView !== 'drafts') e.currentTarget.style.backgroundColor = 'var(--element-bg)'
+            }}
+            onMouseLeave={(e) => {
+              if (activeView !== 'drafts') e.currentTarget.style.backgroundColor = 'transparent'
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <DraftsIcon size={15} />
+              <span>Drafts</span>
+            </span>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--element-bg)', padding: '1px 6px', borderRadius: '10px' }}>
+              {draftsCount}
+            </span>
+          </button>
+
+          <div
+            onClick={() => setActiveView && setActiveView('deleted')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '6px 10px',
+              borderRadius: '6px',
+              background: activeView === 'deleted' ? 'var(--element-active)' : 'transparent',
+              color: activeView === 'deleted' ? '#fff' : 'var(--text-secondary)',
+              fontSize: '13px',
+              cursor: 'pointer',
+              transition: 'background-color 0.15s'
+            }}
+            onMouseEnter={(e) => {
+              if (activeView !== 'deleted') e.currentTarget.style.backgroundColor = 'var(--element-bg)'
+            }}
+            onMouseLeave={(e) => {
+              if (activeView !== 'deleted') e.currentTarget.style.backgroundColor = 'transparent'
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <TrashIcon size={15} />
+              <span>Deleted</span>
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {deletedCount > 0 && onEmptyTrash && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onEmptyTrash()
+                  }}
+                  title="Vider la corbeille"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    transition: 'all 0.15s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = '#ef4444'
+                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.15)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'var(--text-muted)'
+                    e.currentTarget.style.backgroundColor = 'transparent'
+                  }}
+                >
+                  Vider
+                </button>
+              )}
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--element-bg)', padding: '1px 6px', borderRadius: '10px' }}>
+                {deletedCount}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Favourites Section */}
+        {favorites.length > 0 && (
+          <div style={{ marginBottom: '18px' }}>
+            <div
+              onClick={() => setFavouritesOpen(!favouritesOpen)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '4px 8px',
+                fontSize: '11px',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.6px',
+                color: 'var(--text-muted)',
+                cursor: 'pointer'
+              }}
+            >
+              <span>Favourites</span>
+              <span style={{ opacity: 0.7 }}>
+                {favouritesOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              </span>
+            </div>
+
+            {favouritesOpen && (
+              <div style={{ marginTop: '4px' }}>
+                {favorites.map((favPath) => {
+                  const isSelected = selectedFiles.includes(favPath)
+                  const cleanName = favPath.split('/').pop()?.replace(/\.(html|htm|md|markdown)$/i, '') || favPath
+
+                  return (
+                    <div
+                      key={favPath}
+                      onClick={() => {
+                        if (setActiveView) setActiveView('all')
+                        onSelectFiles([favPath])
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '5px 10px',
+                        margin: '1px 4px',
+                        borderRadius: '6px',
+                        fontSize: '12.5px',
+                        cursor: 'pointer',
+                        color: isSelected ? '#fff' : 'var(--text-primary)',
+                        backgroundColor: isSelected ? 'var(--element-active)' : 'transparent',
+                        transition: 'background-color 0.15s'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--element-bg)'
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'
+                      }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                        {getFileIcon(favPath, 13, isSelected)}
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {cleanName}
+                        </span>
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* My Folders Explorer Section */}
+        <div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '4px 8px',
+              fontSize: '11px',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.6px',
+              color: 'var(--text-muted)'
+            }}
+          >
+            <div
+              onClick={() => setFoldersOpen(!foldersOpen)}
+              style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}
+            >
+              <span>{foldersOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>
+              <span>My Folders</span>
+            </div>
+
+            {/* Create root file and folder buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <button
+                onClick={(e) => handleStartCreate('', 'file', e)}
+                title="Nouveau fichier racine (ex: nom.html ou nom.md)"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  padding: '2px 4px',
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+              >
+                <PlusIcon size={13} />
+              </button>
+
+              <button
+                onClick={(e) => handleStartCreate('', 'folder', e)}
+                title="Nouveau dossier racine"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  padding: '2px 4px',
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+              >
+                <FolderPlusIcon size={13} />
+              </button>
+
+              <button
+                onClick={() => handleImportPdf('')}
+                title="Importer un fichier PDF"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  padding: '2px 4px',
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+              >
+                <PdfIcon size={13} />
+              </button>
+            </div>
+          </div>
+
+          {/* Root inline creation input */}
+          {creatingInFolder?.parentPath === '' && (
+            <div style={{ display: 'flex', alignItems: 'center', padding: '4px 10px', margin: '4px 6px' }}>
+              {creatingInFolder.type === 'folder' ? (
+                <FolderIcon size={14} style={{ marginRight: '6px', flexShrink: 0 }} />
+              ) : detectTemplateType(newItemName) === 'html' ? (
+                <HtmlIcon size={14} style={{ marginRight: '6px', flexShrink: 0, color: '#e34f26' }} />
+              ) : (
+                <MarkdownIcon size={14} style={{ marginRight: '6px', flexShrink: 0 }} />
+              )}
+              <input
+                ref={creationInputRef}
+                placeholder={creatingInFolder.type === 'folder' ? 'Nouveau dossier...' : 'nom.html ou nom (→.md)'}
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
+                onBlur={handleFinishCreate}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleFinishCreate()
+                  if (e.key === 'Escape') setCreatingInFolder(null)
+                }}
+                style={{
+                  flex: 1,
+                  background: 'var(--element-bg)',
+                  border: `1px solid ${detectTemplateType(newItemName) === 'html' && newItemName ? '#e34f26' : 'var(--accent-color)'}`,
+                  color: '#fff',
+                  borderRadius: '4px',
+                  padding: '3px 6px',
+                  fontSize: '12px',
+                  outline: 'none'
+                }}
+              />
+            </div>
+          )}
+
+          {foldersOpen && (
+            <div style={{ marginTop: '4px' }}>
+              {treeNodes.length > 0 ? (
+                renderTree(treeNodes)
+              ) : (
+                <div style={{ padding: '12px 14px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                  Aucune note trouvée.
+                </div>
+              )}
+
+              {/* Dedicated Root Drop Target when dragging */}
+              {draggingPath && (
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    e.dataTransfer.dropEffect = 'move'
+                    setDragOverFolder('')
+                  }}
+                  onDragLeave={(e) => {
+                    e.stopPropagation()
+                    if (e.currentTarget.contains(e.relatedTarget as Node)) return
+                    setDragOverFolder(null)
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    const source = e.dataTransfer.getData('application/x-note-path') || e.dataTransfer.getData('text/plain') || draggingPath
+                    if (source) {
+                      console.log('[Sidebar Move to Root]', source)
+                      onMoveItem?.(source, '')
+                    }
+                    setDraggingPath(null)
+                    setDragOverFolder(null)
+                  }}
+                  style={{
+                    margin: '8px 10px',
+                    padding: '8px',
+                    border: dragOverFolder === '' ? '1.5px dashed #38bdf8' : '1px dashed rgba(255, 255, 255, 0.15)',
+                    backgroundColor: dragOverFolder === '' ? 'rgba(56, 189, 248, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                    borderRadius: '6px',
+                    textAlign: 'center',
+                    fontSize: '11px',
+                    fontWeight: 500,
+                    color: dragOverFolder === '' ? '#38bdf8' : 'var(--text-muted)',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  Déposer ici pour déplacer à la racine
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Pinned Bottom Footer (Settings & Help) */}
+      <div
+        style={{
+          borderTop: '1px solid var(--border-subtle)',
+          padding: '8px 10px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '2px'
+        }}
+      >
+        <button
+          onClick={onOpenSettings}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '7px 10px',
+            borderRadius: '6px',
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--text-secondary)',
+            fontSize: '13px',
+            cursor: 'pointer',
+            textAlign: 'left'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'var(--element-bg)'
+            e.currentTarget.style.color = '#fff'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent'
+            e.currentTarget.style.color = 'var(--text-secondary)'
+          }}
+        >
+          <SettingsIcon size={15} />
+          <span>Settings</span>
+        </button>
+
+        <button
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '7px 10px',
+            borderRadius: '6px',
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--text-secondary)',
+            fontSize: '13px',
+            cursor: 'pointer',
+            textAlign: 'left'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'var(--element-bg)'
+            e.currentTarget.style.color = '#fff'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent'
+            e.currentTarget.style.color = 'var(--text-secondary)'
+          }}
+        >
+          <HelpCircleIcon size={15} />
+          <span>Help & Support</span>
+        </button>
+      </div>
+
+      {/* Context Menu for right-click on tree item */}
       {contextMenu && (
         <div
-          onContextMenu={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-          }}
           style={{
             position: 'fixed',
             top: `${contextMenu.y}px`,
             left: `${contextMenu.x}px`,
-            background: 'var(--element-bg)',
+            backgroundColor: '#202020',
             border: '1px solid var(--border-color)',
             borderRadius: '8px',
-            zIndex: 10000,
             padding: '4px',
-            minWidth: '150px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-            fontFamily: 'sans-serif',
-            fontSize: '13px'
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.6)',
+            zIndex: 99999,
+            minWidth: '150px'
           }}
+          onClick={(e) => e.stopPropagation()}
         >
-          {selectedFiles.length === 1 && (
+          {contextMenu.isFolder && (
+            <>
+              <div
+                style={{
+                  padding: '6px 10px',
+                  fontSize: '12.5px',
+                  color: '#e5e7eb',
+                  cursor: 'pointer',
+                  borderRadius: '4px'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                onClick={() => {
+                  handleImportPdf(contextMenu.itemPath)
+                  setContextMenu(null)
+                }}
+              >
+                Importer un PDF ici
+              </div>
+              {onOpenNewSession && (
+                <div
+                  style={{
+                    padding: '6px 10px',
+                    fontSize: '12.5px',
+                    color: '#38bdf8',
+                    cursor: 'pointer',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontWeight: 500
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(56, 189, 248, 0.15)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  onClick={() => {
+                    onOpenNewSession(contextMenu.itemPath)
+                    setContextMenu(null)
+                  }}
+                >
+                  <span>🎓</span>
+                  <span>Nouvelle séance...</span>
+                </div>
+              )}
+              <div
+                style={{
+                  padding: '6px 10px',
+                  fontSize: '12.5px',
+                  color: '#e5e7eb',
+                  cursor: 'pointer',
+                  borderRadius: '4px'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                onClick={(e) => {
+                  handleStartCreate(contextMenu.itemPath, 'file', e)
+                  setContextMenu(null)
+                }}
+              >
+                Nouveau fichier
+              </div>
+              <div
+                style={{
+                  padding: '6px 10px',
+                  fontSize: '12.5px',
+                  color: '#e5e7eb',
+                  cursor: 'pointer',
+                  borderRadius: '4px'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                onClick={(e) => {
+                  handleStartCreate(contextMenu.itemPath, 'folder', e)
+                  setContextMenu(null)
+                }}
+              >
+                Nouveau dossier
+              </div>
+            </>
+          )}
+
+          {!contextMenu.isFolder && contextMenu.itemPath.toLowerCase().endsWith('.pdf') && (
+            <>
+              <div
+                style={{
+                  padding: '6px 10px',
+                  fontSize: '12.5px',
+                  color: '#e5e7eb',
+                  cursor: 'pointer',
+                  borderRadius: '4px'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                onClick={() => {
+                  if (window.api?.openInBrowser) window.api.openInBrowser(contextMenu.itemPath)
+                  setContextMenu(null)
+                }}
+              >
+                Ouvrir en externe
+              </div>
+              <div
+                style={{
+                  padding: '6px 10px',
+                  fontSize: '12.5px',
+                  color: '#e5e7eb',
+                  cursor: 'pointer',
+                  borderRadius: '4px'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                onClick={() => {
+                  if (window.api?.showItemInFolder) window.api.showItemInFolder(contextMenu.itemPath)
+                  setContextMenu(null)
+                }}
+              >
+                Afficher dans le dossier
+              </div>
+            </>
+          )}
+
+          {!contextMenu.isFolder && (
             <div
-              onClick={() => {
-                setEditingFile(contextMenu.file)
-                setEditValue(contextMenu.file.replace('.md', ''))
-                setContextMenu(null)
-              }}
               style={{
-                padding: '8px 12px',
+                padding: '6px 10px',
+                fontSize: '12.5px',
+                color: '#e5e7eb',
                 cursor: 'pointer',
-                color: 'var(--text-primary)',
                 borderRadius: '4px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                transition: 'background-color 0.2s'
+                gap: '8px'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              onClick={() => {
+                if (onOpenSideBySide) onOpenSideBySide(contextMenu.itemPath)
+                setContextMenu(null)
+              }}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-              </svg>
-              Renommer
+              <ColumnsIcon size={13} style={{ color: '#38bdf8' }} />
+              <span>Ouvrir côte à côte</span>
             </div>
           )}
+
+          {!contextMenu.isFolder && (
+            <div
+              style={{
+                padding: '6px 10px',
+                fontSize: '12.5px',
+                color: '#e5e7eb',
+                cursor: 'pointer',
+                borderRadius: '4px'
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              onClick={() => {
+                if (onToggleFavorite) onToggleFavorite(contextMenu.itemPath)
+                setContextMenu(null)
+              }}
+            >
+              {favorites.includes(contextMenu.itemPath) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+            </div>
+          )}
+
           <div
+            style={{
+              padding: '6px 10px',
+              fontSize: '12.5px',
+              color: '#e5e7eb',
+              cursor: 'pointer',
+              borderRadius: '4px'
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             onClick={() => {
-              onDeleteNotes([contextMenu.file])
+              setEditingFile(contextMenu.itemPath)
+              setEditValue(contextMenu.itemPath.split('/').pop()?.replace(/\.(html|htm|md|markdown)$/i, '') || '')
               setContextMenu(null)
             }}
-            style={{
-              padding: '8px 12px',
-              cursor: 'pointer',
-              color: 'var(--danger-color)',
-              borderRadius: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--danger-bg-hover)'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              <line x1="10" y1="11" x2="10" y2="17"></line>
-              <line x1="14" y1="11" x2="14" y2="17"></line>
-            </svg>
+            Renommer
+          </div>
+
+          <div
+            style={{
+              padding: '6px 10px',
+              fontSize: '12.5px',
+              color: 'var(--danger-color)',
+              cursor: 'pointer',
+              borderRadius: '4px',
+              borderTop: '1px solid var(--border-subtle)',
+              marginTop: '4px'
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--danger-bg-hover)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+            onClick={() => {
+              onDeleteNotes([contextMenu.itemPath])
+              setContextMenu(null)
+            }}
+          >
             Supprimer
           </div>
         </div>
       )}
-    </div>
+    </aside>
   )
 }
-
-export default Sidebar

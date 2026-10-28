@@ -1,38 +1,50 @@
 :root {
-  /* Modern YouTube / Obsidian Theme Colors */
-  --app-bg: #0f0f0f;
-  --sidebar-bg: #212121;
-  --element-bg: #272727;
-  --element-bg-hover: #3f3f3f;
+  /* Harmonized Dark Studio Theme */
+  --app-bg: #0b0b0e;
+  --sidebar-bg: #111116;
+  --editor-bg: #16161d;
+  --element-bg: #1a1a23;
+  --element-bg-hover: #22222e;
+  --element-active: #292938;
   
-  --text-primary: #f1f1f1;
-  --text-secondary: #aaaaaa;
+  --text-primary: #f4f4f7;
+  --text-secondary: #9ea3b0;
+  --text-muted: #686c7d;
   
-  --accent-color: #3ea6ff;
-  --accent-color-hover: #6ebcff;
+  --accent-color: #6366f1;
+  --accent-color-hover: #818cf8;
+  --accent-amber: #f59e0b;
+  --accent-blue: #38bdf8;
+  --accent-purple: #c084fc;
+  --accent-rose: #f43f5e;
   
-  --border-color: #333333;
-  --border-subtle: #2a2a2a;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.045);
   
-  --danger-color: #ff5555;
-  --danger-bg-hover: rgba(255, 85, 85, 0.1);
+  --danger-color: #f87171;
+  --danger-bg-hover: rgba(248, 113, 113, 0.12);
+
+  /* Callout box variables */
+  --callout-bg: rgba(245, 158, 11, 0.08);
+  --callout-border: rgba(245, 158, 11, 0.32);
+  --callout-text: #fde68a;
 
   /* Override @uiw/react-md-editor vars to match our theme */
-  --color-canvas-default: var(--app-bg);
-  --color-canvas-subtle: var(--app-bg);
+  --color-canvas-default: var(--editor-bg);
+  --color-canvas-subtle: var(--editor-bg);
   --color-border-default: transparent;
   --color-border-muted: var(--border-color);
-  --color-neutral-muted: rgba(255, 255, 255, 0.1);
+  --color-neutral-muted: rgba(255, 255, 255, 0.05);
   --color-fg-default: var(--text-primary);
   --color-fg-muted: var(--text-secondary);
 }
 
 [data-color-mode*='dark'], [data-color-mode*='dark'] body, .w-md-editor[data-color-mode="dark"] {
-  --color-canvas-default: var(--app-bg) !important;
-  --color-canvas-subtle: var(--app-bg) !important;
+  --color-canvas-default: var(--editor-bg) !important;
+  --color-canvas-subtle: var(--editor-bg) !important;
   --color-border-default: transparent !important;
   --color-border-muted: var(--border-color) !important;
-  --color-neutral-muted: rgba(255, 255, 255, 0.1) !important;
+  --color-neutral-muted: rgba(255, 255, 255, 0.08) !important;
   --color-fg-default: var(--text-primary) !important;
   --color-fg-muted: var(--text-secondary) !important;
 }
@@ -172,6 +184,7 @@ body {
 /* Zoom support */
 .w-md-editor-text, .wmde-markdown {
   zoom: var(--editor-zoom, 100%);
+  transition: zoom 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Fix MDEditor Toolbar background */
@@ -180,27 +193,39 @@ body {
   border-bottom: 1px solid var(--border-color) !important;
 }
 
-/* Custom Minimalist Scrollbars (VS Code / macOS style) */
+/* Custom Minimalist Discreet Scrollbars */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-  background-color: transparent;
+  width: 5px !important;
+  height: 5px !important;
+  background-color: transparent !important;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: transparent !important;
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  border: 2px solid var(--app-bg);
+  background-color: rgba(255, 255, 255, 0.18) !important;
+  border-radius: 9999px !important;
+  border: none !important;
+  transition: background-color 0.2s ease !important;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 ::-webkit-scrollbar-corner {
-  background: transparent;
+  background: transparent !important;
+}
+
+* {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent !important;
 }

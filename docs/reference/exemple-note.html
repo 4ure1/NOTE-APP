@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<!--
+  Note de référence du design system NOTE-APP.
+  Reconstruite le 2026-10-28 à partir de src/renderer/src/assets/theme.css et des snippets par défaut
+  (src/renderer/src/assets/snippets.default.json), faute de note réelle fournie.
+  Le <style> ci-dessous est identique à theme.css : si l'un change, mettre l'autre à jour.
+
+  Correspondance avec les noms utilisés dans docs/SPEC.md :
+    card    -> .step (+ .purple / .orange / .green / .red) ; grille de cartes = .duo + auto-fit (snippet « cards »)
+    callout -> .note (analogie, piège) ou .result (+ .warn / .bad) (à retenir, erreur)
+    duo     -> .duo (deux colonnes)
+    qcm     -> .quiz-item + .q-title + <details> (snippets « qcm » et « vf »)
+-->
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Les boucles en Java et en Python</title>
+<style>
+  :root{
+    --bg: #1e1e1e;
+    --card: #2d2d30;
+    --border: #3e3e42;
+    --text: #d4d4d4;
+    --text-dim: #9d9d9d;
+    --blue: #4fc1ff;
+    --purple: #c586c0;
+    --orange: #ce9178;
+    --green: #6a9955;
+    --yellow: #dcdcaa;
+    --red: #f48771;
+  }
+  * { box-sizing: border-box; }
+  body{
+    background: #252526;
+    color: var(--text);
+    font-family: Georgia, Cambria, 'Times New Roman', serif;
+    line-height: 1.65;
+    margin: 0;
+    padding: 40px 18px 80px;
+  }
+  .container{ max-width: 960px; margin: 0 auto; }
+
+  h1{
+    text-align: center;
+    font-family: 'Trebuchet MS', sans-serif;
+    font-size: 2.3em;
+    font-weight: 800;
+    background: linear-gradient(90deg, var(--blue), var(--purple), var(--orange), var(--green), var(--yellow), var(--blue));
+    background-size: 400% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientMove 6s linear infinite;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+  @keyframes gradientMove{
+    0%{ background-position: 0% 50%; }
+    100%{ background-position: 400% 50%; }
+  }
+  .subtitle{ text-align:center; font-style:italic; color:#bdbdbd; font-size:1.05em; margin-bottom:40px; }
+
+  h2{
+    font-family: 'Trebuchet MS', sans-serif;
+    color: var(--blue);
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 10px;
+    margin-top: 55px;
+    margin-bottom: 20px;
+    font-size: 1.5em;
+  }
+  h3{
+    font-family: 'Trebuchet MS', sans-serif;
+    color: var(--purple);
+    margin-top: 30px;
+    font-size: 1.15em;
+  }
+  p { margin: 12px 0; }
+
+  .step{
+    background: var(--card);
+    border-left: 6px solid var(--blue);
+    border-radius: 6px;
+    padding: 18px 22px;
+    margin: 22px 0;
+  }
+  .step.purple{ border-left-color: var(--purple); }
+  .step.orange{ border-left-color: var(--orange); }
+  .step.green{ border-left-color: var(--green); }
+  .step.red{ border-left-color: var(--red); }
+
+  .label{
+    display:block;
+    font-family:'Trebuchet MS', sans-serif;
+    font-weight:bold;
+    color: var(--blue);
+    margin-bottom:10px;
+    font-size:0.95em;
+    letter-spacing:0.3px;
+  }
+  .step.purple .label{ color: var(--purple); }
+  .step.orange .label{ color: var(--orange); }
+  .step.green .label{ color: var(--green); }
+  .step.red .label{ color: var(--red); }
+
+  .result{
+    background: linear-gradient(135deg, rgba(79,193,255,0.08), rgba(197,134,192,0.08));
+    border: 2px solid var(--green);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin: 22px 0;
+    text-align: center;
+  }
+  .result.bad{ border-color: var(--red); background: linear-gradient(135deg, rgba(244,135,113,0.1), rgba(206,145,120,0.05)); }
+  .result.warn{ border-color: var(--yellow); background: linear-gradient(135deg, rgba(220,220,170,0.1), rgba(206,145,120,0.05)); }
+  .result .label{
+    text-transform: uppercase;
+    color: var(--yellow);
+    font-size:0.85em;
+    letter-spacing:1.5px;
+    margin-bottom:8px;
+  }
+  .result .value{ font-size:1.2em; font-weight:bold; color: var(--text); line-height:1.8; }
+
+  .note{
+    border: 2px dashed var(--yellow);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 22px 0;
+    background: rgba(220,220,170,0.04);
+  }
+  .note .label{ color: var(--yellow); font-size:0.9em; margin-bottom:8px; }
+
+  table{
+    width:100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-family:'Trebuchet MS', sans-serif;
+    font-size:0.95em;
+  }
+  th, td{ border:1px solid var(--border); padding:10px 14px; text-align:left; vertical-align:top; }
+  th{ background: rgba(79,193,255,0.12); color: var(--blue); font-weight:700; }
+  tr:nth-child(even) td{ background: rgba(255,255,255,0.02); }
+
+  ul, ol{ margin:10px 0 10px 24px; }
+  li{ margin:6px 0; }
+
+  .keyword{ color: var(--orange); font-weight:bold; }
+  code{
+    font-family: Consolas, 'Courier New', monospace;
+    background: rgba(255,255,255,0.07);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--yellow);
+    font-size: 0.92em;
+  }
+
+  /* ---- Blocs de code ---- */
+  pre{
+    background: #1e1e1e;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 8px 0 14px;
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 0.85em;
+    line-height: 1.5;
+    color: var(--text);
+  }
+  pre .k{ color: #569cd6; }       /* mots-clés */
+  pre .t{ color: #4ec9b0; }       /* types / classes */
+  pre .f{ color: var(--yellow); } /* fonctions */
+  pre .s{ color: var(--orange); } /* chaînes */
+  pre .n{ color: #b5cea8; }       /* nombres */
+  pre .c{ color: var(--green); font-style: italic; } /* commentaires */
+
+  .duo{
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+    margin: 18px 0;
+    width: 100%;
+    max-width: 100%;
+  }
+  .duo > div, .duo > *{
+    min-width: 0;
+    max-width: 100%;
+  }
+  @media (max-width: 800px){
+    .duo{ grid-template-columns: 1fr !important; }
+  }
+  .lang{
+    display:inline-block;
+    font-family:'Trebuchet MS', sans-serif;
+    font-size:0.75em;
+    font-weight:bold;
+    letter-spacing:1.5px;
+    padding:3px 12px;
+    border-radius:4px;
+    color:#1e1e1e;
+  }
+  .lang.java{ background:#e8a33d; }
+  .lang.py{ background:#5fa3d9; }
+  .lang.c{ background:#a0a0a0; }
+
+  .tag{
+    display:inline-block;
+    font-family:'Trebuchet MS', sans-serif;
+    font-size:0.75em;
+    font-weight:bold;
+    padding:2px 10px;
+    border-radius:20px;
+    margin-left:8px;
+  }
+  .tag.b{ background:rgba(79,193,255,0.2); color:var(--blue); border:1px solid var(--blue); }
+  .tag.p{ background:rgba(197,134,192,0.2); color:var(--purple); border:1px solid var(--purple); }
+  .tag.o{ background:rgba(206,145,120,0.2); color:var(--orange); border:1px solid var(--orange); }
+  .tag.g{ background:rgba(106,153,85,0.2); color:var(--green); border:1px solid var(--green); }
+
+  .figure{
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    margin: 22px 0;
+    text-align:center;
+  }
+  .figure svg{ max-width:100%; height:auto; }
+  .figure .caption{
+    font-family:'Trebuchet MS', sans-serif;
+    font-size:0.85em;
+    color: var(--text-dim);
+    margin-top:8px;
+    font-style: italic;
+  }
+
+  .quiz-item{
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .quiz-item .q-title{
+    font-family:'Trebuchet MS', sans-serif;
+    color: var(--orange);
+    font-weight:bold;
+    margin-bottom:10px;
+  }
+  details{
+    margin-top:10px;
+    background: rgba(106,153,85,0.06);
+    border-left:4px solid var(--green);
+    padding:8px 14px;
+    border-radius:4px;
+  }
+  details summary{ cursor:pointer; color: var(--green); font-family:'Trebuchet MS', sans-serif; font-weight:bold; }
+  details[open] summary{ margin-bottom:8px; }
+
+  .divider{ text-align:center; color: var(--text-dim); margin:40px 0; letter-spacing:6px; }
+  footer{ text-align:center; color: var(--text-dim); margin-top:60px; font-family:'Trebuchet MS', sans-serif; font-size:0.85em; }
+
+  /* High-visibility Syntax Highlighting for VS Code Dark Theme */
+  pre .k, .code-view .k, span.k { color: #569cd6 !important; font-weight: bold; }
+  pre .t, .code-view .t, span.t { color: #4ec9b0 !important; font-weight: 500; }
+  pre .f, .code-view .f, span.f { color: #dcdcaa !important; }
+  pre .s, .code-view .s, span.s { color: #ce9178 !important; }
+  pre .n, .code-view .n, span.n { color: #b5cea8 !important; }
+  pre .c, .code-view .c, span.c:not(.lang) { color: #6a9955 !important; font-style: italic; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>Les boucles</h1>
+  <p class="subtitle">Java et Python côte à côte</p>
+
+  <!-- =========================================================== -->
+  <h2>1. Pourquoi une boucle ?</h2>
+
+  <p>Une boucle répète un bloc d'instructions tant qu'une <span class="keyword">condition</span> reste vraie.
+    On écrit <code>i &lt; n</code> pour « i strictement inférieur à n ».</p>
+
+  <!-- card -> .step -->
+  <div class="step">
+    <span class="label">Définition</span>
+    Une <span class="keyword">itération</span> est un passage dans le corps de la boucle.
+  </div>
+
+  <div class="step purple">
+    <span class="label">Étape 1 : initialiser <span class="tag p">Base</span></span>
+    On fixe la valeur de départ du compteur.
+  </div>
+
+  <!-- callout -> .note -->
+  <div class="note">
+    <span class="label">🧠 Analogie du quotidien</span>
+    <p>Faire des tours de piste : on recommence tant que le chrono n'est pas écoulé.</p>
+  </div>
+
+  <div class="note">
+    <span class="label">⚠️ Petit piège de réflexion</span>
+    <p>Oublier d'incrémenter le compteur donne une boucle infinie.</p>
+  </div>
+
+  <!-- =========================================================== -->
+  <h2>2. Syntaxe</h2>
+
+  <!-- duo -> .duo -->
+  <div class="duo">
+    <div>
+      <span class="lang java">JAVA</span>
+<pre><span class="k">for</span> (<span class="t">int</span> i = <span class="n">0</span>; i &lt; <span class="n">3</span>; i++) {
+    System.out.<span class="f">println</span>(<span class="s">"tour "</span> + i); <span class="c">// affiche 0, 1, 2</span>
+}</pre>
+    </div>
+    <div>
+      <span class="lang py">PYTHON</span>
+<pre><span class="k">for</span> i <span class="k">in</span> <span class="f">range</span>(<span class="n">3</span>):
+    <span class="f">print</span>(<span class="s">"tour"</span>, i)  <span class="c"># affiche 0, 1, 2</span></pre>
+    </div>
+  </div>
+
+  <h3>Comparaison</h3>
+  <table>
+    <tr><th>Critère</th><th>Java</th><th>Python</th></tr>
+    <tr><td>Compteur</td><td><code>int i = 0</code></td><td><code>range(n)</code></td></tr>
+    <tr><td>Bloc</td><td>Accolades</td><td>Indentation</td></tr>
+  </table>
+
+  <!-- grille de cartes (snippet « cards ») -->
+  <div class="duo" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));">
+    <div class="step orange">
+      <span class="label">for</span>
+      <ul style="margin-left:18px">
+        <li>Nombre de tours connu</li>
+      </ul>
+    </div>
+    <div class="step purple">
+      <span class="label">while</span>
+      <ul style="margin-left:18px">
+        <li>Condition d'arrêt</li>
+      </ul>
+    </div>
+    <div class="step">
+      <span class="label">do / while</span>
+      <ul style="margin-left:18px">
+        <li>Au moins un tour (Java)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="figure">
+    <svg viewBox="0 0 900 120" xmlns="http://www.w3.org/2000/svg" font-family="Trebuchet MS, sans-serif">
+      <rect x="20" y="30" width="220" height="60" rx="8" fill="#2d2d30" stroke="#4fc1ff"/>
+      <text x="130" y="66" fill="#d4d4d4" text-anchor="middle">Condition ?</text>
+      <rect x="340" y="30" width="220" height="60" rx="8" fill="#2d2d30" stroke="#c586c0"/>
+      <text x="450" y="66" fill="#d4d4d4" text-anchor="middle">Corps</text>
+      <rect x="660" y="30" width="220" height="60" rx="8" fill="#2d2d30" stroke="#6a9955"/>
+      <text x="770" y="66" fill="#d4d4d4" text-anchor="middle">Mise à jour</text>
+    </svg>
+    <div class="caption">Cycle d'une boucle for</div>
+  </div>
+
+  <!-- callout -> .result -->
+  <div class="result">
+    <span class="label">À retenir</span>
+    <div class="value">for = nombre de tours connu ; while = condition d'arrêt</div>
+  </div>
+
+  <div class="result bad">
+    <span class="label">Erreur</span>
+    <div class="value">while (true) sans break</div>
+  </div>
+
+  <div class="divider">⸻</div>
+
+  <!-- =========================================================== -->
+  <h2>3. Quiz</h2>
+
+  <!-- qcm -> .quiz-item -->
+  <div class="quiz-item">
+    <div class="q-title">Question 1 (QCM) — Combien de tours fait range(3) ?</div>
+    <p>A) 2<br>
+    B) 3<br>
+    C) 4<br>
+    D) Infini</p>
+    <details><summary>Voir la correction</summary>
+      <p><strong>Réponse : B.</strong> range(3) produit 0, 1 et 2.</p>
+    </details>
+  </div>
+
+  <div class="quiz-item">
+    <div class="q-title">Question 2 (Vrai/Faux) — « Une boucle while s'exécute toujours au moins une fois »</div>
+    <details><summary>Voir la correction</summary>
+      <p><strong>Faux.</strong> C'est le do / while qui garantit un premier tour.</p>
+    </details>
+  </div>
+
+  <div class="result warn">
+    <span class="label">🎯 À retenir absolument</span>
+    <div class="value" style="font-size:1.05em">
+      Initialiser<br>
+      Tester<br>
+      Mettre à jour
+    </div>
+  </div>
+
+  <footer>Fiche générée pour révision</footer>
+
+</div>
+</body>
+</html>

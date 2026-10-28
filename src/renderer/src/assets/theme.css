@@ -1,0 +1,252 @@
+:root{
+  --bg: #1e1e1e;
+  --card: #2d2d30;
+  --border: #3e3e42;
+  --text: #d4d4d4;
+  --text-dim: #9d9d9d;
+  --blue: #4fc1ff;
+  --purple: #c586c0;
+  --orange: #ce9178;
+  --green: #6a9955;
+  --yellow: #dcdcaa;
+  --red: #f48771;
+}
+* { box-sizing: border-box; }
+body{
+  background: #252526;
+  color: var(--text);
+  font-family: Georgia, Cambria, 'Times New Roman', serif;
+  line-height: 1.65;
+  margin: 0;
+  padding: 40px 18px 80px;
+}
+.container{ max-width: 960px; margin: 0 auto; }
+
+h1{
+  text-align: center;
+  font-family: 'Trebuchet MS', sans-serif;
+  font-size: 2.3em;
+  font-weight: 800;
+  background: linear-gradient(90deg, var(--blue), var(--purple), var(--orange), var(--green), var(--yellow), var(--blue));
+  background-size: 400% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientMove 6s linear infinite;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+@keyframes gradientMove{
+  0%{ background-position: 0% 50%; }
+  100%{ background-position: 400% 50%; }
+}
+.subtitle{ text-align:center; font-style:italic; color:#bdbdbd; font-size:1.05em; margin-bottom:40px; }
+
+h2{
+  font-family: 'Trebuchet MS', sans-serif;
+  color: var(--blue);
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 10px;
+  margin-top: 55px;
+  margin-bottom: 20px;
+  font-size: 1.5em;
+}
+h3{
+  font-family: 'Trebuchet MS', sans-serif;
+  color: var(--purple);
+  margin-top: 30px;
+  font-size: 1.15em;
+}
+p { margin: 12px 0; }
+
+.step{
+  background: var(--card);
+  border-left: 6px solid var(--blue);
+  border-radius: 6px;
+  padding: 18px 22px;
+  margin: 22px 0;
+}
+.step.purple{ border-left-color: var(--purple); }
+.step.orange{ border-left-color: var(--orange); }
+.step.green{ border-left-color: var(--green); }
+.step.red{ border-left-color: var(--red); }
+
+.label{
+  display:block;
+  font-family:'Trebuchet MS', sans-serif;
+  font-weight:bold;
+  color: var(--blue);
+  margin-bottom:10px;
+  font-size:0.95em;
+  letter-spacing:0.3px;
+}
+.step.purple .label{ color: var(--purple); }
+.step.orange .label{ color: var(--orange); }
+.step.green .label{ color: var(--green); }
+.step.red .label{ color: var(--red); }
+
+.result{
+  background: linear-gradient(135deg, rgba(79,193,255,0.08), rgba(197,134,192,0.08));
+  border: 2px solid var(--green);
+  border-radius: 8px;
+  padding: 18px 22px;
+  margin: 22px 0;
+  text-align: center;
+}
+.result.bad{ border-color: var(--red); background: linear-gradient(135deg, rgba(244,135,113,0.1), rgba(206,145,120,0.05)); }
+.result.warn{ border-color: var(--yellow); background: linear-gradient(135deg, rgba(220,220,170,0.1), rgba(206,145,120,0.05)); }
+.result .label{
+  text-transform: uppercase;
+  color: var(--yellow);
+  font-size:0.85em;
+  letter-spacing:1.5px;
+  margin-bottom:8px;
+}
+.result .value{ font-size:1.2em; font-weight:bold; color: var(--text); line-height:1.8; }
+
+.note{
+  border: 2px dashed var(--yellow);
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin: 22px 0;
+  background: rgba(220,220,170,0.04);
+}
+.note .label{ color: var(--yellow); font-size:0.9em; margin-bottom:8px; }
+
+table{
+  width:100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-family:'Trebuchet MS', sans-serif;
+  font-size:0.95em;
+}
+th, td{ border:1px solid var(--border); padding:10px 14px; text-align:left; vertical-align:top; }
+th{ background: rgba(79,193,255,0.12); color: var(--blue); font-weight:700; }
+tr:nth-child(even) td{ background: rgba(255,255,255,0.02); }
+
+ul, ol{ margin:10px 0 10px 24px; }
+li{ margin:6px 0; }
+
+.keyword{ color: var(--orange); font-weight:bold; }
+code{
+  font-family: Consolas, 'Courier New', monospace;
+  background: rgba(255,255,255,0.07);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--yellow);
+  font-size: 0.92em;
+}
+
+/* ---- Blocs de code ---- */
+pre{
+  background: #1e1e1e;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  margin: 8px 0 14px;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.85em;
+  line-height: 1.5;
+  color: var(--text);
+}
+pre .k{ color: #569cd6; }       /* mots-clés */
+pre .t{ color: #4ec9b0; }       /* types / classes */
+pre .f{ color: var(--yellow); } /* fonctions */
+pre .s{ color: var(--orange); } /* chaînes */
+pre .n{ color: #b5cea8; }       /* nombres */
+pre .c{ color: var(--green); font-style: italic; } /* commentaires */
+
+.duo{
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  margin: 18px 0;
+  width: 100%;
+  max-width: 100%;
+}
+.duo > div, .duo > *{
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 800px){
+  .duo{ grid-template-columns: 1fr !important; }
+}
+.lang{
+  display:inline-block;
+  font-family:'Trebuchet MS', sans-serif;
+  font-size:0.75em;
+  font-weight:bold;
+  letter-spacing:1.5px;
+  padding:3px 12px;
+  border-radius:4px;
+  color:#1e1e1e;
+}
+.lang.java{ background:#e8a33d; }
+.lang.py{ background:#5fa3d9; }
+.lang.c{ background:#a0a0a0; }
+
+.tag{
+  display:inline-block;
+  font-family:'Trebuchet MS', sans-serif;
+  font-size:0.75em;
+  font-weight:bold;
+  padding:2px 10px;
+  border-radius:20px;
+  margin-left:8px;
+}
+.tag.b{ background:rgba(79,193,255,0.2); color:var(--blue); border:1px solid var(--blue); }
+.tag.p{ background:rgba(197,134,192,0.2); color:var(--purple); border:1px solid var(--purple); }
+.tag.o{ background:rgba(206,145,120,0.2); color:var(--orange); border:1px solid var(--orange); }
+.tag.g{ background:rgba(106,153,85,0.2); color:var(--green); border:1px solid var(--green); }
+
+.figure{
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  margin: 22px 0;
+  text-align:center;
+}
+.figure svg{ max-width:100%; height:auto; }
+.figure .caption{
+  font-family:'Trebuchet MS', sans-serif;
+  font-size:0.85em;
+  color: var(--text-dim);
+  margin-top:8px;
+  font-style: italic;
+}
+
+.quiz-item{
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin: 16px 0;
+}
+.quiz-item .q-title{
+  font-family:'Trebuchet MS', sans-serif;
+  color: var(--orange);
+  font-weight:bold;
+  margin-bottom:10px;
+}
+details{
+  margin-top:10px;
+  background: rgba(106,153,85,0.06);
+  border-left:4px solid var(--green);
+  padding:8px 14px;
+  border-radius:4px;
+}
+details summary{ cursor:pointer; color: var(--green); font-family:'Trebuchet MS', sans-serif; font-weight:bold; }
+details[open] summary{ margin-bottom:8px; }
+
+.divider{ text-align:center; color: var(--text-dim); margin:40px 0; letter-spacing:6px; }
+footer{ text-align:center; color: var(--text-dim); margin-top:60px; font-family:'Trebuchet MS', sans-serif; font-size:0.85em; }
+
+/* High-visibility Syntax Highlighting for VS Code Dark Theme */
+pre .k, .code-view .k, span.k { color: #569cd6 !important; font-weight: bold; }
+pre .t, .code-view .t, span.t { color: #4ec9b0 !important; font-weight: 500; }
+pre .f, .code-view .f, span.f { color: #dcdcaa !important; }
+pre .s, .code-view .s, span.s { color: #ce9178 !important; }
+pre .n, .code-view .n, span.n { color: #b5cea8 !important; }
+pre .c, .code-view .c, span.c:not(.lang) { color: #6a9955 !important; font-style: italic; }

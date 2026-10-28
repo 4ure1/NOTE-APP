@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Note piégée (test de sécurité)</title>
+<style>
+  body{ background:#252526; color:#d4d4d4; font-family:Georgia, serif; padding:30px; }
+  pre{ background:#1e1e1e; padding:12px; white-space:pre-wrap; }
+  .ok{ color:#6a9955; }
+  .ko{ color:#f48771; font-weight:bold; }
+</style>
+</head>
+<body>
+<h1>Note piégée : test de sécurité</h1>
+<p>Cette note vérifie si le script d'une note HTML peut atteindre l'API de l'application
+  (<code>window.parent.api</code>). Elle est inoffensive : elle lit <code>../package.json</code>
+  (hors du dossier de test, en lecture seule) et écrit un témoin <code>securite/PREUVE.txt</code>
+  dans le dossier de test. Elle ne supprime rien.</p>
+<p><strong>Ne jamais copier cette note dans le vrai dossier de notes.</strong></p>
+<pre id="rapport">Test en cours…</pre>
+<script>
+  (async () => {
+    const out = document.getElementById('rapport')
+    const lines = []
+    let api = null
+    try {
+      api = window.parent && window.parent !== window ? window.parent.api : null
+    } catch (e) {
+      lines.push('OK : accès à window.parent bloqué (' + e.name + ')')
+    }
+    if (!api) {
+      if (!lines.length) lines.push('OK : window.parent.api inaccessible')
+      out.textContent = lines.join('\n')
+      out.className = 'ok'
+      return
+    }
+    lines.push('VULNÉRABLE : window.parent.api accessible depuis la note')
+    try {
+      const txt = await api.readNote('../package.json')
+      lines.push(
+        txt
+          ? 'VULNÉRABLE : lecture hors du dossier (../package.json) : ' + txt.slice(0, 60).replace(/\s+/g, ' ')
+          : 'Lecture hors du dossier : rien renvoyé'
+      )
+    } catch (e) {
+      lines.push('Lecture hors du dossier refusée : ' + e.message)
+    }
+    try {
+      await api.writeNote('securite/PREUVE.txt', 'Écrit par note-piegee.html le ' + new Date().toISOString())
+      lines.push('VULNÉRABLE : écriture du témoin securite/PREUVE.txt réussie')
+    } catch (e) {
+      lines.push('Écriture refusée : ' + e.message)
+    }
+    out.textContent = lines.join('\n')
+    out.className = 'ko'
+  })()
+</script>
+</body>
+</html>
