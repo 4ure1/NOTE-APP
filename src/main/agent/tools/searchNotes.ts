@@ -84,7 +84,11 @@ export async function executeSearchNotes(
   }
 
   try {
-    const searchBaseDir = args.folder ? assertSafeNotePath(context.notesDir, args.folder) : context.notesDir
+    const searchBaseDir = args.folder
+      ? assertSafeNotePath(context.notesDir, String(args.folder).trim().replace(/^\/+/, ''), {
+          allowRoot: true
+        })
+      : context.notesDir
     const docs = scanNotes(searchBaseDir, context.notesDir)
 
     if (docs.length === 0) {

@@ -32,7 +32,8 @@ export async function executeReadNote(
     }
   }
 
-  const rawPath = typeof args.path === 'string' ? args.path.trim() : ''
+  // Le modèle envoie souvent un "/" initial : on le retire ici, assertSafeNotePath le refuserait
+  const rawPath = typeof args.path === 'string' ? args.path.trim().replace(/^\/+/, '') : ''
   if (!rawPath) {
     return {
       success: false,
