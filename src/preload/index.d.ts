@@ -1,5 +1,4 @@
 /// <reference types="vite/client" />
-import { ElectronAPI } from '@electron-toolkit/preload'
 import { RenameOperationPlan } from '../shared/linkUpdater'
 import { NoteTemplate, TemplateContext } from '../shared/sessionDetector'
 import { PdfAnnotation } from '../shared/pdfAnnotations'
@@ -44,8 +43,9 @@ interface CustomAPI {
   saveConfig: (config: Record<string, any>) => Promise<boolean>
   createNoteWithContent: (fileName: string, content: string) => Promise<string>
   openInBrowser: (relativePath: string) => Promise<boolean>
+  openExternalUrl: (url: string) => Promise<boolean>
   importPdfDialog: (targetFolder?: string) => Promise<string[]>
-  importFileFromPath: (srcPath: string, targetFolder?: string) => Promise<string | null>
+  importDroppedFile: (file: File, targetFolder?: string) => Promise<string | null>
   readBinaryFile: (relativePath: string) => Promise<string | null>
   showItemInFolder: (relativePath: string) => Promise<boolean>
   savePdfBase64: (filename: string, base64: string) => Promise<string | null>
@@ -149,7 +149,6 @@ interface CustomAPI {
 
 declare global {
   interface Window {
-    electron: ElectronAPI
     api: CustomAPI
   }
 }

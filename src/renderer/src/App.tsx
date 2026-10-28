@@ -46,6 +46,7 @@ import { highlightAllCodeBlocksInHtml } from './utils/codeHighlighter'
 import { formatHtml } from './utils/formatHtml'
 import { parsePdfLink } from './utils/pdfAnnotations'
 import getCaretCoordinates from 'textarea-caret'
+import { describeApiError, isAccessDenied, notifyApiError } from './utils/apiError'
 
 // TypeScript definition to support non-standard webview tag in JSX
 declare global {
@@ -650,8 +651,7 @@ function App() {
         }
       } catch (err: unknown) {
         console.error('Erreur createNoteFromTemplate:', err)
-        const msg = err instanceof Error ? err.message : 'Impossible de créer la note'
-        showClaudeToast(`Erreur : ${msg}`)
+        showClaudeToast(`Erreur : ${describeApiError(err) || 'Impossible de créer la note'}`)
       } finally {
         setIsSubmittingNewSession(false)
       }
@@ -857,27 +857,29 @@ function App() {
       ? `\n\n# Code ${codeToSave.language} — depuis Claude\n\n> ${now.toLocaleString('fr-FR')}\n\n\`\`\`${codeToSave.language}\n${codeToSave.code}\n\`\`\`\n`
       : `\n\n> *Extrait ajouté le ${now.toLocaleString('fr-FR')}*\n\n${codeToSave.code}\n`
 
-    if (saveActionType === 'new') {
-      const finalName = (newFileName || 'claude-code').trim()
-      const finalFileName = finalName.endsWith('.md') ? finalName : finalName + '.md'
-      // @ts-ignore
-      await window.api.createNoteWithContent(finalFileName, contentBlock.trimStart())
-      fetchFiles()
-      setSelectedFiles([finalFileName])
-      setEditingFile(finalFileName)
-    } else {
-      const targetFile = selectedExistingFile
-      if (targetFile) {
-        // @ts-ignore
-        const existingContent = await window.api.readNote(targetFile)
-        // @ts-ignore
-        await window.api.writeNote(targetFile, existingContent + contentBlock)
-        if (selectedFiles.length === 1 && selectedFiles[0] === targetFile) {
-          setFileContent(existingContent + contentBlock)
-        }
+    try {
+      if (saveActionType === 'new') {
+        const finalName = (newFileName || 'claude-code').trim()
+        const finalFileName = finalName.endsWith('.md') ? finalName : finalName + '.md'
+        await window.api.createNoteWithContent(finalFileName, contentBlock.trimStart())
         fetchFiles()
-        setSelectedFiles([targetFile])
+        setSelectedFiles([finalFileName])
+        setEditingFile(finalFileName)
+      } else {
+        const targetFile = selectedExistingFile
+        if (targetFile) {
+          const existingContent = await window.api.readNote(targetFile)
+          await window.api.writeNote(targetFile, existingContent + contentBlock)
+          if (selectedFiles.length === 1 && selectedFiles[0] === targetFile) {
+            setFileContent(existingContent + contentBlock)
+          }
+          fetchFiles()
+          setSelectedFiles([targetFile])
+        }
       }
+    } catch (err) {
+      notifyApiError('Sauvegarde du code', err)
+      return
     }
     setCodeToSave(null)
   }
@@ -933,7 +935,7 @@ function App() {
                 await window.api.savePdfBase64(data.filename, data.base64)
                 showClaudeToast(`PDF sauvegardé : ${data.filename}`)
               } catch (err) {
-                showClaudeToast('Erreur lors de la sauvegarde du PDF')
+                showClaudeToast(`Erreur lors de la sauvegarde du PDF : ${describeApiError(err)}`)
               }
             })()
           }
@@ -943,7 +945,7 @@ function App() {
                 await window.api.downloadPdfFromUrl(data.url, data.filename)
                 showClaudeToast(`PDF sauvegardé : ${data.filename}`)
               } catch (err) {
-                showClaudeToast('Erreur lors du téléchargement du PDF')
+                showClaudeToast(`Erreur lors du téléchargement du PDF : ${describeApiError(err)}`)
               }
             })()
           }
@@ -991,7 +993,9 @@ function App() {
     if (saveTimeoutRef.current && activeLoadedFileRef.current && fileContentRef.current) {
       clearTimeout(saveTimeoutRef.current)
       saveTimeoutRef.current = null
-      window.api.writeNote(activeLoadedFileRef.current, fileContentRef.current).catch(console.error)
+      window.api
+        .writeNote(activeLoadedFileRef.current, fileContentRef.current)
+        .catch((err) => notifyApiError('Sauvegarde de la note', err))
     }
 
     activeLoadedFileRef.current = target
@@ -1010,7 +1014,7 @@ function App() {
             fileContentRef.current = content
           }
         })
-        .catch(console.error)
+        .catch((err) => notifyApiError('Lecture de la note', err))
     } else {
       setFileContent('')
       fileContentRef.current = ''
@@ -1034,7 +1038,9 @@ function App() {
       const fileToSave = selectedFiles[0]
       saveTimeoutRef.current = setTimeout(() => {
         saveTimeoutRef.current = null
-        window.api.writeNote(fileToSave, newContent).catch(console.error)
+        window.api
+          .writeNote(fileToSave, newContent)
+          .catch((err) => notifyApiError('Sauvegarde de la note', err))
       }, 700)
     }
   }
@@ -1239,7 +1245,9 @@ function App() {
       setAutocompleteVisible(false)
 
       if (selectedFiles.length === 1 && selectedFiles[0] !== '__claude_code__') {
-        window.api.writeNote(selectedFiles[0], newContent).catch(console.error)
+        window.api
+          .writeNote(selectedFiles[0], newContent)
+          .catch((err) => notifyApiError('Sauvegarde de la note', err))
       }
     }
   }
@@ -1251,7 +1259,8 @@ function App() {
       try {
         const content = await window.api.readNote(filePath)
         setSideBySideContent(content)
-      } catch {
+      } catch (err) {
+        notifyApiError('Lecture de la note', err)
         setSideBySideContent('')
       }
     } else {
@@ -1279,7 +1288,7 @@ function App() {
       if (currentFile && currentFile.includes('/')) {
         folder = currentFile.substring(0, currentFile.lastIndexOf('/'))
       }
-      window.api.setActiveFolder(folder).catch(console.error)
+      window.api.setActiveFolder(folder).catch((err) => notifyApiError('Dossier actif', err))
     }
     if (
       currentFile &&
@@ -1344,12 +1353,13 @@ function App() {
       }
       let firstImported = ''
       for (const file of droppedFiles) {
-        const path = (file as any).path
-        if (path && window.api?.importFileFromPath) {
-          const rel = await window.api.importFileFromPath(path, targetFolder)
+        try {
+          const rel = await window.api.importDroppedFile(file, targetFolder)
           if (rel && !firstImported) {
             firstImported = rel
           }
+        } catch (err) {
+          notifyApiError(`Import de « ${file.name} »`, err)
         }
       }
       if (firstImported) {
@@ -1443,7 +1453,13 @@ function App() {
     title = '',
     templateType: 'html' | 'md' = 'md'
   ) => {
-    const newFile = await window.api.createNote(parentFolder, title, templateType)
+    let newFile: string
+    try {
+      newFile = await window.api.createNote(parentFolder, title, templateType)
+    } catch (err) {
+      notifyApiError('Création de la note', err)
+      return
+    }
     await fetchFiles()
     setSelectedFiles([newFile])
     if (!title) {
@@ -1456,7 +1472,12 @@ function App() {
   }
 
   const handleCreateFolder = async (parentFolder: string, name: string) => {
-    await window.api.createFolder(parentFolder, name)
+    try {
+      await window.api.createFolder(parentFolder, name)
+    } catch (err) {
+      notifyApiError('Création du dossier', err)
+      return
+    }
     await fetchFiles()
   }
 
@@ -1547,8 +1568,7 @@ function App() {
         alert(res.error || 'Erreur lors du renommage.')
       }
     } catch (err) {
-      console.error('[ApplyRenamePlan] Erreur:', err)
-      alert('Une erreur est survenue.')
+      notifyApiError('Renommage', err)
     } finally {
       setIsApplyingRename(false)
     }
@@ -1575,8 +1595,7 @@ function App() {
         alert(res.error || 'Impossible d’annuler le renommage.')
       }
     } catch (err) {
-      console.error('[UndoRename] Erreur:', err)
-      alert('Erreur lors de l’annulation du renommage.')
+      notifyApiError('Annulation du renommage', err)
     }
   }
 
@@ -1596,16 +1615,28 @@ function App() {
         await handleApplyRenamePlan(plan)
       }
     } catch (err) {
+      // Un refus de chemin ne doit pas être contourné par le déplacement simple
+      if (isAccessDenied(err) || !window.api?.moveItem) {
+        notifyApiError('Déplacement', err)
+        return
+      }
       console.error('Error moving item:', err)
-      if (window.api?.moveItem) {
+      try {
         const newPath = await window.api.moveItem(sourcePath, targetFolderPath)
         if (newPath) await fetchFiles()
+      } catch (fallbackErr) {
+        notifyApiError('Déplacement', fallbackErr)
       }
     }
   }
 
   const handleRestoreDeleted = async (trashId: string) => {
-    const restored = await window.api.restoreDeletedNote(trashId)
+    let restored: string | null = null
+    try {
+      restored = await window.api.restoreDeletedNote(trashId)
+    } catch (err) {
+      notifyApiError('Restauration depuis la corbeille', err)
+    }
     await fetchFiles()
     if (restored) setSelectedFiles([restored])
   }
@@ -1623,7 +1654,11 @@ function App() {
   const handleDeletePermanently = async (trashId: string) => {
     const confirmed = window.confirm('Supprimer définitivement cette note de la corbeille ?')
     if (!confirmed) return
-    await window.api.deletePermanently(trashId)
+    try {
+      await window.api.deletePermanently(trashId)
+    } catch (err) {
+      notifyApiError('Suppression définitive', err)
+    }
     await fetchFiles()
   }
 
@@ -1658,14 +1693,23 @@ function App() {
           }
         } catch (err) {
           console.error('[submitRename] Erreur:', err)
-          const newFileName = await window.api.renameNote(editingFile, editValue.trim())
-          if (newFileName) {
-            if (activeLoadedFileRef.current === editingFile) {
-              activeLoadedFileRef.current = newFileName
-            }
-            await fetchFiles()
-            if (selectedFiles.includes(editingFile)) {
-              setSelectedFiles(selectedFiles.map((f) => (f === editingFile ? newFileName : f)))
+          // Un nom ou un chemin refusé ne doit pas être contourné par le renommage simple
+          if (isAccessDenied(err)) {
+            notifyApiError('Renommage', err)
+          } else {
+            try {
+              const newFileName = await window.api.renameNote(editingFile, editValue.trim())
+              if (newFileName) {
+                if (activeLoadedFileRef.current === editingFile) {
+                  activeLoadedFileRef.current = newFileName
+                }
+                await fetchFiles()
+                if (selectedFiles.includes(editingFile)) {
+                  setSelectedFiles(selectedFiles.map((f) => (f === editingFile ? newFileName : f)))
+                }
+              }
+            } catch (fallbackErr) {
+              notifyApiError('Renommage', fallbackErr)
             }
           }
         }
@@ -1695,7 +1739,12 @@ function App() {
     }
     let anySuccess = false
     for (const file of notesToDelete) {
-      const success = await window.api.deleteNote(file)
+      let success = false
+      try {
+        success = await window.api.deleteNote(file)
+      } catch (err) {
+        notifyApiError(`Suppression de « ${file} »`, err)
+      }
       if (success) {
         anySuccess = true
         if (editingFile === file) {
@@ -2843,7 +2892,7 @@ function App() {
       }
     } catch (err) {
       console.error('Erreur sauvegarde hors-ligne:', err)
-      showClaudeToast('Erreur lors de la capture de la page')
+      showClaudeToast(`Erreur lors de la capture de la page : ${describeApiError(err)}`)
     } finally {
       setIsSavingClaudeOffline(false)
     }
@@ -2938,7 +2987,7 @@ function App() {
       }
     } catch (err) {
       console.error('Erreur export discussion:', err)
-      showClaudeToast("Erreur lors de l'exportation")
+      showClaudeToast(`Erreur lors de l'exportation : ${describeApiError(err)}`)
     } finally {
       setIsExportingClaude(false)
     }
@@ -2980,7 +3029,7 @@ function App() {
       }
     } catch (err) {
       console.error('Erreur récupération message:', err)
-      showClaudeToast('Erreur de récupération')
+      showClaudeToast(`Erreur de récupération : ${describeApiError(err)}`)
     }
   }
 
@@ -4060,7 +4109,10 @@ function App() {
                             onDeleteNote={() => handleDeleteNotes([currentFile])}
                             onOpenInBrowser={
                               isHtml && window.api?.openInBrowser
-                                ? () => window.api.openInBrowser(currentFile)
+                                ? () =>
+                                    window.api
+                                      .openInBrowser(currentFile)
+                                      .catch((err) => notifyApiError('Ouverture externe', err))
                                 : undefined
                             }
                             isFullscreen={isRenderFullscreen}
@@ -4112,7 +4164,10 @@ function App() {
                               onChangeEditorMode={(mode) => setEditorMode(mode)}
                               onOpenInBrowser={
                                 window.api?.openInBrowser
-                                  ? () => window.api.openInBrowser(currentFile)
+                                  ? () =>
+                                      window.api
+                                        .openInBrowser(currentFile)
+                                        .catch((err) => notifyApiError('Ouverture externe', err))
                                   : undefined
                               }
                               isHtmlFullscreen={isRenderFullscreen}
@@ -4250,10 +4305,14 @@ function App() {
                                               href="#"
                                               onClick={async (e) => {
                                                 e.preventDefault()
-                                                const fileName =
-                                                  await window.api.createSpecificNote(linkName)
-                                                fetchFiles()
-                                                setSelectedFiles([fileName])
+                                                try {
+                                                  const fileName =
+                                                    await window.api.createSpecificNote(linkName)
+                                                  fetchFiles()
+                                                  setSelectedFiles([fileName])
+                                                } catch (err) {
+                                                  notifyApiError('Création de la note liée', err)
+                                                }
                                               }}
                                               style={{
                                                 color: 'var(--accent-color)',

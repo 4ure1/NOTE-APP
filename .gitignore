@@ -18,6 +18,8 @@ test-vault/.snippets/
 test-vault/.templates/
 test-vault/.config.json
 test-vault/securite/PREUVE.txt
+# Témoin écrit par la note piégée si le confinement des chemins échoue
+PREUVE-HORS-VAULT.txt
 # Restes d'autres outils
 .agent/
 .kilo/

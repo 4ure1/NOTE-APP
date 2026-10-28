@@ -12,47 +12,92 @@
 </head>
 <body>
 <h1>Note piégée : test de sécurité</h1>
-<p>Cette note vérifie si le script d'une note HTML peut atteindre l'API de l'application
-  (<code>window.parent.api</code>). Elle est inoffensive : elle lit <code>../package.json</code>
-  (hors du dossier de test, en lecture seule) et écrit un témoin <code>securite/PREUVE.txt</code>
-  dans le dossier de test. Elle ne supprime rien.</p>
+<p>Cette note vérifie ce que le script d'une note HTML peut faire à travers l'application.
+  Elle est inoffensive : elle ne fait que des lectures (<code>../package.json</code>,
+  <code>C:\Windows\win.ini</code>) et écrit deux témoins texte : <code>securite/PREUVE.txt</code> dans le
+  dossier de test, et <code>PREUVE-HORS-VAULT.txt</code> à la racine du dépôt si la protection échoue.
+  Elle ne supprime rien.</p>
 <p><strong>Ne jamais copier cette note dans le vrai dossier de notes.</strong></p>
+<p id="bilan">Test en cours…</p>
 <pre id="rapport">Test en cours…</pre>
 <script>
   (async () => {
     const out = document.getElementById('rapport')
+    const bilan = document.getElementById('bilan')
     const lines = []
+    let vulnerable = 0
+
+    // Un accès hors du dossier de test doit être refusé (erreur « Accès refusé » ou réponse 403/404)
+    const horsVault = async (label, action) => {
+      try {
+        const result = await action()
+        if (result === undefined || result === null || result === '') {
+          lines.push('?  ' + label + ' : rien renvoyé (non concluant)')
+        } else {
+          vulnerable++
+          lines.push('VULNÉRABLE : ' + label + ' : ' + String(result).slice(0, 60).replace(/\s+/g, ' '))
+        }
+      } catch (e) {
+        lines.push('OK refusée : ' + label + ' (' + String(e && e.message ? e.message : e).slice(0, 90) + ')')
+      }
+    }
+
     let api = null
+    let electron = null
     try {
       api = window.parent && window.parent !== window ? window.parent.api : null
+      electron = window.parent && window.parent !== window ? window.parent.electron : null
     } catch (e) {
       lines.push('OK : accès à window.parent bloqué (' + e.name + ')')
     }
+
+    if (electron) {
+      vulnerable++
+      lines.push('VULNÉRABLE : window.parent.electron (accès IPC générique) est exposé')
+    } else {
+      lines.push('OK : window.parent.electron absent')
+    }
+
     if (!api) {
-      if (!lines.length) lines.push('OK : window.parent.api inaccessible')
-      out.textContent = lines.join('\n')
-      out.className = 'ok'
-      return
+      lines.push('OK : window.parent.api inaccessible')
+    } else {
+      lines.push('Info : window.parent.api accessible depuis la note (corrigé au chantier 3b)')
+
+      await horsVault('lecture ../package.json', () => api.readNote('../package.json'))
+      await horsVault('lecture absolue C:\\Windows\\win.ini', () => api.readNote('C:\\Windows\\win.ini'))
+      await horsVault('lecture binaire ../package.json', () => api.readBinaryFile('../package.json'))
+      await horsVault('protocole note-pdf vers C:\\Windows\\win.ini', async () => {
+        const res = await fetch('note-pdf://notes/' + encodeURIComponent('C:\\Windows\\win.ini'))
+        if (!res.ok) throw new Error('HTTP ' + res.status)
+        return await res.text()
+      })
+      await horsVault('import de C:\\Windows\\win.ini', async () => {
+        if (typeof api.importFileFromPath === 'function') {
+          return await api.importFileFromPath('C:\\Windows\\win.ini')
+        }
+        if (typeof api.importDroppedFile === 'function') {
+          return await api.importDroppedFile(new File(['x'], 'win.ini'))
+        }
+        throw new Error('aucun canal d’import par chemin exposé')
+      })
+      await horsVault('écriture du témoin ../PREUVE-HORS-VAULT.txt', async () => {
+        await api.writeNote('../PREUVE-HORS-VAULT.txt', 'Écrit par note-piegee.html le ' + new Date().toISOString())
+        return 'écriture réussie'
+      })
+
+      try {
+        await api.writeNote('securite/PREUVE.txt', 'Écrit par note-piegee.html le ' + new Date().toISOString())
+        lines.push('Info : écriture dans le dossier de test réussie (attendu jusqu’au chantier 3b)')
+      } catch (e) {
+        lines.push('Info : écriture dans le dossier de test refusée (' + e.message + ')')
+      }
     }
-    lines.push('VULNÉRABLE : window.parent.api accessible depuis la note')
-    try {
-      const txt = await api.readNote('../package.json')
-      lines.push(
-        txt
-          ? 'VULNÉRABLE : lecture hors du dossier (../package.json) : ' + txt.slice(0, 60).replace(/\s+/g, ' ')
-          : 'Lecture hors du dossier : rien renvoyé'
-      )
-    } catch (e) {
-      lines.push('Lecture hors du dossier refusée : ' + e.message)
-    }
-    try {
-      await api.writeNote('securite/PREUVE.txt', 'Écrit par note-piegee.html le ' + new Date().toISOString())
-      lines.push('VULNÉRABLE : écriture du témoin securite/PREUVE.txt réussie')
-    } catch (e) {
-      lines.push('Écriture refusée : ' + e.message)
-    }
+
     out.textContent = lines.join('\n')
-    out.className = 'ko'
+    bilan.textContent = vulnerable
+      ? vulnerable + ' accès hors du dossier de test NON bloqué(s)'
+      : 'Aucun accès hors du dossier de test : tout est refusé'
+    bilan.className = vulnerable ? 'ko' : 'ok'
   })()
 </script>
 </body>

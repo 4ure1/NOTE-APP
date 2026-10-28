@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { TreeNode } from '../types'
+import { isAccessDenied, notifyApiError } from '../utils/apiError'
 import {
   FolderIcon,
   FolderOpenIcon,
@@ -216,6 +217,11 @@ export default function Sidebar({
           return
         }
       } catch (err) {
+        // Dossier cible refusé : on l'indique au lieu de basculer sur le sélecteur de fichiers
+        if (isAccessDenied(err)) {
+          notifyApiError('Import de PDF', err)
+          return
+        }
         console.warn('Native dialog failed, fallback to file input:', err)
         fileInputRef.current?.click()
         return
@@ -233,14 +239,22 @@ export default function Sidebar({
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
-      const filePath = (file as any).path
-      if (filePath && window.api?.importFileFromPath) {
-        const rel = await window.api.importFileFromPath(filePath, targetFolder)
+      try {
+        const rel = await window.api.importDroppedFile(file, targetFolder)
         if (rel) importedList.push(rel)
-      } else if (window.api?.savePdfBinary) {
-        const buffer = await file.arrayBuffer()
-        const rel = await window.api.savePdfBinary(file.name, buffer, targetFolder)
-        if (rel) importedList.push(rel)
+      } catch (err) {
+        // Fichier sans chemin disque : un PDF peut encore être enregistré à partir de son contenu
+        if (file.name.toLowerCase().endsWith('.pdf') && window.api?.savePdfBinary) {
+          try {
+            const buffer = await file.arrayBuffer()
+            const rel = await window.api.savePdfBinary(file.name, buffer, targetFolder)
+            if (rel) importedList.push(rel)
+          } catch (fallbackErr) {
+            notifyApiError(`Import de « ${file.name} »`, fallbackErr)
+          }
+        } else {
+          notifyApiError(`Import de « ${file.name} »`, err)
+        }
       }
     }
 
@@ -305,12 +319,13 @@ export default function Sidebar({
                 const droppedFiles = Array.from(e.dataTransfer.files)
                 let firstImported = ''
                 for (const f of droppedFiles) {
-                  const srcPath = (f as any).path
-                  if (srcPath && window.api?.importFileFromPath) {
-                    const importedRel = await window.api.importFileFromPath(srcPath, targetFolder)
+                  try {
+                    const importedRel = await window.api.importDroppedFile(f, targetFolder)
                     if (importedRel && !firstImported) {
                       firstImported = importedRel
                     }
+                  } catch (err) {
+                    notifyApiError(`Import de « ${f.name} »`, err)
                   }
                 }
                 if (firstImported) {
@@ -1442,7 +1457,11 @@ export default function Sidebar({
                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 onClick={() => {
-                  if (window.api?.openInBrowser) window.api.openInBrowser(contextMenu.itemPath)
+                  if (window.api?.openInBrowser) {
+                    window.api
+                      .openInBrowser(contextMenu.itemPath)
+                      .catch((err) => notifyApiError('Ouverture externe', err))
+                  }
                   setContextMenu(null)
                 }}
               >
@@ -1459,7 +1478,11 @@ export default function Sidebar({
                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 onClick={() => {
-                  if (window.api?.showItemInFolder) window.api.showItemInFolder(contextMenu.itemPath)
+                  if (window.api?.showItemInFolder) {
+                    window.api
+                      .showItemInFolder(contextMenu.itemPath)
+                      .catch((err) => notifyApiError("Affichage dans l'Explorateur", err))
+                  }
                   setContextMenu(null)
                 }}
               >

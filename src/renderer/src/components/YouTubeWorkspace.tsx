@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
+import { notifyApiError } from '../utils/apiError'
 import {
   YouTubeIcon,
   PlusIcon,
@@ -495,8 +496,10 @@ export default function YouTubeWorkspace() {
   }
 
   const handleOpenExternal = () => {
-    if (activeTab?.url && window.api?.openInBrowser) {
-      window.api.openInBrowser(activeTab.url)
+    if (activeTab?.url && window.api?.openExternalUrl) {
+      window.api
+        .openExternalUrl(activeTab.url)
+        .catch((err) => notifyApiError('Ouverture dans le navigateur', err))
     } else if (activeTab?.url) {
       window.open(activeTab.url, '_blank')
     }

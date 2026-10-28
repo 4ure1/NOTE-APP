@@ -1,5 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 const api = {
   listMarkdownFiles: () => ipcRenderer.invoke('list-markdown-files'),
@@ -26,9 +25,19 @@ const api = {
   createNoteWithContent: (fileName: string, content: string) =>
     ipcRenderer.invoke('create-note-with-content', fileName, content),
   openInBrowser: (relativePath: string) => ipcRenderer.invoke('open-in-browser', relativePath),
+  openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
   importPdfDialog: (targetFolder?: string) => ipcRenderer.invoke('import-pdf-dialog', targetFolder),
-  importFileFromPath: (srcPath: string, targetFolder?: string) =>
-    ipcRenderer.invoke('import-file-from-path', srcPath, targetFolder),
+  // Le chemin disque n'est lu que depuis un vrai File (glisser-déposer ou <input type="file">) :
+  // une page ne peut pas fabriquer un File qui pointe vers un fichier arbitraire du disque
+  importDroppedFile: (file: File, targetFolder?: string) => {
+    const srcPath = webUtils.getPathForFile(file)
+    if (!srcPath) {
+      return Promise.reject(
+        new Error('Accès refusé : ce fichier ne provient pas du disque (glisser-déposer requis).')
+      )
+    }
+    return ipcRenderer.invoke('import-file-from-path', srcPath, targetFolder)
+  },
   readBinaryFile: (relativePath: string) => ipcRenderer.invoke('read-binary-file', relativePath),
   showItemInFolder: (relativePath: string) =>
     ipcRenderer.invoke('show-item-in-folder', relativePath),
@@ -167,16 +176,14 @@ const api = {
     ipcRenderer.invoke('save-pdf-annotations', pdfRelativePath, annotations)
 }
 
+// Seule l'API métier est exposée : pas d'accès générique à ipcRenderer ni à process.env
 if (process.contextIsolated) {
   try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
   } catch (error) {
     console.error(error)
   }
 } else {
-  // @ts-ignore
-  window.electron = electronAPI
   // @ts-ignore
   window.api = api
 }

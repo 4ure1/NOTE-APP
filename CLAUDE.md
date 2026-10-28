@@ -30,9 +30,13 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
   `note-pdf`, sessions et webviews). Modules à côté : `versionHistory.ts` (Time Travel),
   `linkRefactorService.ts` (renommage avec mise à jour des liens, contient `writeAtomic`), `exportNote.ts`,
   `aiTools.ts` (Ollama, recherche web/YouTube), `agent/` (agent Ollama + outils, `security.ts`).
-- `src/preload/index.ts` : expose `window.api` (camelCase, un canal IPC kebab-case par méthode) et
-  `window.electron`. Tout nouveau canal doit être ajouté à la fois dans `src/main/index.ts`,
-  `src/preload/index.ts` et `src/preload/index.d.ts`.
+- `src/preload/index.ts` : expose uniquement `window.api` (camelCase, un canal IPC kebab-case par méthode),
+  jamais d'accès générique à `ipcRenderer`. Tout nouveau canal doit être ajouté à la fois dans
+  `src/main/index.ts`, `src/preload/index.ts` et `src/preload/index.d.ts`. Les chemins reçus passent par
+  `notePath()` / `activeTargetDir()` (main) ; côté renderer, les erreurs s'affichent avec `notifyApiError`
+  (`renderer/src/utils/apiError.ts`).
+- Renommage avec liens : le plan est conservé côté main (`planId`, usage unique, 10 min) ; `apply` ignore
+  le contenu renvoyé par le renderer et abandonne si une note a changé depuis `prepare`.
 - `src/renderer/src/App.tsx` (~6 200 lignes) : tout l'état de l'app (useState, pas de store),
   passé aux composants par props. `components/CodeWorkspace.tsx` = Monaco + aperçu iframe.
 - `src/shared/` : logique pure partagée (liens, plan, annotations PDF). Les fichiers `renderer/src/utils/*.ts`

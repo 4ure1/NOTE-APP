@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Snippet } from '../types/snippets'
 import { getSnippetBodyText } from '../utils/snippetEngine'
+import { notifyApiError } from '../utils/apiError'
 
 export interface ShortcutMapping {
   uuid: string
@@ -415,7 +416,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </span>
                     {window.api?.showItemInFolder && (
                       <button
-                        onClick={() => window.api.showItemInFolder('.snippets')}
+                        onClick={() =>
+                          window.api
+                            .showItemInFolder('.snippets')
+                            .catch((err) => notifyApiError("Affichage dans l'Explorateur", err))
+                        }
                         style={{
                           background: 'rgba(56, 189, 248, 0.2)',
                           border: 'none',

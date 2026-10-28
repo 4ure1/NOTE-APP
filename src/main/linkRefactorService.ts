@@ -7,6 +7,35 @@ import {
   VaultFileRef
 } from '../shared/linkUpdater'
 import { saveSnapshot } from './versionHistory'
+import { assertSafeNotePath, assertSafeFileName, isOperationId } from './agent/security'
+
+// Plans préparés par le main : le renderer ne renvoie que leur identifiant
+const PLAN_TTL_MS = 10 * 60 * 1000
+const preparedPlans = new Map<string, { plan: RenameOperationPlan; createdAt: number }>()
+const TEXT_EXTENSIONS = ['.html', '.htm', '.md', '.markdown']
+
+function rememberPlan(plan: RenameOperationPlan): RenameOperationPlan {
+  const now = Date.now()
+  for (const [id, entry] of preparedPlans) {
+    if (now - entry.createdAt > PLAN_TTL_MS) preparedPlans.delete(id)
+  }
+  const planId = `plan_${now}_${Math.random().toString(36).slice(2, 10)}`
+  const stored = { ...plan, planId }
+  preparedPlans.set(planId, { plan: stored, createdAt: now })
+  return stored
+}
+
+// Revalide chaque chemin d'un plan (préparé ici ou relu depuis le journal d'annulation sur disque)
+function assertPlanPaths(notesDir: string, plan: RenameOperationPlan): void {
+  assertSafeNotePath(notesDir, plan.oldPath)
+  assertSafeNotePath(notesDir, plan.newPath)
+  for (const file of plan.affectedFiles) {
+    assertSafeNotePath(notesDir, file.relativePath)
+    if (!TEXT_EXTENSIONS.includes(path.extname(file.relativePath).toLowerCase())) {
+      throw new Error(`Accès refusé : "${file.relativePath}" n'est pas une note texte.`)
+    }
+  }
+}
 
 export interface RenameUndoRecord {
   operationId: string
@@ -115,13 +144,19 @@ export function prepareRenameOrMove(
   isMove: boolean
 ): RenameOperationPlan {
   const normOld = normalizePosix(oldRelativePath)
-  const oldFullPath = path.join(notesDir, normOld)
+  const oldFullPath = assertSafeNotePath(notesDir, normOld)
   const actualIsFolder = fs.existsSync(oldFullPath)
     ? fs.statSync(oldFullPath).isDirectory()
     : isFolder
 
+  // Renommage : un nom simple ; déplacement : un dossier du vault (racine permise)
+  if (isMove) {
+    assertSafeNotePath(notesDir, newTarget.trim(), { allowRoot: true })
+  } else {
+    assertSafeFileName(newTarget.trim())
+  }
   const newPath = computeTargetNewPath(oldRelativePath, newTarget, actualIsFolder, isMove)
-  const newFullPath = path.join(notesDir, newPath)
+  const newFullPath = assertSafeNotePath(notesDir, newPath)
 
   // 1. Vérifier si l'ancien fichier/dossier existe
   if (!fs.existsSync(oldFullPath)) {
@@ -172,7 +207,7 @@ export function prepareRenameOrMove(
     plan.collisionError = `Un élément nommé "${path.posix.basename(newPath)}" existe déjà à cet emplacement.`
   }
 
-  return plan
+  return rememberPlan(plan)
 }
 
 /**
@@ -193,8 +228,20 @@ export function writeAtomic(filePath: string, content: string): void {
  */
 export async function applyRenameOrMove(
   notesDir: string,
-  plan: RenameOperationPlan
+  planRef: Pick<RenameOperationPlan, 'planId'> & Partial<RenameOperationPlan>
 ): Promise<{ success: boolean; operationId?: string; newPath: string; error?: string }> {
+  // Seul le plan conservé ici fait foi : chemins et contenus envoyés par le renderer sont ignorés
+  const entry = planRef?.planId ? preparedPlans.get(planRef.planId) : undefined
+  if (planRef?.planId) preparedPlans.delete(planRef.planId)
+  if (!entry || Date.now() - entry.createdAt > PLAN_TTL_MS) {
+    return {
+      success: false,
+      newPath: String(planRef?.newPath ?? ''),
+      error: 'Plan de renommage inconnu ou expiré : relance l’opération.'
+    }
+  }
+  const plan = entry.plan
+
   if (plan.hasCollision) {
     return {
       success: false,
@@ -203,8 +250,29 @@ export async function applyRenameOrMove(
     }
   }
 
-  const oldFullPath = path.join(notesDir, plan.oldPath)
-  const newFullPath = path.join(notesDir, plan.newPath)
+  let oldFullPath: string
+  let newFullPath: string
+  try {
+    assertPlanPaths(notesDir, plan)
+    oldFullPath = assertSafeNotePath(notesDir, plan.oldPath)
+    newFullPath = assertSafeNotePath(notesDir, plan.newPath)
+  } catch (err: unknown) {
+    const error = err instanceof Error ? err.message : String(err)
+    return { success: false, newPath: plan.newPath, error }
+  }
+
+  // Une note modifiée depuis la préparation serait écrasée par un contenu périmé : on abandonne
+  for (const file of plan.affectedFiles) {
+    const fullPath = path.join(notesDir, file.relativePath)
+    const current = fs.existsSync(fullPath) ? fs.readFileSync(fullPath, 'utf-8') : null
+    if (current !== file.originalContent) {
+      return {
+        success: false,
+        newPath: plan.newPath,
+        error: `La note "${file.relativePath}" a changé depuis la préparation : relance l’opération.`
+      }
+    }
+  }
 
   if (!fs.existsSync(oldFullPath)) {
     return {
@@ -283,6 +351,10 @@ export async function undoRenameOrMove(
 ): Promise<{ success: boolean; restoredPath?: string; error?: string }> {
   let record: RenameUndoRecord | undefined
 
+  if (operationId !== undefined && !isOperationId(operationId)) {
+    return { success: false, error: 'Accès refusé : identifiant d’opération invalide.' }
+  }
+
   if (operationId) {
     record = undoStack.find((r) => r.operationId === operationId)
     if (!record) {
@@ -305,6 +377,12 @@ export async function undoRenameOrMove(
   }
 
   const { plan } = record
+  // Le journal peut venir du disque (.history/link_operations) : ses chemins sont revalidés
+  try {
+    assertPlanPaths(notesDir, plan)
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) }
+  }
   const currentFullPath = path.join(notesDir, plan.newPath)
   const originalFullPath = path.join(notesDir, plan.oldPath)
 

@@ -116,4 +116,91 @@ describe('linkRefactorService - Tests d’intégration sur dossier temporaire', 
     expect(fs.existsSync(path.join(tempVaultDir, 'cours', 'algo.html'))).toBe(true)
     expect(fs.readFileSync(rootNote, 'utf-8')).toContain('href="cours/algo.html"')
   })
+
+  describe('confiance limitée au plan envoyé par le renderer', () => {
+    const setupVault = (): { noteA: string; plan: ReturnType<typeof prepareRenameOrMove> } => {
+      const noteA = path.join(tempVaultDir, 'NoteA.html')
+      fs.writeFileSync(noteA, '<a href="NoteB.html">B</a>', 'utf-8')
+      fs.writeFileSync(path.join(tempVaultDir, 'NoteB.html'), '<p>B</p>', 'utf-8')
+      const plan = prepareRenameOrMove(tempVaultDir, 'NoteB.html', 'NouveauB', false, false)
+      return { noteA, plan }
+    }
+
+    it('refuse un plan sans identifiant ou inconnu', async () => {
+      const { plan } = setupVault()
+      const forged = { ...plan, planId: undefined }
+      expect((await applyRenameOrMove(tempVaultDir, forged)).success).toBe(false)
+      const unknown = { ...plan, planId: 'plan_0_inconnu' }
+      expect((await applyRenameOrMove(tempVaultDir, unknown)).success).toBe(false)
+      expect(fs.existsSync(path.join(tempVaultDir, 'NoteB.html'))).toBe(true)
+    })
+
+    it('ignore les chemins et contenus modifiés par le renderer', async () => {
+      const { noteA, plan } = setupVault()
+      const outside = path.join(path.dirname(tempVaultDir), `hors-vault-${Date.now()}.html`)
+      const tampered = {
+        ...plan,
+        newPath: '../hors-vault.html',
+        affectedFiles: plan.affectedFiles.map((f) => ({
+          ...f,
+          relativePath: path.relative(tempVaultDir, outside),
+          newContent: 'PIRATÉ'
+        }))
+      }
+      const res = await applyRenameOrMove(tempVaultDir, tampered)
+      expect(res.success).toBe(true)
+      expect(res.newPath).toBe('NouveauB.html')
+      expect(fs.existsSync(outside)).toBe(false)
+      expect(fs.readFileSync(noteA, 'utf-8')).toContain('NouveauB.html')
+    })
+
+    it('n’accepte un plan qu’une seule fois', async () => {
+      const { plan } = setupVault()
+      expect((await applyRenameOrMove(tempVaultDir, plan)).success).toBe(true)
+      expect((await applyRenameOrMove(tempVaultDir, plan)).success).toBe(false)
+    })
+
+    it('abandonne si une note a changé depuis la préparation', async () => {
+      const { noteA, plan } = setupVault()
+      fs.writeFileSync(noteA, '<a href="NoteB.html">B</a><p>ajout récent</p>', 'utf-8')
+      const res = await applyRenameOrMove(tempVaultDir, plan)
+      expect(res.success).toBe(false)
+      expect(res.error).toContain('NoteA.html')
+      expect(fs.readFileSync(noteA, 'utf-8')).toContain('ajout récent')
+      expect(fs.existsSync(path.join(tempVaultDir, 'NoteB.html'))).toBe(true)
+    })
+
+    it('refuse de préparer un chemin hors du vault ou un nouveau nom invalide', () => {
+      fs.writeFileSync(path.join(tempVaultDir, 'NoteB.html'), '<p>B</p>', 'utf-8')
+      const prepare = (oldPath: string, target: string, isMove: boolean) => () =>
+        prepareRenameOrMove(tempVaultDir, oldPath, target, false, isMove)
+      expect(prepare('../NoteB.html', 'X', false)).toThrow('Accès refusé')
+      expect(prepare('NoteB.html', '../../X', false)).toThrow('Accès refusé')
+      expect(prepare('NoteB.html', '../dehors', true)).toThrow('Accès refusé')
+    })
+
+    it('refuse un identifiant d’opération invalide et un journal falsifié', async () => {
+      expect((await undoRenameOrMove(tempVaultDir, '../../x')).success).toBe(false)
+
+      const opDir = path.join(tempVaultDir, '.history', 'link_operations')
+      fs.mkdirSync(opDir, { recursive: true })
+      const operationId = 'op_1_falsifie'
+      const record = {
+        operationId,
+        timestamp: 1,
+        plan: {
+          oldPath: '../dehors.html',
+          newPath: 'NoteB.html',
+          isFolder: false,
+          affectedFiles: [],
+          totalChanges: 0,
+          hasCollision: false
+        }
+      }
+      fs.writeFileSync(path.join(opDir, `${operationId}.json`), JSON.stringify(record), 'utf-8')
+      const res = await undoRenameOrMove(tempVaultDir, operationId)
+      expect(res.success).toBe(false)
+      expect(res.error).toContain('Accès refusé')
+    })
+  })
 })

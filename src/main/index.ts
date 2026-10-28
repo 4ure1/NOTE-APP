@@ -2469,7 +2469,8 @@ ipcMain.handle(
 // Révéler le fichier dans l'explorateur Windows
 ipcMain.handle('show-item-in-folder', (_event, relativePath: string) => {
   ensureDir(NOTES_DIR)
-  const fullPath = notePath(relativePath)
+  // Simple affichage dans l'Explorateur : les dossiers internes (ex. .snippets depuis les réglages) sont permis
+  const fullPath = notePath(relativePath, { allowInternal: true })
   if (fs.existsSync(fullPath)) {
     shell.showItemInFolder(fullPath)
     return true

@@ -20,6 +20,8 @@ export interface FileUpdatePlan {
 }
 
 export interface RenameOperationPlan {
+  // Identifiant du plan conservé côté main : apply n'utilise que ce plan, pas le contenu renvoyé
+  planId?: string
   oldPath: string
   newPath: string
   isFolder: boolean

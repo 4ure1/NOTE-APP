@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, type ReactNode } from 
 import * as pdfjsLib from 'pdfjs-dist'
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url'
 import 'pdfjs-dist/web/pdf_viewer.css'
+import { describeApiError, notifyApiError } from '../utils/apiError'
 import {
   PdfIcon,
   ExternalLinkIcon,
@@ -435,9 +436,7 @@ export default function PdfViewer({
             setAnnotations(anns)
           }
         })
-        .catch((err) => {
-          console.warn('Erreur chargement annotations PDF:', err)
-        })
+        .catch((err) => notifyApiError('Chargement des annotations', err))
     }
     return (): void => {
       isMounted = false
@@ -449,7 +448,11 @@ export default function PdfViewer({
     async (newAnns: PdfAnnotation[]): Promise<void> => {
       setAnnotations(newAnns)
       if (window.api?.savePdfAnnotations) {
-        await window.api.savePdfAnnotations(currentFilePath, newAnns)
+        try {
+          await window.api.savePdfAnnotations(currentFilePath, newAnns)
+        } catch (err) {
+          notifyApiError('Sauvegarde des annotations', err)
+        }
       }
     },
     [currentFilePath]
@@ -699,13 +702,17 @@ export default function PdfViewer({
   // Ouvrir dans le lecteur système
   const handleOpenExternal = (): void => {
     if (window.api?.openInBrowser) {
-      window.api.openInBrowser(currentFilePath)
+      window.api
+        .openInBrowser(currentFilePath)
+        .catch((err) => notifyApiError('Ouverture externe', err))
     }
   }
 
   const handleShowInFolder = (): void => {
     if (window.api?.showItemInFolder) {
-      window.api.showItemInFolder(currentFilePath)
+      window.api
+        .showItemInFolder(currentFilePath)
+        .catch((err) => notifyApiError("Affichage dans l'Explorateur", err))
     }
   }
 
@@ -917,7 +924,7 @@ export default function PdfViewer({
       setNewNoteName('')
     } catch (err: unknown) {
       console.error('Erreur insertion citation:', err)
-      onShowToast?.('Erreur lors de l’insertion de l’extrait')
+      onShowToast?.(`Erreur lors de l’insertion de l’extrait : ${describeApiError(err)}`)
     }
   }
 

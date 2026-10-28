@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { notifyApiError } from '../utils/apiError'
 
 interface HistoryItem {
   id: string
@@ -99,7 +100,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
           }
         }
       } catch (err) {
-        console.error('Error fetching history:', err)
+        notifyApiError("Chargement de l'historique", err)
       } finally {
         setIsLoading(false)
       }
@@ -118,7 +119,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
           setVersionContent(content || '')
         }
       } catch (err) {
-        console.error('Error loading snapshot content:', err)
+        notifyApiError('Lecture de la version', err)
       }
     }
 
@@ -139,7 +140,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
         onClose()
       }
     } catch (err) {
-      console.error('Restore error:', err)
+      notifyApiError('Restauration de la version', err)
     } finally {
       setIsRestoring(false)
     }
