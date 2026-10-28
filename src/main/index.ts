@@ -22,6 +22,13 @@ import { runAgentLoop, checkOllamaModelAvailable } from './agent/ollamaAgent'
 import { globalUndoManager } from './agent/undoManager'
 import { AgentRunParams } from './agent/types'
 import { resolveNotesDir, isDefaultNotesDir, NOTES_DIR_ENV } from './notesDir'
+import {
+  assertSafeNotePath,
+  assertSafeFileName,
+  sanitizeDownloadName,
+  PathAccessError,
+  SafePathOptions
+} from './agent/security'
 
 // Dossier de notes : NOTE_APP_NOTES_DIR si défini (ex. ./test-vault via `npm run dev:safe`), sinon ~/Notes
 const NOTES_DIR = resolveNotesDir(process.env[NOTES_DIR_ENV], os.homedir(), process.cwd())
@@ -31,6 +38,35 @@ const TRASH_DIR = join(NOTES_DIR, '.trash')
 const CONFIG_FILE = join(NOTES_DIR, '.config.json')
 let currentActiveFolderRel = ''
 let globalMainWindow: BrowserWindow | null = null
+
+// Chemin absolu d'un élément du dossier de notes reçu du renderer (refuse toute sortie du dossier)
+function notePath(relativePath: string, options?: SafePathOptions): string {
+  return assertSafeNotePath(NOTES_DIR, relativePath, options)
+}
+
+// Dossier cible d'un import ou d'un téléchargement : dossier demandé, sinon dossier actif, sinon racine
+function activeTargetDir(targetFolderRel?: string): string {
+  const rel = targetFolderRel || currentActiveFolderRel
+  const dir = rel ? notePath(rel, { allowRoot: true }) : NOTES_DIR
+  ensureDir(dir)
+  return dir
+}
+
+// Seules les URL web peuvent être téléchargées ou ouvertes à l'extérieur (pas de file:, javascript:...)
+function assertWebUrl(url: string): void {
+  let protocol = ''
+  try {
+    protocol = new URL(url).protocol
+  } catch {
+    protocol = ''
+  }
+  if (protocol !== 'http:' && protocol !== 'https:') {
+    throw new PathAccessError(`seules les adresses http(s) sont autorisées ("${url}").`)
+  }
+}
+
+// Extensions qu'open-in-browser peut confier au système (shell.openPath exécuterait un .exe ou un .bat)
+const OPENABLE_EXTENSIONS = new Set(['.html', '.htm', '.md', '.pdf', '.txt'])
 
 const chromeVersion = process.versions.chrome || '134.0.6998.35'
 const CHROME_UA = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`
@@ -1104,10 +1140,17 @@ function createWindow(): void {
   // Intercepter les téléchargements (HTML, PDF, images...) pour les placer dans le dossier actif
   const handleDownload = (_event: any, item: Electron.DownloadItem) => {
     ensureDir(NOTES_DIR)
-    const targetDir = currentActiveFolderRel ? join(NOTES_DIR, currentActiveFolderRel) : NOTES_DIR
-    ensureDir(targetDir)
+    let targetDir = NOTES_DIR
+    try {
+      targetDir = activeTargetDir()
+    } catch (err) {
+      console.error('[Download] Dossier actif refusé, téléchargement annulé :', err)
+      item.cancel()
+      return
+    }
 
-    const rawFilename = item.getFilename() || 'document.pdf'
+    // Le nom vient du site distant : on le nettoie (pas de "..", de lecteur ni de nom réservé)
+    const rawFilename = sanitizeDownloadName(item.getFilename() || 'document.pdf', '')
     let finalPath = join(targetDir, rawFilename)
 
     if (fs.existsSync(finalPath)) {
@@ -1146,10 +1189,8 @@ function createWindow(): void {
     const downloadPdfFromUrl = async (pdfUrl: string) => {
       try {
         ensureDir(NOTES_DIR)
-        const targetDir = currentActiveFolderRel
-          ? join(NOTES_DIR, currentActiveFolderRel)
-          : NOTES_DIR
-        ensureDir(targetDir)
+        assertWebUrl(pdfUrl)
+        const targetDir = activeTargetDir()
         const res = await net.fetch(pdfUrl)
         if (!res.ok) {
           shell.openExternal(pdfUrl)
@@ -1162,7 +1203,8 @@ function createWindow(): void {
         if (m) fname = decodeURIComponent(m[1].trim())
         if (!fname)
           fname = decodeURIComponent(pdfUrl.split('/').pop()?.split('?')[0] || 'document.pdf')
-        if (!fname.toLowerCase().endsWith('.pdf')) fname += '.pdf'
+        // Nom fourni par le serveur distant (Content-Disposition ou URL) : nettoyé avant usage
+        fname = sanitizeDownloadName(fname)
         let destPath = join(targetDir, fname)
         if (fs.existsSync(destPath)) {
           const ext = path.extname(fname)
@@ -1180,7 +1222,7 @@ function createWindow(): void {
         }
       } catch (err) {
         console.error('[Download-pdf] Erreur téléchargement PDF:', err)
-        shell.openExternal(pdfUrl)
+        if (!(err instanceof PathAccessError)) shell.openExternal(pdfUrl)
       }
     }
 
@@ -1473,7 +1515,7 @@ ipcMain.handle('list-markdown-files', () => {
 ipcMain.handle('create-folder', (_event, parentRelativePath: string, folderName: string) => {
   ensureDir(NOTES_DIR)
   const cleanParent = parentRelativePath ? parentRelativePath.trim() : ''
-  const targetDir = join(NOTES_DIR, cleanParent, folderName)
+  const targetDir = join(notePath(cleanParent, { allowRoot: true }), assertSafeFileName(folderName))
   if (!fs.existsSync(targetDir)) {
     fs.mkdirSync(targetDir, { recursive: true })
     return path.relative(NOTES_DIR, targetDir).replace(/\\/g, '/')
@@ -1487,7 +1529,7 @@ ipcMain.handle(
   (_event, parentRelativePath?: string, title?: string, templateType: 'html' | 'md' = 'md') => {
     ensureDir(NOTES_DIR)
     const cleanParent = parentRelativePath ? parentRelativePath.trim() : ''
-    const targetDir = join(NOTES_DIR, cleanParent)
+    const targetDir = notePath(cleanParent, { allowRoot: true })
     ensureDir(targetDir)
 
     const rawTitle = title && title.trim() ? title.trim() : ''
@@ -1508,6 +1550,7 @@ ipcMain.handle(
     } else {
       fileName = isHtml ? 'page.html' : 'note.md'
     }
+    assertSafeFileName(fileName)
 
     let counter = 1
     while (fs.existsSync(join(targetDir, fileName))) {
@@ -1627,7 +1670,7 @@ ipcMain.handle('create-specific-note', (_event, title: string) => {
   const hasExt =
     cleanTitle.endsWith('.md') || cleanTitle.endsWith('.html') || cleanTitle.endsWith('.htm')
   if (!hasExt) cleanTitle = `${cleanTitle}.html`
-  const filePath = join(NOTES_DIR, cleanTitle)
+  const filePath = notePath(cleanTitle)
   if (!fs.existsSync(filePath)) {
     const rawTitle = cleanTitle.replace(/\.(html|htm|md)$/i, '')
     fs.writeFileSync(
@@ -1641,7 +1684,7 @@ ipcMain.handle('create-specific-note', (_event, title: string) => {
 
 ipcMain.handle('read-note', (_event, relativePath: string) => {
   ensureDir(NOTES_DIR)
-  const filePath = join(NOTES_DIR, relativePath)
+  const filePath = notePath(relativePath)
   if (fs.existsSync(filePath)) {
     return fs.readFileSync(filePath, 'utf-8')
   }
@@ -1650,7 +1693,7 @@ ipcMain.handle('read-note', (_event, relativePath: string) => {
 
 ipcMain.handle('write-note', (_event, relativePath: string, content: string) => {
   ensureDir(NOTES_DIR)
-  const filePath = join(NOTES_DIR, relativePath)
+  const filePath = notePath(relativePath)
   const dir = path.dirname(filePath)
   ensureDir(dir)
   fs.writeFileSync(filePath, content, 'utf-8')
@@ -1660,7 +1703,7 @@ ipcMain.handle('write-note', (_event, relativePath: string, content: string) => 
 
 ipcMain.handle('rename-note', (_event, oldRelativePath: string, newName: string) => {
   ensureDir(NOTES_DIR)
-  const oldPath = join(NOTES_DIR, oldRelativePath)
+  const oldPath = notePath(oldRelativePath)
   if (!fs.existsSync(oldPath)) return null
 
   const dir = path.dirname(oldPath)
@@ -1671,7 +1714,7 @@ ipcMain.handle('rename-note', (_event, oldRelativePath: string, newName: string)
     finalName += oldExt || '.html'
   }
 
-  const newPath = join(dir, finalName)
+  const newPath = join(dir, assertSafeFileName(finalName))
   if (!fs.existsSync(newPath)) {
     fs.renameSync(oldPath, newPath)
     if (oldPath.toLowerCase().endsWith('.pdf')) {
@@ -1688,15 +1731,25 @@ ipcMain.handle('rename-note', (_event, oldRelativePath: string, newName: string)
   return null
 })
 
-// Open in external browser
+// Ouvrir une note du dossier avec l'application par défaut du système (types de fichiers sûrs uniquement)
 ipcMain.handle('open-in-browser', (_event, relativePath: string) => {
   ensureDir(NOTES_DIR)
-  const fullPath = join(NOTES_DIR, relativePath)
+  const fullPath = notePath(relativePath)
+  if (!OPENABLE_EXTENSIONS.has(path.extname(fullPath).toLowerCase())) {
+    throw new PathAccessError(`type de fichier non autorisé pour l'ouverture ("${relativePath}").`)
+  }
   if (fs.existsSync(fullPath)) {
     shell.openPath(fullPath)
     return true
   }
   return false
+})
+
+// Ouvrir une adresse web dans le navigateur du système (http et https uniquement)
+ipcMain.handle('open-external-url', async (_event, url: string) => {
+  assertWebUrl(url)
+  await shell.openExternal(url)
+  return true
 })
 
 // Move note or folder to target folder
@@ -1709,10 +1762,10 @@ ipcMain.handle(
       ? targetFolderRelativePath.replace(/\\/g, '/').trim()
       : ''
 
-    const sourcePath = join(NOTES_DIR, cleanSource)
+    const sourcePath = notePath(cleanSource)
     if (!fs.existsSync(sourcePath)) return null
 
-    const targetDir = cleanTarget ? join(NOTES_DIR, cleanTarget) : NOTES_DIR
+    const targetDir = notePath(cleanTarget, { allowRoot: true })
     ensureDir(targetDir)
 
     // Prevent moving into itself or its own subfolder
@@ -1779,7 +1832,7 @@ ipcMain.handle('undo-rename-or-move', async (_event, operationId?: string) => {
 ipcMain.handle('delete-note', (_event, relativePath: string) => {
   ensureDir(NOTES_DIR)
   ensureDir(TRASH_DIR)
-  const targetPath = join(NOTES_DIR, relativePath)
+  const targetPath = notePath(relativePath)
   if (fs.existsSync(targetPath)) {
     const fileName = path.basename(targetPath)
     const timeStamp = Date.now()
@@ -1821,11 +1874,11 @@ ipcMain.handle('get-deleted-notes', () => {
 ipcMain.handle('restore-deleted-note', (_event, trashId: string) => {
   ensureDir(TRASH_DIR)
   ensureDir(NOTES_DIR)
-  const trashPath = join(TRASH_DIR, trashId)
+  const trashPath = join(TRASH_DIR, assertSafeFileName(trashId))
   if (fs.existsSync(trashPath)) {
     const parts = trashId.split('___')
     const originalName = parts.length > 1 ? parts.slice(1).join('___') : trashId
-    let target = join(NOTES_DIR, originalName)
+    let target = notePath(assertSafeFileName(originalName))
     let counter = 1
     while (fs.existsSync(target)) {
       target = join(NOTES_DIR, `Restored ${counter} - ${originalName}`)
@@ -1873,7 +1926,8 @@ ipcMain.handle('empty-trash', () => {
 // Delete single note permanently from trash
 ipcMain.handle('delete-permanently', (_event, trashId: string) => {
   ensureDir(TRASH_DIR)
-  const trashPath = join(TRASH_DIR, trashId)
+  // trashId doit désigner un élément direct de .trash (sinon "..", par exemple, viserait tout le vault)
+  const trashPath = join(TRASH_DIR, assertSafeFileName(trashId))
   if (fs.existsSync(trashPath)) {
     try {
       if (fs.lstatSync(trashPath).isDirectory()) {
@@ -2166,13 +2220,14 @@ ipcMain.handle(
     initTemplates()
     ensureDir(NOTES_DIR)
 
-    const targetDir = join(NOTES_DIR, params.folderPath || '')
+    const targetDir = notePath(params.folderPath || '', { allowRoot: true })
     ensureDir(targetDir)
+    assertSafeFileName(params.fileName)
 
     // Récupérer le contenu du modèle
     let rawTemplate = ''
     if (params.templateFileName) {
-      const templatePath = join(TEMPLATES_DIR, params.templateFileName)
+      const templatePath = join(TEMPLATES_DIR, assertSafeFileName(params.templateFileName))
       if (fs.existsSync(templatePath)) {
         rawTemplate = fs.readFileSync(templatePath, 'utf-8')
       }
@@ -2221,7 +2276,7 @@ ipcMain.handle(
 
 ipcMain.handle('create-note-with-content', (_event, fileName: string, content: string) => {
   ensureDir(NOTES_DIR)
-  const filePath = join(NOTES_DIR, fileName)
+  const filePath = notePath(fileName)
   if (fs.existsSync(filePath)) {
     const existing = fs.readFileSync(filePath, 'utf-8')
     fs.writeFileSync(filePath, existing + '\n\n---\n\n' + content, 'utf-8')
@@ -2275,19 +2330,21 @@ ipcMain.handle('is-maximized', (event) => {
 })
 
 ipcMain.handle('set-active-folder', (_event, folderPath: string) => {
-  currentActiveFolderRel = typeof folderPath === 'string' ? folderPath.trim() : ''
+  const candidate = typeof folderPath === 'string' ? folderPath.trim() : ''
+  try {
+    notePath(candidate, { allowRoot: true })
+  } catch (err) {
+    currentActiveFolderRel = ''
+    throw err
+  }
+  currentActiveFolderRel = candidate
   return true
 })
 
 // Importer des fichiers PDF via dialogue système
 ipcMain.handle('import-pdf-dialog', async (_event, targetFolderRel?: string) => {
   ensureDir(NOTES_DIR)
-  const targetDir = targetFolderRel
-    ? join(NOTES_DIR, targetFolderRel)
-    : currentActiveFolderRel
-      ? join(NOTES_DIR, currentActiveFolderRel)
-      : NOTES_DIR
-  ensureDir(targetDir)
+  const targetDir = activeTargetDir(targetFolderRel)
 
   console.log('[import-pdf-dialog] Opening dialog for targetDir:', targetDir)
 
@@ -2333,12 +2390,7 @@ ipcMain.handle(
     ensureDir(NOTES_DIR)
     if (!fs.existsSync(srcPath)) return null
 
-    const targetDir = targetFolderRel
-      ? join(NOTES_DIR, targetFolderRel)
-      : currentActiveFolderRel
-        ? join(NOTES_DIR, currentActiveFolderRel)
-        : NOTES_DIR
-    ensureDir(targetDir)
+    const targetDir = activeTargetDir(targetFolderRel)
 
     const filename = path.basename(srcPath)
     let destPath = join(targetDir, filename)
@@ -2360,7 +2412,7 @@ ipcMain.handle(
 // Lire un fichier binaire (PDF) en Base64
 ipcMain.handle('read-binary-file', (_event, relativePath: string) => {
   ensureDir(NOTES_DIR)
-  const fullPath = join(NOTES_DIR, relativePath)
+  const fullPath = notePath(relativePath)
   if (fs.existsSync(fullPath)) {
     return fs.readFileSync(fullPath).toString('base64')
   }
@@ -2370,8 +2422,7 @@ ipcMain.handle('read-binary-file', (_event, relativePath: string) => {
 // Récupérer les annotations d'un PDF depuis son sidecar JSON
 ipcMain.handle('get-pdf-annotations', (_event, pdfRelativePath: string): PdfAnnotation[] => {
   ensureDir(NOTES_DIR)
-  const normRel = pdfRelativePath.replace(/\\/g, '/').replace(/^\/+/, '')
-  const annotationsPath = join(NOTES_DIR, `${normRel}.annotations.json`)
+  const annotationsPath = `${notePath(pdfRelativePath)}.annotations.json`
   if (fs.existsSync(annotationsPath)) {
     try {
       const data = fs.readFileSync(annotationsPath, 'utf-8')
@@ -2390,8 +2441,8 @@ ipcMain.handle(
   'save-pdf-annotations',
   (_event, pdfRelativePath: string, annotations: PdfAnnotation[]): boolean => {
     ensureDir(NOTES_DIR)
-    const normRel = pdfRelativePath.replace(/\\/g, '/').replace(/^\/+/, '')
-    const annotationsPath = join(NOTES_DIR, `${normRel}.annotations.json`)
+    const normRel = pdfRelativePath.replace(/\\/g, '/')
+    const annotationsPath = `${notePath(normRel)}.annotations.json`
     const targetDir = path.dirname(annotationsPath)
     ensureDir(targetDir)
 
@@ -2418,7 +2469,7 @@ ipcMain.handle(
 // Révéler le fichier dans l'explorateur Windows
 ipcMain.handle('show-item-in-folder', (_event, relativePath: string) => {
   ensureDir(NOTES_DIR)
-  const fullPath = join(NOTES_DIR, relativePath)
+  const fullPath = notePath(relativePath)
   if (fs.existsSync(fullPath)) {
     shell.showItemInFolder(fullPath)
     return true
@@ -2429,9 +2480,8 @@ ipcMain.handle('show-item-in-folder', (_event, relativePath: string) => {
 // Sauvegarder un PDF envoyé en Base64 depuis le webview (blob: URLs interceptées)
 ipcMain.handle('save-pdf-base64', (_event, filename: string, base64: string) => {
   ensureDir(NOTES_DIR)
-  const targetDir = currentActiveFolderRel ? join(NOTES_DIR, currentActiveFolderRel) : NOTES_DIR
-  ensureDir(targetDir)
-  const safeName = filename.toLowerCase().endsWith('.pdf') ? filename : filename + '.pdf'
+  const targetDir = activeTargetDir()
+  const safeName = sanitizeDownloadName(filename)
   let destPath = join(targetDir, safeName)
   if (fs.existsSync(destPath)) {
     const ext = path.extname(safeName)
@@ -2451,13 +2501,8 @@ ipcMain.handle(
   'save-pdf-binary',
   (_event, filename: string, buffer: ArrayBuffer | Uint8Array, targetFolderRel?: string) => {
     ensureDir(NOTES_DIR)
-    const targetDir = targetFolderRel
-      ? join(NOTES_DIR, targetFolderRel)
-      : currentActiveFolderRel
-        ? join(NOTES_DIR, currentActiveFolderRel)
-        : NOTES_DIR
-    ensureDir(targetDir)
-    const safeName = filename.toLowerCase().endsWith('.pdf') ? filename : filename + '.pdf'
+    const targetDir = activeTargetDir(targetFolderRel)
+    const safeName = sanitizeDownloadName(filename)
     let destPath = join(targetDir, safeName)
     if (fs.existsSync(destPath)) {
       const ext = path.extname(safeName)
@@ -2476,13 +2521,14 @@ ipcMain.handle(
 // Télécharger un PDF depuis une URL HTTP et le sauvegarder dans le dossier actif
 ipcMain.handle('download-pdf-from-url', async (_event, url: string, filename: string) => {
   ensureDir(NOTES_DIR)
-  const targetDir = currentActiveFolderRel ? join(NOTES_DIR, currentActiveFolderRel) : NOTES_DIR
-  ensureDir(targetDir)
+  // Refus levés hors du try : le renderer reçoit l'erreur au lieu d'un simple null
+  assertWebUrl(url)
+  const targetDir = activeTargetDir()
   try {
     const res = await net.fetch(url)
     if (!res.ok) return null
     const buf = Buffer.from(await res.arrayBuffer())
-    const safeName = filename.toLowerCase().endsWith('.pdf') ? filename : filename + '.pdf'
+    const safeName = sanitizeDownloadName(filename)
     let destPath = join(targetDir, safeName)
     if (fs.existsSync(destPath)) {
       const ext = path.extname(safeName)
@@ -2620,20 +2666,22 @@ ipcMain.handle('ai-ollama-inline-complete', async (_event, prompt: string, model
 
 // Handlers Time Travel / Historique de versions
 ipcMain.handle('get-note-history', async (_event, relativePath: string) => {
+  notePath(relativePath)
   return await getHistory(NOTES_DIR, relativePath)
 })
 
 ipcMain.handle(
   'get-history-version-content',
   async (_event, relativePath: string, versionId: string) => {
+    notePath(relativePath)
     return await getVersionContent(NOTES_DIR, relativePath, versionId)
   }
 )
 
 ipcMain.handle('restore-note-version', async (_event, relativePath: string, versionId: string) => {
+  const fullPath = notePath(relativePath)
   const content = await getVersionContent(NOTES_DIR, relativePath, versionId)
   if (content !== null) {
-    const fullPath = join(NOTES_DIR, relativePath)
     fs.writeFileSync(fullPath, content, 'utf-8')
     await saveSnapshot(NOTES_DIR, relativePath, content)
     return content
@@ -2684,16 +2732,23 @@ app.whenReady().then(async () => {
   // Activer la configuration des cookies
   setupCookieSynchronization()
 
-  // Gestionnaire de protocole sécurisé note-pdf://
+  // Gestionnaire de protocole note-pdf://notes/<chemin relatif encodé> : fichiers du dossier de notes uniquement
   protocol.handle('note-pdf', (request) => {
     try {
       const url = new URL(request.url)
+      if (url.hostname !== 'notes') {
+        return new Response('Forbidden', { status: 403 })
+      }
       const pathname = decodeURIComponent(url.pathname.replace(/^\/+/, ''))
-      const fullPath = path.isAbsolute(pathname) ? pathname : join(NOTES_DIR, pathname)
+      const fullPath = notePath(pathname)
       if (fs.existsSync(fullPath)) {
         return net.fetch(pathToFileURL(fullPath).toString())
       }
     } catch (e) {
+      if (e instanceof PathAccessError) {
+        console.warn('[note-pdf]', e.message)
+        return new Response('Forbidden', { status: 403 })
+      }
       console.error('Error handling note-pdf protocol:', e)
     }
     return new Response('Not found', { status: 404 })

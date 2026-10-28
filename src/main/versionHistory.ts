@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import { isVersionId } from './agent/security'
 
 export interface HistoryItem {
   id: string
@@ -138,6 +139,8 @@ export async function getVersionContent(
   relativePath: string,
   versionId: string
 ): Promise<string | null> {
+  // L'identifiant compose un nom de fichier : un timestamp uniquement (sinon "../" sortirait du dossier)
+  if (!isVersionId(versionId)) return null
   try {
     const targetDir = getSanitizedFolder(notesDir, relativePath)
     const filePath = path.join(targetDir, `${versionId}.json`)
