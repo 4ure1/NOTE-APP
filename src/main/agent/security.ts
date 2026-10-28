@@ -17,6 +17,8 @@ export interface SafePathOptions {
 }
 
 const INTERNAL_ENTRIES = new Set(['.history', '.trash', '.snippets', '.templates', '.config.json'])
+// Les caractères de contrôle sont interdits dans les noms Windows : la regex les cible volontairement
+// eslint-disable-next-line no-control-regex
 const FORBIDDEN_CHARS = /[<>:"|?*\x00-\x1F]/
 const RESERVED_NAME = /^(con|prn|aux|nul|conin\$|conout\$|com[0-9¹²³]|lpt[0-9¹²³])(\..*)?$/i
 const IS_WINDOWS = process.platform === 'win32'
@@ -158,6 +160,7 @@ export function sanitizeDownloadName(rawName: string, extension = '.pdf'): strin
     .split(/[/\\]/)
     .pop() as string
   let name = lastSegment
+    // eslint-disable-next-line no-control-regex
     .replace(/[<>:"|?*\x00-\x1F]/g, '-')
     .trim()
     .replace(/[. ]+$/, '')
