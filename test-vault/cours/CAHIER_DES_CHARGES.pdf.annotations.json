@@ -1,0 +1,22 @@
+{
+  "pdfFilePath": "cours/CAHIER_DES_CHARGES.pdf",
+  "version": 1,
+  "updatedAt": "2026-10-28T23:37:33.924Z",
+  "annotations": [
+    {
+      "id": "ann_1793230653923_gs6pn",
+      "pageNumber": 1,
+      "text": "Analyse Nom / Verbe (Noun / Verb Analysis)",
+      "color": "cyan",
+      "rects": [
+        {
+          "x": 0.09329855653661243,
+          "y": 0.2717259363150497,
+          "width": 0.40691755847818045,
+          "height": 0.014728038580347803
+        }
+      ],
+      "createdAt": "2026-10-28T23:37:33.923Z"
+    }
+  ]
+}
