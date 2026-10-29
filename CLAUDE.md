@@ -95,6 +95,8 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
   `window.parent.api` (fermeture sans écrire la saisie en attente).
 
 ### Dette
+- Les clés `localStorage` indexées par chemin (`pdf_page_<chemin>`, `html_scroll_<chemin>`) ne suivent pas
+  les renommages ni les déplacements : la page PDF et la position de défilement mémorisées sont oubliées.
 - `hasDoctype` / `hasHtmlTag` (`prepareHtmlPreview`, `CodeWorkspace.tsx`) cherchent `<!doctype` / `<html` dans
   tout le texte de la note : un exemple de code qui en contient fait ajouter un doctype ou un `<html>` à la
   première vraie modification dans l'aperçu.
@@ -105,7 +107,13 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
 - Sauvegarde de la note ouverte : uniquement via `persistOpenNote` / `saveOpenNote` / `flushPendingSave`
   (`App.tsx`), qui n'écrivent rien si le contenu est identique à `savedContentRef` (dernier contenu lu ou
   écrit) ni avant la fin de la lecture. Toute modification de `activeLoadedFileRef` doit mettre à jour
-  `savedContentRef`.
+  `savedContentRef`. Après un renommage ou un déplacement (note ou dossier), passer par `followMovedPath`
+  (`App.tsx`, logique dans `src/shared/movedPath.ts`) : note ouverte, sélection, panneau côte à côte,
+  favoris, tags et statuts suivent. Sinon la sauvegarde suivante recrée la note à l'ancien chemin.
+- Restauration d'une version : la saisie en attente est écrite d'abord (`onBeforeRestore`), puis le main
+  fait un instantané forcé de l'état courant (`ensureSnapshot`, sans le délai de 90 s de `saveSnapshot`) et
+  abandonne la restauration s'il échoue. L'historique est indexé par chemin : renommer une note lui fait
+  perdre l'accès à ses anciennes versions (dette).
 - L'aperçu n'envoie `PREVIEW_DOC_MUTATED` que sur une vraie saisie ; rien au blur ni à l'ouverture. Ce
   qu'il ajoute au DOM doit être marqué `data-injected-preview-helpers` ou `data-nf-pending` pour que
   `cleanPreviewDocument` (`src/shared/previewClean.ts`) le retire.

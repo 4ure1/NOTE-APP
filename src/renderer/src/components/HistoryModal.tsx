@@ -15,6 +15,9 @@ interface HistoryModalProps {
   currentFilePath: string
   currentContent: string
   onRestore: (restoredContent: string) => void
+  // Écrit la saisie en attente avant la restauration (elle entre ainsi dans l'instantané forcé) ;
+  // false : restauration abandonnée, l'appelant a déjà prévenu l'utilisateur
+  onBeforeRestore?: () => Promise<boolean>
 }
 
 /**
@@ -75,7 +78,8 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
   onClose,
   currentFilePath,
   currentContent,
-  onRestore
+  onRestore,
+  onBeforeRestore
 }) => {
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
@@ -135,6 +139,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
     setIsRestoring(true)
     try {
       if (window.api?.restoreNoteVersion) {
+        if (onBeforeRestore && !(await onBeforeRestore())) return
         const restored = await window.api.restoreNoteVersion(currentFilePath, selectedVersionId)
         onRestore(restored)
         onClose()

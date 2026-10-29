@@ -26,8 +26,67 @@ function getSanitizedFolder(notesDir: string, relativePath: string): string {
   return targetDir
 }
 
+const MAX_SNAPSHOTS = 50
+const MIN_SNAPSHOT_INTERVAL_MS = 90 * 1000
+
+// Instantanés d'une note, du plus récent au plus ancien
+function sortedSnapshotFiles(targetDir: string): string[] {
+  return fs
+    .readdirSync(targetDir)
+    .filter((f) => f.endsWith('.json'))
+    .sort((a, b) => (parseInt(b, 10) || 0) - (parseInt(a, 10) || 0))
+}
+
+function readLatestSnapshot(targetDir: string, files: string[]): StoredSnapshot | null {
+  if (files.length === 0) return null
+  try {
+    return JSON.parse(fs.readFileSync(path.join(targetDir, files[0]), 'utf-8'))
+  } catch (err) {
+    console.warn('[Historique] Dernier instantané illisible :', err)
+    return null
+  }
+}
+
+// Écrit un instantané puis élague les plus anciens. Identifiant unique même si deux instantanés
+// tombent dans la même milliseconde (instantané forcé suivi de la version restaurée)
+function writeSnapshotFile(
+  targetDir: string,
+  relativePath: string,
+  content: string,
+  existingFiles: string[]
+): void {
+  let now = Date.now()
+  while (fs.existsSync(path.join(targetDir, `${now}.json`))) now++
+
+  const snapshot: StoredSnapshot = {
+    id: String(now),
+    timestamp: now,
+    dateFormatted: new Date(now).toLocaleString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    }),
+    relativePath,
+    lineCount: content.split('\n').length,
+    size: Buffer.byteLength(content, 'utf-8'),
+    content
+  }
+  writeFileAtomic(path.join(targetDir, `${now}.json`), JSON.stringify(snapshot, null, 2))
+
+  // Élagage : garder au maximum MAX_SNAPSHOTS versions par fichier
+  for (const f of existingFiles.slice(MAX_SNAPSHOTS - 1)) {
+    try {
+      fs.unlinkSync(path.join(targetDir, f))
+    } catch (err) {
+      console.warn('[Historique] Ancien instantané non supprimé :', f, err)
+    }
+  }
+}
+
 /**
- * Enregistre un instantané si au moins 2 minutes se sont écoulées depuis le précédent
+ * Enregistre un instantané si au moins 90 secondes se sont écoulées depuis le précédent
  * ou si le fichier est nouveau.
  */
 export async function saveSnapshot(
@@ -38,62 +97,44 @@ export async function saveSnapshot(
   try {
     if (!content.trim()) return false
     const targetDir = getSanitizedFolder(notesDir, relativePath)
+    const existingFiles = sortedSnapshotFiles(targetDir)
 
-    const existingFiles = fs.readdirSync(targetDir).filter((f) => f.endsWith('.json'))
-    const now = Date.now()
-
-    // Vérifier la date du dernier instantané
-    if (existingFiles.length > 0) {
-      existingFiles.sort((a, b) => {
-        const tA = parseInt(a.replace('.json', ''), 10) || 0
-        const tB = parseInt(b.replace('.json', ''), 10) || 0
-        return tB - tA
-      })
-
-      const latestFile = path.join(targetDir, existingFiles[0])
-      try {
-        const latestData: StoredSnapshot = JSON.parse(fs.readFileSync(latestFile, 'utf-8'))
-        // Si le contenu est strictement identique ou s'il s'est écoulé moins de 90 secondes, on ne spamme pas
-        if (latestData.content === content || now - latestData.timestamp < 90 * 1000) {
-          return false
-        }
-      } catch {}
+    // Contenu identique ou dernier instantané trop récent : on ne spamme pas
+    const latest = readLatestSnapshot(targetDir, existingFiles)
+    if (
+      latest &&
+      (latest.content === content || Date.now() - latest.timestamp < MIN_SNAPSHOT_INTERVAL_MS)
+    ) {
+      return false
     }
 
-    const d = new Date(now)
-    const dateFormatted = d.toLocaleString('fr-FR', {
-      day: '2-digit',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    })
-
-    const snapshot: StoredSnapshot = {
-      id: String(now),
-      timestamp: now,
-      dateFormatted,
-      relativePath,
-      lineCount: content.split('\n').length,
-      size: Buffer.byteLength(content, 'utf-8'),
-      content
-    }
-
-    writeFileAtomic(path.join(targetDir, `${now}.json`), JSON.stringify(snapshot, null, 2))
-
-    // Élagage : garder au maximum 50 versions par fichier
-    if (existingFiles.length >= 50) {
-      const filesToDelete = existingFiles.slice(49)
-      for (const f of filesToDelete) {
-        try {
-          fs.unlinkSync(path.join(targetDir, f))
-        } catch {}
-      }
-    }
-
+    writeSnapshotFile(targetDir, relativePath, content, existingFiles)
     return true
   } catch (err) {
     console.warn('Failed to save version snapshot:', err)
+    return false
+  }
+}
+
+/**
+ * Instantané forcé, sans délai minimal : garantit que `content` figure dans l'historique avant une
+ * opération qui va l'écraser (restauration d'une version). Renvoie true s'il y est déjà (dernier
+ * instantané identique, ou contenu vide) ou s'il vient d'être enregistré ; false si l'écriture a échoué.
+ */
+export async function ensureSnapshot(
+  notesDir: string,
+  relativePath: string,
+  content: string
+): Promise<boolean> {
+  if (!content.trim()) return true
+  try {
+    const targetDir = getSanitizedFolder(notesDir, relativePath)
+    const existingFiles = sortedSnapshotFiles(targetDir)
+    if (readLatestSnapshot(targetDir, existingFiles)?.content === content) return true
+    writeSnapshotFile(targetDir, relativePath, content, existingFiles)
+    return true
+  } catch (err) {
+    console.error('[Historique] Instantané forcé impossible :', err)
     return false
   }
 }

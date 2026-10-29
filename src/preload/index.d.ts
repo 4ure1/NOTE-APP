@@ -155,7 +155,7 @@ interface CustomAPI {
   ) => Promise<{ success: boolean; operationId?: string; newPath: string; error?: string }>
   undoRenameOrMove: (
     operationId?: string
-  ) => Promise<{ success: boolean; restoredPath?: string; error?: string }>
+  ) => Promise<{ success: boolean; restoredPath?: string; fromPath?: string; error?: string }>
   getTemplates: () => Promise<NoteTemplate[]>
   createNoteFromTemplate: (params: {
     folderPath: string

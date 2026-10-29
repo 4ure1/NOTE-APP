@@ -45,6 +45,13 @@ import { RenameOperationPlan } from './utils/linkUpdater'
 import { highlightAllCodeBlocksInHtml } from './utils/codeHighlighter'
 import { parsePdfHref, resolveVaultLinkPath } from './utils/pdfLink'
 import { decideNoteSave, shouldConfirmLeavingNote } from './utils/noteSaveGuard'
+import {
+  remapMovedPath,
+  remapMovedPaths,
+  remapMovedKeys,
+  isInsideRemovedPath,
+  withoutRemovedPaths
+} from './utils/movedPath'
 import UnreadableNotePanel from './components/UnreadableNotePanel'
 import ExternalChangeBar, { ExternalChangeReason } from './components/ExternalChangeBar'
 import { copyNoteName } from './utils/copyNoteName'
@@ -1733,6 +1740,57 @@ function App() {
     await fetchFiles()
   }
 
+  // Renommage ou déplacement d'une note ou d'un dossier par l'app : tout ce qui pointe vers l'élément
+  // ou à l'intérieur suit (note ouverte et sa base, conflit, sélection, panneau côte à côte, dernière
+  // note active, favoris, tags, statuts). Sinon la sauvegarde suivante recréerait la note à l'ancien
+  // chemin.
+  const followMovedPath = (oldPath: string, newPath: string): void => {
+    const remap = (p: string): string => remapMovedPath(p, oldPath, newPath)
+
+    if (activeLoadedFileRef.current) {
+      activeLoadedFileRef.current = remap(activeLoadedFileRef.current)
+    }
+    if (savedContentRef.current.file) {
+      savedContentRef.current = {
+        ...savedContentRef.current,
+        file: remap(savedContentRef.current.file)
+      }
+    }
+    if (noteConflictRef.current) {
+      showNoteConflict({ ...noteConflictRef.current, file: remap(noteConflictRef.current.file) })
+    }
+    setNoteLoadError((prev) => (prev ? { ...prev, file: remap(prev.file) } : prev))
+    setSelectedFiles((prev) => remapMovedPaths(prev, oldPath, newPath))
+    setSideBySideFile((prev) => (prev ? remap(prev) : prev))
+    setLastActiveNote((prev) => (prev ? remap(prev) : prev))
+
+    const updatedFavs = remapMovedPaths(favorites, oldPath, newPath)
+    if (updatedFavs !== favorites) {
+      setFavorites(updatedFavs)
+      window.api
+        .saveConfig({ favorites: updatedFavs })
+        .catch((err) => notifyApiError('Mise à jour des favoris', err))
+    }
+    const updatedTags = remapMovedKeys(noteTags, oldPath, newPath)
+    if (updatedTags !== noteTags) {
+      setNoteTags(updatedTags)
+      window.api
+        .saveConfig({ tags: updatedTags })
+        .catch((err) => notifyApiError('Mise à jour des tags', err))
+    }
+    setNoteWorkflowStatuses((prev) => {
+      const next = remapMovedKeys(prev, oldPath, newPath)
+      if (next !== prev) {
+        try {
+          localStorage.setItem('note_workflow_statuses', JSON.stringify(next))
+        } catch (err) {
+          console.error('[Statuts]', err)
+        }
+      }
+      return next
+    })
+  }
+
   const handleApplyRenamePlan = async (plan: RenameOperationPlan) => {
     setIsApplyingRename(true)
     try {
@@ -1748,19 +1806,16 @@ function App() {
 
         const sourcePath = plan.oldPath
         const newPath = res.newPath
+        // Chemin de la note ouverte avant l'opération : le plan référence les anciens chemins
+        const previousActive = activeLoadedFileRef.current
 
-        // Si le fichier actif a été renommé ou déplacé
-        if (activeLoadedFileRef.current === sourcePath) {
-          activeLoadedFileRef.current = newPath
-        }
-        if (savedContentRef.current.file === sourcePath) {
-          savedContentRef.current = { ...savedContentRef.current, file: newPath }
-        }
+        // Note, ou dossier et tout son contenu : chemins et références suivent
+        followMovedPath(sourcePath, newPath)
 
-        // Si le contenu du fichier actif ou d'une note impactée a changé
-        const activeFilePlan = plan.affectedFiles.find(
-          (f) => f.relativePath === sourcePath || f.relativePath === activeLoadedFileRef.current
-        )
+        // Liens actualisés dans la note ouverte : l'éditeur reprend le contenu écrit par le main
+        const activeFilePlan = previousActive
+          ? plan.affectedFiles.find((f) => f.relativePath === previousActive)
+          : undefined
         if (activeFilePlan) {
           fileContentRef.current = activeFilePlan.newContent
           setFileContent(activeFilePlan.newContent)
@@ -1771,42 +1826,6 @@ function App() {
               content: activeFilePlan.newContent
             }
           }
-        }
-
-        // Mettre à jour la sélection
-        if (selectedFiles.includes(sourcePath)) {
-          setSelectedFiles((prev) => prev.map((f) => (f === sourcePath ? newPath : f)))
-        }
-
-        // Mettre à jour les favoris
-        if (favorites.includes(sourcePath)) {
-          const updatedFavs = favorites.map((f) => (f === sourcePath ? newPath : f))
-          setFavorites(updatedFavs)
-          await window.api.saveConfig({ favorites: updatedFavs, tags: noteTags })
-        }
-
-        // Mettre à jour les tags
-        if (noteTags[sourcePath]) {
-          const updatedTags = { ...noteTags, [newPath]: noteTags[sourcePath] }
-          delete updatedTags[sourcePath]
-          setNoteTags(updatedTags)
-          await window.api.saveConfig({ favorites, tags: updatedTags })
-        }
-
-        // Mettre à jour le statut workflow
-        if (noteWorkflowStatuses[sourcePath]) {
-          const status = noteWorkflowStatuses[sourcePath]
-          handleUpdateWorkflowStatus(newPath, status)
-          setNoteWorkflowStatuses((prev) => {
-            const copy = { ...prev, [newPath]: status }
-            delete copy[sourcePath]
-            try {
-              localStorage.setItem('note_workflow_statuses', JSON.stringify(copy))
-            } catch {
-              // ignore
-            }
-            return copy
-          })
         }
 
         await fetchFiles()
@@ -1837,12 +1856,16 @@ function App() {
   }
 
   const handleUndoRename = async (operationId?: string) => {
+    // L'annulation réécrit des notes et recharge la note ouverte : la saisie en attente passe d'abord
+    if (!(await flushPendingSave())) return
     try {
       const res = await window.api.undoRenameOrMove(operationId)
       if (res.success) {
         setUndoRenameBanner(null)
         await fetchFiles()
         if (res.restoredPath) {
+          // L'élément revient à son ancien chemin : la note ouverte et les références suivent
+          if (res.fromPath) followMovedPath(res.fromPath, res.restoredPath)
           if (activeLoadedFileRef.current) {
             const restoredContent = await window.api
               .readNote(activeLoadedFileRef.current)
@@ -1891,7 +1914,11 @@ function App() {
       console.error('Error moving item:', err)
       try {
         const newPath = await window.api.moveItem(sourcePath, targetFolderPath)
-        if (newPath) await fetchFiles()
+        if (newPath) {
+          // Note, ou dossier et tout son contenu : chemins et références suivent
+          followMovedPath(sourcePath, newPath)
+          await fetchFiles()
+        }
       } catch (fallbackErr) {
         notifyApiError('Déplacement', fallbackErr)
       }
@@ -1966,16 +1993,9 @@ function App() {
             try {
               const newFileName = await window.api.renameNote(editingFile, editValue.trim())
               if (newFileName) {
-                if (activeLoadedFileRef.current === editingFile) {
-                  activeLoadedFileRef.current = newFileName
-                }
-                if (savedContentRef.current.file === editingFile) {
-                  savedContentRef.current = { ...savedContentRef.current, file: newFileName }
-                }
+                // Note, ou dossier et tout son contenu : chemins et références suivent
+                followMovedPath(editingFile, newFileName)
                 await fetchFiles()
-                if (selectedFiles.includes(editingFile)) {
-                  setSelectedFiles(selectedFiles.map((f) => (f === editingFile ? newFileName : f)))
-                }
               }
             } catch (fallbackErr) {
               notifyApiError('Renommage', fallbackErr)
@@ -1997,17 +2017,16 @@ function App() {
 
   const confirmDeleteNotes = async () => {
     if (notesToDelete.length === 0) return
-    if (activeLoadedFileRef.current && notesToDelete.includes(activeLoadedFileRef.current)) {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current)
-        saveTimeoutRef.current = null
-      }
-      activeLoadedFileRef.current = null
-      savedContentRef.current = { file: null, content: '' }
-      fileContentRef.current = ''
-      setFileContent('')
+    const insideDeleted = (p: string | null, removed: string[]): boolean =>
+      !!p && removed.some((r) => isInsideRemovedPath(p, r))
+
+    // Note ouverte supprimée elle-même ou avec son dossier : la saisie en attente est écrite d'abord,
+    // la note part ainsi à la corbeille avec sa dernière version
+    if (insideDeleted(activeLoadedFileRef.current, notesToDelete)) {
+      await flushPendingSave()
     }
-    let anySuccess = false
+
+    const deleted: string[] = []
     for (const file of notesToDelete) {
       let success = false
       try {
@@ -2016,15 +2035,33 @@ function App() {
         notifyApiError(`Suppression de « ${file} »`, err)
       }
       if (success) {
-        anySuccess = true
-        if (editingFile === file) {
+        deleted.push(file)
+        if (editingFile && isInsideRemovedPath(editingFile, file)) {
           setEditingFile(null)
         }
       }
     }
-    if (anySuccess) {
+
+    if (deleted.length > 0) {
+      // Plus rien ne doit pointer vers une note supprimée : sinon la sauvegarde suivante la recréerait
+      // hors de la corbeille (l'écriture d'une note absente passe pour une création)
+      if (insideDeleted(activeLoadedFileRef.current, deleted)) {
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current)
+          saveTimeoutRef.current = null
+        }
+        activeLoadedFileRef.current = null
+        savedContentRef.current = { file: null, content: '' }
+        fileContentRef.current = ''
+        setFileContent('')
+        showNoteConflict(null)
+        setNoteLoadError(null)
+        reportUnsavedState()
+      }
+      setSelectedFiles((prev) => withoutRemovedPaths(prev, deleted))
+      setSideBySideFile((prev) => (insideDeleted(prev, deleted) ? null : prev))
+      setLastActiveNote((prev) => (insideDeleted(prev, deleted) ? null : prev))
       fetchFiles()
-      setSelectedFiles((prev) => prev.filter((f) => !notesToDelete.includes(f)))
     }
     setNotesToDelete([])
   }
@@ -6497,6 +6534,21 @@ function App() {
         onClose={() => setIsHistoryOpen(false)}
         currentFilePath={currentFile}
         currentContent={fileContent}
+        onBeforeRestore={async () => {
+          // Conflit en cours : la saisie n'est pas sur le disque et ne peut pas y aller sans choix
+          if (
+            noteConflictRef.current &&
+            noteConflictRef.current.file === activeLoadedFileRef.current
+          ) {
+            notifyApiError(
+              'Restauration',
+              new Error('résous d’abord le conflit avec la version du disque (barre en haut).')
+            )
+            return false
+          }
+          // La saisie en attente est écrite d'abord : l'instantané forcé du main la contiendra
+          return flushPendingSave()
+        }}
         onRestore={(restored) => {
           // Le main vient d'écrire cette version : c'est la nouvelle base, rien à réécrire
           if (

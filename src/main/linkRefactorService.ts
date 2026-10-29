@@ -348,7 +348,7 @@ export async function applyRenameOrMove(
 export async function undoRenameOrMove(
   notesDir: string,
   operationId?: string
-): Promise<{ success: boolean; restoredPath?: string; error?: string }> {
+): Promise<{ success: boolean; restoredPath?: string; fromPath?: string; error?: string }> {
   let record: RenameUndoRecord | undefined
 
   if (operationId !== undefined && !isOperationId(operationId)) {
@@ -427,7 +427,8 @@ export async function undoRenameOrMove(
       console.warn('[undoRenameOrMove] Nettoyage du log impossible:', err)
     }
 
-    return { success: true, restoredPath: plan.oldPath }
+    // fromPath : chemin quitté, pour que le renderer mette à jour la note ouverte et les références
+    return { success: true, restoredPath: plan.oldPath, fromPath: plan.newPath }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('[undoRenameOrMove] Erreur lors de l’annulation:', err)

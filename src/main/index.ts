@@ -12,7 +12,7 @@ import {
   callOllamaChat,
   callOllamaInlineCompletion
 } from './aiTools'
-import { saveSnapshot, getHistory, getVersionContent } from './versionHistory'
+import { saveSnapshot, ensureSnapshot, getHistory, getVersionContent } from './versionHistory'
 import { prepareRenameOrMove, applyRenameOrMove, undoRenameOrMove } from './linkRefactorService'
 import { RenameOperationPlan } from '../shared/linkUpdater'
 import { expandTemplate, NoteTemplate, TemplateContext } from '../shared/sessionDetector'
@@ -2812,14 +2812,24 @@ ipcMain.handle(
 ipcMain.handle('restore-note-version', async (_event, relativePath: string, versionId: string) => {
   const fullPath = notePath(relativePath)
   const content = await getVersionContent(NOTES_DIR, relativePath, versionId)
-  if (content !== null) {
-    writeFileAtomic(fullPath, content, { preserveFormat: true })
-    // L'éditeur reçoit ce contenu restauré comme nouvelle base
-    noteFingerprints.recordFromDisk(fullPath)
-    await saveSnapshot(NOTES_DIR, relativePath, content)
-    return content
+  if (content === null) throw new Error('Version introuvable')
+
+  // État actuel conservé dans l'historique avant d'être remplacé (sans le délai de 90 s) : la
+  // restauration reste réversible. Si cet instantané échoue, on ne restaure pas.
+  if (fs.existsSync(fullPath)) {
+    const current = fs.readFileSync(fullPath, 'utf-8')
+    if (!(await ensureSnapshot(NOTES_DIR, relativePath, current))) {
+      throw new Error(
+        "Restauration annulée : l'état actuel de la note n'a pas pu être enregistré dans l'historique."
+      )
+    }
   }
-  throw new Error('Version introuvable')
+
+  writeFileAtomic(fullPath, content, { preserveFormat: true })
+  // L'éditeur reçoit ce contenu restauré comme nouvelle base
+  noteFingerprints.recordFromDisk(fullPath)
+  await ensureSnapshot(NOTES_DIR, relativePath, content)
+  return content
 })
 
 // Handler Exportateur Pro Multi-formats (PDF, Word docx, HTML autonome)

@@ -3,6 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import os from 'os'
 import { prepareRenameOrMove, applyRenameOrMove, undoRenameOrMove } from './linkRefactorService'
+import { noteFingerprints } from './noteFingerprints'
 
 describe('linkRefactorService - Tests d’intégration sur dossier temporaire', () => {
   let tempVaultDir: string
@@ -115,6 +116,39 @@ describe('linkRefactorService - Tests d’intégration sur dossier temporaire', 
     expect(undoRes.success).toBe(true)
     expect(fs.existsSync(path.join(tempVaultDir, 'cours', 'algo.html'))).toBe(true)
     expect(fs.readFileSync(rootNote, 'utf-8')).toContain('href="cours/algo.html"')
+  })
+
+  it('déplacer puis rétablir un dossier fait suivre les empreintes de ses notes ouvertes', async () => {
+    const coursDir = path.join(tempVaultDir, 'cours')
+    fs.mkdirSync(coursDir, { recursive: true })
+    const note = path.join(coursDir, 'algo.html')
+    fs.writeFileSync(note, '<p>Algorithmique</p>', 'utf-8')
+    const sommaire = path.join(tempVaultDir, 'sommaire.html')
+    fs.writeFileSync(sommaire, '<a href="cours/algo.html">Algo</a>', 'utf-8')
+    // Notes ouvertes dans l'éditeur : lues par read-note
+    noteFingerprints.recordBytes(note, fs.readFileSync(note))
+    noteFingerprints.recordBytes(sommaire, fs.readFileSync(sommaire))
+
+    const plan = prepareRenameOrMove(tempVaultDir, 'cours', 'archives', true, true)
+    const applyRes = await applyRenameOrMove(tempVaultDir, plan)
+    expect(applyRes.success).toBe(true)
+
+    // La note déplacée se sauvegarde à son nouveau chemin sans conflit…
+    const moved = path.join(tempVaultDir, 'archives', 'cours', 'algo.html')
+    expect(noteFingerprints.check(moved)).toBeNull()
+    // …la note dont les liens ont été réécrits aussi (le renderer reprend ce contenu)…
+    expect(noteFingerprints.check(sommaire)).toBeNull()
+    // …et l'ancien chemin n'est plus connu : une écriture à l'aveugle y serait une création
+    expect(fs.existsSync(note)).toBe(false)
+
+    const undoRes = await undoRenameOrMove(tempVaultDir, applyRes.operationId)
+    expect(undoRes).toMatchObject({
+      success: true,
+      restoredPath: 'cours',
+      fromPath: 'archives/cours'
+    })
+    expect(noteFingerprints.check(note)).toBeNull()
+    expect(noteFingerprints.check(sommaire)).toBeNull()
   })
 
   describe('confiance limitée au plan envoyé par le renderer', () => {
