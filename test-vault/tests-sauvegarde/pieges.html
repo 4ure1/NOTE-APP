@@ -1,0 +1,57 @@
+﻿<!DOCTYPE html>
+<!-- Note de test du chantier 2 : BOM UTF-8 + fins de ligne CRLF. Ne doit JAMAIS changer sans modification réelle. -->
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Pièges de sauvegarde</title>
+<!-- commentaire dans head -->
+<style>
+  .piege > p { color: #dcdcaa; }
+  a[href*="&"] { text-decoration: underline; }
+  @media (max-width: 800px) { .duo { display: block } }
+</style>
+</head>
+<body style="color: #d4d4d4">
+<div class="container">
+<h1>Pièges de sauvegarde</h1>
+<p class="subtitle">Ouvrir, cliquer, défiler, zoomer, quitter l'aperçu : rien ne doit changer sur le disque.</p>
+
+<h2>Entités</h2>
+<p>Esperluettes &amp;&amp; chevrons &lt;div&gt; &gt; guillemets &quot;x&quot; accents &eacute; &#233; é</p>
+<p>Espaces&nbsp;insécables&nbsp;&nbsp;doublés et en fin&nbsp;</p>
+<p>&lt;h1&gt;Pas un titre : du texte qui ressemble à une balise&lt;/h1&gt;</p>
+
+<h2>Attributs</h2>
+<p><a href="../cours/CAHIER_DES_CHARGES.pdf#zoom=100&amp;page=2" data-x="1" aria-label="lien PDF">Lien avec &amp;amp; dans l'attribut</a></p>
+<div data-role="piege" x-on:click="go()" title='Il a dit "bonjour"' hidden></div>
+<mon-composant data-id="3">élément personnalisé</mon-composant>
+
+<h2>Éléments vides et mise en forme</h2>
+<div id="ancre"></div>
+<p><span class="icon"></span> Icône vide devant</p>
+<p></p>
+<p><br></p>
+<p><br></p>
+<p>Texte <b>gras</b> et <i>italique</i><br/>après un br auto-fermant</p>
+<DIV CLASS="majuscules">Balises en majuscules</DIV>
+
+<h2>Code</h2>
+<pre class="java">
+
+  if (a &lt; b &amp;&amp; c) {
+	return "tabulation";
+  }
+</pre>
+<p>En ligne : <code>&lt;p class="x"&gt;  deux espaces</code></p>
+<textarea name="t">
+  <b>pas gras</b> &amp; </textarea>
+<template id="modele"><p>Dans un template</p></template>
+<!--[if IE]><p>Commentaire conditionnel</p><![endif]-->
+
+<script>
+  // Script inoffensif : aucun accès à l'app
+  var piege = { a: 1 < 2 && 3 > 2, chaine: '</div>' };
+</script>
+</div>
+</body>
+</html>
