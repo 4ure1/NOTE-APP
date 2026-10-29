@@ -1,5 +1,32 @@
 import { describe, it, expect } from 'vitest'
-import { decideNoteSave } from './noteSaveGuard'
+import { decideNoteSave, shouldConfirmLeavingNote } from './noteSaveGuard'
+
+describe('shouldConfirmLeavingNote', () => {
+  const base = {
+    conflictFile: 'a.html',
+    activeFile: 'a.html',
+    targetFile: 'b.html',
+    hasUnsavedEdits: true
+  }
+
+  it('demande avant de quitter une note en conflit avec une saisie non enregistrée', () => {
+    expect(shouldConfirmLeavingNote(base)).toBe(true)
+  })
+
+  it('demande aussi quand on ferme l’onglet sans en ouvrir un autre', () => {
+    expect(shouldConfirmLeavingNote({ ...base, targetFile: null })).toBe(true)
+  })
+
+  it('ne demande rien sans conflit, sans saisie, ou en restant sur la même note', () => {
+    expect(shouldConfirmLeavingNote({ ...base, conflictFile: null })).toBe(false)
+    expect(shouldConfirmLeavingNote({ ...base, hasUnsavedEdits: false })).toBe(false)
+    expect(shouldConfirmLeavingNote({ ...base, targetFile: 'a.html' })).toBe(false)
+  })
+
+  it('ignore un conflit qui concerne une autre note que celle ouverte', () => {
+    expect(shouldConfirmLeavingNote({ ...base, conflictFile: 'c.html' })).toBe(false)
+  })
+})
 
 describe('decideNoteSave', () => {
   it('écrit une note lue dont le contenu a changé', () => {

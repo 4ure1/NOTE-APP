@@ -9,6 +9,7 @@ import {
 import { saveSnapshot } from './versionHistory'
 import { assertSafeNotePath, assertSafeFileName, isOperationId } from './agent/security'
 import { writeFileAtomic } from './atomicWrite'
+import { noteFingerprints } from './noteFingerprints'
 
 // Plans préparés par le main : le renderer ne renvoie que leur identifiant
 const PLAN_TTL_MS = 10 * 60 * 1000
@@ -292,6 +293,8 @@ export async function applyRenameOrMove(
     for (const file of plan.affectedFiles) {
       const fullPath = path.join(notesDir, file.relativePath)
       writeAtomic(fullPath, file.newContent)
+      // Le renderer reprend ce contenu (note ouverte) : nouvelle base pour les conflits
+      noteFingerprints.recordFromDisk(fullPath)
     }
 
     // 3. Renommage / déplacement du fichier ou dossier lui-même
@@ -301,6 +304,7 @@ export async function applyRenameOrMove(
         fs.mkdirSync(destDir, { recursive: true })
       }
       fs.renameSync(oldFullPath, newFullPath)
+      noteFingerprints.move(oldFullPath, newFullPath)
 
       // Déplacer / renommer le sidecar d'annotations si c'est un PDF
       if (plan.oldPath.toLowerCase().endsWith('.pdf')) {
@@ -390,6 +394,7 @@ export async function undoRenameOrMove(
         fs.mkdirSync(origDir, { recursive: true })
       }
       fs.renameSync(currentFullPath, originalFullPath)
+      noteFingerprints.move(currentFullPath, originalFullPath)
 
       // Restaurer le sidecar d'annotations si c'est un PDF
       if (plan.oldPath.toLowerCase().endsWith('.pdf')) {
@@ -408,6 +413,7 @@ export async function undoRenameOrMove(
       const fullPath = path.join(notesDir, file.relativePath)
       if (fs.existsSync(fullPath)) {
         writeAtomic(fullPath, file.originalContent)
+        noteFingerprints.recordFromDisk(fullPath)
       }
     }
 

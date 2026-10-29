@@ -3,6 +3,12 @@ import { RenameOperationPlan } from '../shared/linkUpdater'
 import { NoteTemplate, TemplateContext } from '../shared/sessionDetector'
 import { PdfAnnotation } from '../shared/pdfAnnotations'
 
+export type ExternalChangeReason = 'changed' | 'deleted' | 'unknown'
+
+export type WriteNoteResult =
+  | { success: true }
+  | { success: false; error: string; code?: 'EXTERNAL_CHANGE'; reason?: ExternalChangeReason }
+
 export interface TreeNode {
   id: string
   name: string
@@ -33,7 +39,12 @@ interface CustomAPI {
   renameNote: (oldPath: string, newName: string) => Promise<string | null>
   moveItem: (sourceRelativePath: string, targetFolderRelativePath: string) => Promise<string | null>
   readNote: (relativePath: string) => Promise<string>
-  writeNote: (relativePath: string, content: string) => Promise<void>
+  // Sans force, refuse d'écraser une note modifiée, supprimée ou jamais lue (code EXTERNAL_CHANGE)
+  writeNote: (
+    relativePath: string,
+    content: string,
+    options?: { force?: boolean }
+  ) => Promise<WriteNoteResult>
   deleteNote: (relativePath: string) => Promise<boolean>
   getDeletedNotes: () => Promise<DeletedNote[]>
   restoreDeletedNote: (trashId: string) => Promise<string | null>

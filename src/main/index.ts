@@ -32,6 +32,7 @@ import {
 } from './agent/security'
 import { writeFileAtomic, copyFileAtomic, cleanupTempFiles } from './atomicWrite'
 import { readConfig, mergeConfig } from './configStore'
+import { noteFingerprints, externalChangeMessage } from './noteFingerprints'
 
 // Dossier de notes : NOTE_APP_NOTES_DIR si défini (ex. ./test-vault via `npm run dev:safe`), sinon ~/Notes
 const NOTES_DIR = resolveNotesDir(process.env[NOTES_DIR_ENV], os.homedir(), process.cwd())
@@ -1768,19 +1769,49 @@ ipcMain.handle('read-note', (_event, relativePath: string) => {
   ensureDir(NOTES_DIR)
   const filePath = notePath(relativePath)
   if (fs.existsSync(filePath)) {
-    return fs.readFileSync(filePath, 'utf-8')
+    // Empreinte de la version lue : base de la détection des modifications externes
+    const bytes = fs.readFileSync(filePath)
+    noteFingerprints.recordBytes(filePath, bytes)
+    return bytes.toString('utf-8')
   }
   return ''
 })
 
-ipcMain.handle('write-note', (_event, relativePath: string, content: string) => {
-  ensureDir(NOTES_DIR)
-  const filePath = notePath(relativePath)
-  // BOM, fins de ligne et encodage de l'original conservés ; original intact en cas d'échec
-  writeFileAtomic(filePath, content, { preserveFormat: true })
-  // Sauvegarde automatique d'un instantané dans l'historique local (Time Travel)
-  saveSnapshot(NOTES_DIR, relativePath, content).catch(() => {})
-})
+ipcMain.handle(
+  'write-note',
+  (_event, relativePath: string, content: string, options?: { force?: boolean }) => {
+    ensureDir(NOTES_DIR)
+    const filePath = notePath(relativePath)
+    if (typeof content !== 'string') {
+      return { success: false, error: 'Contenu de note invalide.' }
+    }
+    // Modifiée, supprimée par un autre programme ou jamais lue : pas d'écrasement sans confirmation
+    if (options?.force !== true) {
+      const reason = noteFingerprints.check(filePath)
+      if (reason) {
+        return {
+          success: false,
+          code: 'EXTERNAL_CHANGE',
+          reason,
+          error: externalChangeMessage(reason, path.basename(filePath))
+        }
+      }
+    }
+    try {
+      // BOM, fins de ligne et encodage de l'original conservés ; original intact en cas d'échec
+      writeFileAtomic(filePath, content, { preserveFormat: true })
+    } catch (err) {
+      console.error('[write-note]', err)
+      return { success: false, error: (err as Error).message }
+    }
+    noteFingerprints.recordFromDisk(filePath)
+    // Sauvegarde automatique d'un instantané dans l'historique local (Time Travel)
+    saveSnapshot(NOTES_DIR, relativePath, content).catch((err) =>
+      console.error('[write-note] Instantané non enregistré :', err)
+    )
+    return { success: true }
+  }
+)
 
 ipcMain.handle('rename-note', (_event, oldRelativePath: string, newName: string) => {
   ensureDir(NOTES_DIR)
@@ -1798,6 +1829,7 @@ ipcMain.handle('rename-note', (_event, oldRelativePath: string, newName: string)
   const newPath = join(dir, assertSafeFileName(finalName))
   if (!fs.existsSync(newPath)) {
     fs.renameSync(oldPath, newPath)
+    noteFingerprints.move(oldPath, newPath)
     if (oldPath.toLowerCase().endsWith('.pdf')) {
       const oldAnn = `${oldPath}.annotations.json`
       const newAnn = `${newPath}.annotations.json`
@@ -1877,6 +1909,7 @@ ipcMain.handle(
     }
 
     fs.renameSync(sourcePath, destPath)
+    noteFingerprints.move(sourcePath, destPath)
     if (sourcePath.toLowerCase().endsWith('.pdf')) {
       const oldAnn = `${sourcePath}.annotations.json`
       const newAnn = `${destPath}.annotations.json`
@@ -1919,6 +1952,7 @@ ipcMain.handle('delete-note', (_event, relativePath: string) => {
     const timeStamp = Date.now()
     const trashTarget = join(TRASH_DIR, `${timeStamp}___${fileName}`)
     fs.renameSync(targetPath, trashTarget)
+    noteFingerprints.forget(targetPath)
     if (targetPath.toLowerCase().endsWith('.pdf')) {
       const oldAnn = `${targetPath}.annotations.json`
       const trashAnn = join(TRASH_DIR, `${timeStamp}___${fileName}.annotations.json`)
@@ -2780,6 +2814,8 @@ ipcMain.handle('restore-note-version', async (_event, relativePath: string, vers
   const content = await getVersionContent(NOTES_DIR, relativePath, versionId)
   if (content !== null) {
     writeFileAtomic(fullPath, content, { preserveFormat: true })
+    // L'éditeur reçoit ce contenu restauré comme nouvelle base
+    noteFingerprints.recordFromDisk(fullPath)
     await saveSnapshot(NOTES_DIR, relativePath, content)
     return content
   }

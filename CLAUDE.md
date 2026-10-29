@@ -82,12 +82,6 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
    L'utilisateur s'en charge.
 
 ## Chantiers en attente
-### 2c (ne jamais abîmer une note ; 2a écritures atomiques et 2b écritures parasites : faits)
-- Empreinte SHA-256 par note côté main, code `EXTERNAL_CHANGE`, paramètre `force`, barre de conflit
-  (Recharger / Garder ma version / Enregistrer une copie). Note sans empreinte mais présente sur le disque
-  = conflit ; empreinte mise à jour après restauration, ajout, agent, renommage.
-- Test : relancer l'app avec des onglets ouverts n'affiche pas la barre de conflit.
-
 ### 3b (sécurité, relevé lors du bug de la regex PDF)
 - Fenêtre principale sans garde de navigation (`src/main/index.ts`, `browser-window-created`) : un lien web
   cliqué hors des aperçus remplace toute l'interface par la page, et un fichier servi en téléchargement
@@ -125,8 +119,14 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
   donc un nouveau snippet par défaut n'arrive pas chez un utilisateur existant.
 - Trois moteurs de snippets : textarea Markdown (`snippetEngine.ts`), Monaco (`monacoCompletions.ts`),
   iframe (`CodeWorkspace.tsx`, sans tabstops : le premier choix est pris).
-- La note ouverte n'est jamais relue depuis le disque : une écriture externe (agent, autre éditeur) est
-  écrasée par la sauvegarde automatique (700 ms).
+- La note ouverte n'est jamais relue automatiquement depuis le disque. Une écriture externe (agent, autre
+  éditeur) est détectée à la sauvegarde suivante par l'empreinte SHA-256 (`src/main/noteFingerprints.ts`) :
+  `write-note` renvoie `code: 'EXTERNAL_CHANGE'` et la barre de conflit (`ExternalChangeBar`) propose
+  Recharger / Garder ma version (`force`) / Enregistrer une copie. L'empreinte suit la version sur laquelle
+  s'appuie l'éditeur : read-note, write-note, restauration, renommage/déplacement la mettent à jour ; jamais
+  l'agent. Une nouvelle écriture de note côté main doit respecter cette règle.
+- `write-note` renvoie `{ success, error, code?, reason? }` sans lever d'exception (sauf chemin refusé) :
+  vérifier le résultat (`ensureSuccess`, `renderer/src/utils/apiError.ts`).
 - Le fs du main est synchrone ; l'arbre est rescanné à chaque écriture, focus et toutes les 5 s.
 - `core.autocrlf=true` → avertissements LF/CRLF dans les diffs (normal). `.gitattributes` marque `-text`
   les notes de `test-vault/tests-sauvegarde/` (BOM, CRLF, LF) : ne pas les ouvrir dans un éditeur qui

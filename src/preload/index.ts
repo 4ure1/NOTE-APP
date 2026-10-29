@@ -13,8 +13,8 @@ const api = {
   moveItem: (sourceRelativePath: string, targetFolderRelativePath: string) =>
     ipcRenderer.invoke('move-item', sourceRelativePath, targetFolderRelativePath),
   readNote: (relativePath: string) => ipcRenderer.invoke('read-note', relativePath),
-  writeNote: (relativePath: string, content: string) =>
-    ipcRenderer.invoke('write-note', relativePath, content),
+  writeNote: (relativePath: string, content: string, options?: { force?: boolean }) =>
+    ipcRenderer.invoke('write-note', relativePath, content, options),
   deleteNote: (relativePath: string) => ipcRenderer.invoke('delete-note', relativePath),
   getDeletedNotes: () => ipcRenderer.invoke('get-deleted-notes'),
   restoreDeletedNote: (trashId: string) => ipcRenderer.invoke('restore-deleted-note', trashId),

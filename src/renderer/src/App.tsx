@@ -44,10 +44,12 @@ import { detectNextSession, SessionSuggestion, NoteTemplate } from './utils/sess
 import { RenameOperationPlan } from './utils/linkUpdater'
 import { highlightAllCodeBlocksInHtml } from './utils/codeHighlighter'
 import { parsePdfHref, resolveVaultLinkPath } from './utils/pdfLink'
-import { decideNoteSave } from './utils/noteSaveGuard'
+import { decideNoteSave, shouldConfirmLeavingNote } from './utils/noteSaveGuard'
 import UnreadableNotePanel from './components/UnreadableNotePanel'
+import ExternalChangeBar, { ExternalChangeReason } from './components/ExternalChangeBar'
+import { copyNoteName } from './utils/copyNoteName'
 import getCaretCoordinates from 'textarea-caret'
-import { describeApiError, isAccessDenied, notifyApiError } from './utils/apiError'
+import { describeApiError, isAccessDenied, notifyApiError, ensureSuccess } from './utils/apiError'
 
 // TypeScript definition to support non-standard webview tag in JSX
 declare global {
@@ -540,6 +542,19 @@ function App() {
   // Lecture de la note ouverte échouée : éditeur remplacé par un panneau, aucune écriture possible
   const [noteLoadError, setNoteLoadError] = useState<{ file: string; message: string } | null>(null)
   const [isRetryingNoteLoad, setIsRetryingNoteLoad] = useState(false)
+  // Note modifiée, supprimée ou jamais lue côté disque : rien n'est écrit tant que l'utilisateur n'a
+  // pas choisi dans la barre de conflit (la ref sert aux callbacks et minuteurs)
+  const [noteConflict, setNoteConflict] = useState<{
+    file: string
+    reason: ExternalChangeReason
+    message: string
+  } | null>(null)
+  const noteConflictRef = useRef<typeof noteConflict>(null)
+  const showNoteConflict = (conflict: typeof noteConflict): void => {
+    noteConflictRef.current = conflict
+    setNoteConflict(conflict)
+  }
+  const [isResolvingConflict, setIsResolvingConflict] = useState(false)
 
   // ── Side-by-side panel ──────────────────────────────────────────────────────
   const [sideBySideFile, setSideBySideFile] = useState<string | null>(null)
@@ -885,7 +900,7 @@ function App() {
             if (!(await saveOpenNote(targetFile, updated))) return
           } else {
             const existingContent = await window.api.readNote(targetFile)
-            await window.api.writeNote(targetFile, existingContent + contentBlock)
+            ensureSuccess(await window.api.writeNote(targetFile, existingContent + contentBlock))
           }
           fetchFiles()
           setSelectedFiles([targetFile])
@@ -1003,6 +1018,29 @@ function App() {
       return
     }
 
+    // Note en conflit avec le disque : la sauvegarde automatique est en pause, quitter la note
+    // abandonnerait la saisie. On demande ; si l'utilisateur refuse, on revient sur la note.
+    const leaving = activeLoadedFileRef.current
+    if (
+      leaving &&
+      shouldConfirmLeavingNote({
+        conflictFile: noteConflictRef.current?.file ?? null,
+        activeFile: leaving,
+        targetFile: target,
+        hasUnsavedEdits:
+          savedContentRef.current.file === leaving &&
+          fileContentRef.current !== savedContentRef.current.content
+      }) &&
+      !window.confirm(
+        `Abandonner tes modifications ?\n\n« ${leaving.split('/').pop()} » a été modifiée sur le ` +
+          "disque et ta version n'est pas enregistrée.\n\nAnnuler pour revenir à la note et choisir " +
+          'dans la barre en haut : Recharger, Garder ma version ou Enregistrer une copie.'
+      )
+    ) {
+      setSelectedFiles([leaving])
+      return
+    }
+
     // Changement de note : la sauvegarde en attente de l'ancienne part tout de suite
     void flushPendingSave()
 
@@ -1010,6 +1048,7 @@ function App() {
     // Tant que la lecture n'est pas finie, aucune écriture n'est possible pour la nouvelle note
     savedContentRef.current = { file: null, content: '' }
     setNoteLoadError(null)
+    showNoteConflict(null)
     reportUnsavedState()
 
     if (target) {
@@ -1045,6 +1084,72 @@ function App() {
     }
   }
 
+  // Barre de conflit, « Recharger » : la version du disque remplace celle de l'éditeur
+  const handleConflictReload = async (): Promise<void> => {
+    const conflict = noteConflictRef.current
+    if (!conflict) return
+    const hasLocalEdits = fileContentRef.current !== savedContentRef.current.content
+    if (
+      hasLocalEdits &&
+      !window.confirm(
+        'Recharger la version du disque ? Tes modifications non enregistrées seront perdues.'
+      )
+    ) {
+      return
+    }
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+      saveTimeoutRef.current = null
+    }
+    setIsResolvingConflict(true)
+    try {
+      await loadOpenNote(conflict.file)
+      showNoteConflict(null)
+    } finally {
+      setIsResolvingConflict(false)
+      reportUnsavedState()
+    }
+  }
+
+  // « Garder ma version » : écrase la version du disque, choix explicite de l'utilisateur
+  const handleConflictKeepMine = async (): Promise<void> => {
+    const conflict = noteConflictRef.current
+    if (!conflict) return
+    setIsResolvingConflict(true)
+    try {
+      const ok = await persistOpenNote(conflict.file, fileContentRef.current, { force: true })
+      if (ok) showNoteConflict(null)
+    } finally {
+      setIsResolvingConflict(false)
+    }
+  }
+
+  // « Enregistrer une copie » : ta version va dans une nouvelle note, l'original n'est pas touché
+  const handleConflictSaveCopy = async (): Promise<void> => {
+    const conflict = noteConflictRef.current
+    if (!conflict) return
+    const copyPath = copyNoteName(conflict.file, files)
+    setIsResolvingConflict(true)
+    try {
+      ensureSuccess(await window.api.writeNote(copyPath, fileContentRef.current))
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+        saveTimeoutRef.current = null
+      }
+      // La saisie est dans la copie : plus rien à écrire dans l'original
+      savedContentRef.current = { file: null, content: '' }
+      showNoteConflict(null)
+      await fetchFiles()
+      setSelectedFiles([copyPath])
+      showClaudeToast(`Ta version a été enregistrée dans « ${copyPath.split('/').pop()} »`)
+    } catch (err) {
+      notifyApiError('Enregistrement de la copie', err)
+    } finally {
+      setIsResolvingConflict(false)
+      reportUnsavedState()
+    }
+  }
+
   const retryLoadOpenNote = async (): Promise<void> => {
     const target = activeLoadedFileRef.current
     if (!target) return
@@ -1070,7 +1175,11 @@ function App() {
 
   // Seule porte d'écriture de la note ouverte. N'écrit rien si le contenu est celui du disque
   // (lu ou déjà enregistré) ; la note doit avoir été lue dans cette session.
-  const persistOpenNote = async (file: string, content: string): Promise<boolean> => {
+  const persistOpenNote = async (
+    file: string,
+    content: string,
+    options: { force?: boolean } = {}
+  ): Promise<boolean> => {
     const decision = decideNoteSave(savedContentRef.current, file, content)
     if (decision === 'unchanged') return true
     if (decision === 'not-loaded') {
@@ -1081,9 +1190,20 @@ function App() {
       return false
     }
     try {
-      await window.api.writeNote(file, content)
+      const res = await window.api.writeNote(file, content, options.force ? { force: true } : {})
+      if (!res.success) {
+        lastSaveErrorRef.current = res.error
+        if (res.code === 'EXTERNAL_CHANGE' && res.reason && file === activeLoadedFileRef.current) {
+          // Pas d'écrasement : la barre de conflit propose Recharger / Garder ma version / Copie
+          showNoteConflict({ file, reason: res.reason, message: res.error })
+        } else {
+          notifyApiError('Sauvegarde de la note', new Error(res.error))
+        }
+        return false
+      }
       if (savedContentRef.current.file === file) savedContentRef.current = { file, content }
       lastSaveErrorRef.current = null
+      if (noteConflictRef.current?.file === file) showNoteConflict(null)
       return true
     } catch (err) {
       lastSaveErrorRef.current = describeApiError(err)
@@ -1135,6 +1255,8 @@ function App() {
     }
     // Revenu exactement au contenu du disque, ou note pas (encore) lue : rien à écrire
     if (decideNoteSave(savedContentRef.current, fileToSave, newContent) !== 'write') return
+    // Conflit en cours : on garde la saisie en mémoire jusqu'au choix dans la barre
+    if (noteConflictRef.current?.file === fileToSave) return
 
     saveTimeoutRef.current = setTimeout(() => {
       saveTimeoutRef.current = null
@@ -3017,7 +3139,7 @@ function App() {
           count++
         }
 
-        await window.api.writeNote(fileName, res.html)
+        ensureSuccess(await window.api.writeNote(fileName, res.html))
         await fetchFiles()
         setSelectedFiles([fileName])
         showClaudeToast(`Page ${currentAIName} sauvegardée en HTML hors-ligne`)
@@ -6375,7 +6497,17 @@ function App() {
         onClose={() => setIsHistoryOpen(false)}
         currentFilePath={currentFile}
         currentContent={fileContent}
-        onRestore={(restored) => handleContentChange(restored)}
+        onRestore={(restored) => {
+          // Le main vient d'écrire cette version : c'est la nouvelle base, rien à réécrire
+          if (
+            activeLoadedFileRef.current &&
+            savedContentRef.current.file === activeLoadedFileRef.current
+          ) {
+            savedContentRef.current = { file: activeLoadedFileRef.current, content: restored }
+          }
+          showNoteConflict(null)
+          handleContentChange(restored)
+        }}
       />
 
       {/* Export Modal (PDF, Word docx, HTML) */}
@@ -6411,6 +6543,18 @@ function App() {
           isSubmitting={isSubmittingNewSession}
           onSubmit={handleSubmitNewSession}
           onCancel={() => setIsNewSessionModalOpen(false)}
+        />
+      )}
+
+      {/* Conflit avec le disque : position fixe, visible aussi en plein écran */}
+      {noteConflict && noteConflict.file === currentFile && (
+        <ExternalChangeBar
+          message={noteConflict.message}
+          reason={noteConflict.reason}
+          isBusy={isResolvingConflict}
+          onReload={() => void handleConflictReload()}
+          onKeepMine={() => void handleConflictKeepMine()}
+          onSaveCopy={() => void handleConflictSaveCopy()}
         />
       )}
 

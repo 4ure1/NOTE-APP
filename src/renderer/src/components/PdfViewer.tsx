@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, type ReactNode } from 
 import * as pdfjsLib from 'pdfjs-dist'
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url'
 import 'pdfjs-dist/web/pdf_viewer.css'
-import { describeApiError, notifyApiError } from '../utils/apiError'
+import { describeApiError, notifyApiError, ensureSuccess } from '../utils/apiError'
 import {
   PdfIcon,
   ExternalLinkIcon,
@@ -891,7 +891,7 @@ export default function PdfViewer({
 
         const updated = insertQuoteIntoNoteContent(existingContent, quoteBlock, isHtml)
         if (window.api?.writeNote) {
-          await window.api.writeNote(destNote, updated)
+          ensureSuccess(await window.api.writeNote(destNote, updated))
         }
       }
 

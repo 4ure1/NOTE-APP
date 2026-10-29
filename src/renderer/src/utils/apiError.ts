@@ -5,6 +5,14 @@ export function describeApiError(err: unknown): string {
   return raw.replace(/^Error invoking remote method '[^']*':\s*(?:[A-Za-z]*Error:\s*)?/, '').trim()
 }
 
+// Résultat { success, error } du main : lève une erreur lisible en cas d'échec, pour les try/catch
+export function ensureSuccess<T extends { success: boolean; error?: string }>(result: T): T {
+  if (!result || !result.success) {
+    throw new Error(result?.error || 'Opération impossible.')
+  }
+  return result
+}
+
 // Vrai si le main a refusé l'accès (chemin hors du dossier de notes, nom interdit, URL non web)
 export function isAccessDenied(err: unknown): boolean {
   return describeApiError(err).startsWith('Accès refusé')

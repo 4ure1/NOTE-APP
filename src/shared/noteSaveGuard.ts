@@ -12,6 +12,23 @@ export interface SavedNoteState {
 
 export type NoteSaveDecision = 'write' | 'not-loaded' | 'unchanged'
 
+/**
+ * Faut-il demander avant de quitter la note ouverte ? Oui seulement si elle est en conflit avec le disque
+ * et que l'éditeur contient une saisie non enregistrée : la sauvegarde automatique est alors en pause,
+ * et changer de note abandonnerait cette saisie.
+ */
+export function shouldConfirmLeavingNote(params: {
+  conflictFile: string | null
+  activeFile: string | null
+  targetFile: string | null
+  hasUnsavedEdits: boolean
+}): boolean {
+  const { conflictFile, activeFile, targetFile, hasUnsavedEdits } = params
+  if (!conflictFile || !activeFile || conflictFile !== activeFile) return false
+  if (targetFile === activeFile) return false
+  return hasUnsavedEdits
+}
+
 export function decideNoteSave(
   saved: SavedNoteState,
   file: string,

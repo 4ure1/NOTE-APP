@@ -1,5 +1,25 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { describeApiError, isAccessDenied, notifyApiError } from './apiError'
+import { describeApiError, isAccessDenied, notifyApiError, ensureSuccess } from './apiError'
+
+describe('ensureSuccess', () => {
+  it('renvoie un résultat réussi tel quel', () => {
+    const ok = { success: true as const, path: 'a.md' }
+    expect(ensureSuccess(ok)).toBe(ok)
+  })
+
+  it('lève le message d’erreur du main en cas d’échec', () => {
+    expect(() => ensureSuccess({ success: false, error: '« a.html » a été modifiée' })).toThrow(
+      '« a.html » a été modifiée'
+    )
+  })
+
+  it('lève un message par défaut sans détail ou sans résultat', () => {
+    expect(() => ensureSuccess({ success: false })).toThrow('Opération impossible.')
+    expect(() => ensureSuccess(undefined as unknown as { success: boolean })).toThrow(
+      'Opération impossible.'
+    )
+  })
+})
 
 describe('describeApiError', () => {
   it('retire le préfixe ajouté par Electron', () => {
