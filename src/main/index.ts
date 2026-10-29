@@ -31,6 +31,7 @@ import {
   SafePathOptions
 } from './agent/security'
 import { writeFileAtomic, copyFileAtomic, cleanupTempFiles } from './atomicWrite'
+import { readConfig, mergeConfig } from './configStore'
 
 // Dossier de notes : NOTE_APP_NOTES_DIR si défini (ex. ./test-vault via `npm run dev:safe`), sinon ~/Notes
 const NOTES_DIR = resolveNotesDir(process.env[NOTES_DIR_ENV], os.homedir(), process.cwd())
@@ -40,6 +41,31 @@ const TRASH_DIR = join(NOTES_DIR, '.trash')
 const CONFIG_FILE = join(NOTES_DIR, '.config.json')
 let currentActiveFolderRel = ''
 let globalMainWindow: BrowserWindow | null = null
+
+// Fermeture : le renderer signale une saisie non encore enregistrée et répond à 'before-close'
+interface CloseFlushResult {
+  success: boolean
+  error?: string
+}
+const CLOSE_FLUSH_TIMEOUT_MS = 3000
+let rendererHasUnsavedChanges = false
+let resolveCloseFlush: ((result: CloseFlushResult) => void) | null = null
+
+// Demande au renderer d'écrire sa sauvegarde en attente ; échec si pas de réponse à temps
+function askRendererToFlush(win: BrowserWindow): Promise<CloseFlushResult> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      resolveCloseFlush = null
+      resolve({ success: false, error: "La fenêtre n'a pas répondu à temps." })
+    }, CLOSE_FLUSH_TIMEOUT_MS)
+    resolveCloseFlush = (result) => {
+      clearTimeout(timer)
+      resolveCloseFlush = null
+      resolve(result)
+    }
+    win.webContents.send('before-close')
+  })
+}
 
 // Chemin absolu d'un élément du dossier de notes reçu du renderer (refuse toute sortie du dossier)
 function notePath(relativePath: string, options?: SafePathOptions): string {
@@ -1132,6 +1158,56 @@ function createWindow(): void {
     }
   })
 
+  // Alt+F4, barre des tâches, app.quit et arrêt de Windows passent tous par ici : le renderer écrit
+  // d'abord la sauvegarde en attente. Si elle échoue, on demande avant de quitter.
+  let closeAllowed = false
+  let closeInProgress = false
+  const flushThenClose = async (): Promise<void> => {
+    if (closeInProgress) return
+    closeInProgress = true
+    let result: CloseFlushResult = { success: true }
+    if (!mainWindow.webContents.isCrashed()) {
+      result = await askRendererToFlush(mainWindow)
+      // Fenêtre bloquée mais rien à écrire : inutile de demander
+      if (!result.success && !rendererHasUnsavedChanges) result = { success: true }
+    }
+    closeInProgress = false
+    if (mainWindow.isDestroyed()) return
+    if (!result.success) {
+      const choice = dialog.showMessageBoxSync(mainWindow, {
+        type: 'warning',
+        title: 'Modifications non enregistrées',
+        message: "Des modifications de la note ouverte n'ont pas pu être enregistrées.",
+        detail: result.error || '',
+        buttons: ['Quitter sans enregistrer', 'Annuler'],
+        defaultId: 1,
+        cancelId: 1
+      })
+      if (choice !== 0) return
+    }
+    closeAllowed = true
+    mainWindow.close()
+  }
+
+  mainWindow.on('close', (event) => {
+    if (closeAllowed) return
+    event.preventDefault()
+    void flushThenClose()
+  })
+
+  // Arrêt ou déconnexion de Windows : on retarde seulement s'il y a une saisie à écrire
+  mainWindow.on('query-session-end', (event) => {
+    if (!rendererHasUnsavedChanges || closeAllowed) return
+    event.preventDefault()
+    void flushThenClose()
+  })
+  // Arrêt impossible à retarder : dernier essai sans attendre la réponse
+  mainWindow.on('session-end', () => {
+    if (rendererHasUnsavedChanges && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('before-close')
+    }
+  })
+
   mainWindow.on('closed', () => {
     if (globalMainWindow === mainWindow) {
       globalMainWindow = null
@@ -1952,19 +2028,13 @@ ipcMain.handle('delete-permanently', (_event, trashId: string) => {
 // Favorites and config
 ipcMain.handle('get-config', () => {
   ensureDir(NOTES_DIR)
-  if (fs.existsSync(CONFIG_FILE)) {
-    try {
-      return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'))
-    } catch {
-      return {}
-    }
-  }
-  return {}
+  return readConfig(CONFIG_FILE)
 })
 
+// Le renderer envoie souvent un objet partiel : fusion avec l'existant, jamais de remplacement
 ipcMain.handle('save-config', (_event, config: Record<string, any>) => {
   ensureDir(NOTES_DIR)
-  writeFileAtomic(CONFIG_FILE, JSON.stringify(config, null, 2))
+  mergeConfig(CONFIG_FILE, config)
   return true
 })
 
@@ -2285,6 +2355,34 @@ ipcMain.handle('create-note-with-content', (_event, fileName: string, content: s
     writeFileAtomic(filePath, content)
   }
   return fileName
+})
+
+// Fichiers rangés dans .recovery au démarrage, pour le toast du renderer (chemins POSIX)
+let recoveredTempFiles: string[] = []
+ipcMain.handle('get-recovery-report', () => {
+  return { success: true, recovered: recoveredTempFiles }
+})
+
+// Le renderer signale s'il a une saisie non encore enregistrée (utile à l'arrêt de Windows)
+ipcMain.handle('set-unsaved-changes', (event, unsaved: unknown) => {
+  if (!globalMainWindow || event.sender !== globalMainWindow.webContents) {
+    return { success: false, error: 'Fenêtre inconnue.' }
+  }
+  rendererHasUnsavedChanges = unsaved === true
+  return { success: true }
+})
+
+// Réponse du renderer à 'before-close' : sa sauvegarde en attente est écrite (ou a échoué)
+ipcMain.handle('close-ready', (event, result: unknown) => {
+  if (!globalMainWindow || event.sender !== globalMainWindow.webContents) {
+    return { success: false, error: 'Fenêtre inconnue.' }
+  }
+  const r = (result ?? {}) as Partial<CloseFlushResult>
+  resolveCloseFlush?.({
+    success: r.success === true,
+    error: typeof r.error === 'string' ? r.error : undefined
+  })
+  return { success: true }
 })
 
 ipcMain.handle('toggle-fullscreen', (event) => {
@@ -2735,6 +2833,7 @@ app.whenReady().then(async () => {
   // sinon rangés dans .recovery/ (l'original n'est jamais touché)
   ensureDir(NOTES_DIR)
   const tempReport = cleanupTempFiles(NOTES_DIR)
+  recoveredTempFiles = tempReport.recovered
   if (tempReport.removed.length > 0 || tempReport.recovered.length > 0) {
     console.warn(
       `[AtomicWrite] ${tempReport.removed.length} temporaire(s) supprimé(s), ` +

@@ -56,6 +56,15 @@ interface CustomAPI {
   ) => Promise<string | null>
   downloadPdfFromUrl: (url: string, filename: string) => Promise<string | null>
   onDownloadCompleted: (callback: (relPath: string, fileName: string) => void) => () => void
+  getRecoveryReport: () => Promise<{ success: true; recovered: string[] }>
+  setUnsavedChanges: (
+    unsaved: boolean
+  ) => Promise<{ success: true } | { success: false; error: string }>
+  closeReady: (result: {
+    success: boolean
+    error?: string
+  }) => Promise<{ success: true } | { success: false; error: string }>
+  onBeforeClose: (callback: () => void) => () => void
   toggleFullscreen: () => Promise<boolean>
   setFullscreen: (flag: boolean) => Promise<boolean>
   isFullscreen: () => Promise<boolean>

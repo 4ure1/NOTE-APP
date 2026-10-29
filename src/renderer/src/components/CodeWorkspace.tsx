@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import Editor, { loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
 import themeCss from '@renderer/assets/theme.css?raw'
@@ -9,6 +9,7 @@ import { highlightAllCodeBlocksInHtml } from '../utils/codeHighlighter'
 import { normalizeHtml } from '../utils/normalizeHtml'
 import { OutlineHeading } from '../utils/outlineExtractor'
 import { parsePdfHref } from '../utils/pdfLink'
+import { cleanPreviewDocument } from '../utils/previewClean'
 import { notifyApiError } from '../utils/apiError'
 
 loader.config({ monaco })
@@ -367,40 +368,25 @@ export const prepareHtmlPreview = (
         // Détection des liens PDF : source de src/shared/pdfLink.ts (fonction autonome)
         var parsePdfHref = ${parsePdfHref.toString()};
 
-        // Fonction pour extraire le code propre sans aucun helper injecté
+        // Nettoyage avant enregistrement : source de src/shared/previewClean.ts (fonction autonome)
+        var cleanPreviewDocument = ${cleanPreviewDocument.toString()};
+        // Attribut style du <body> tel qu'écrit dans la note, relevé avant toute intervention de l'aperçu
+        var originalBodyStyle;
+        function captureOriginalBodyStyle() {
+          if (originalBodyStyle === undefined && document.body) {
+            originalBodyStyle = document.body.getAttribute('style');
+          }
+        }
+        captureOriginalBodyStyle();
+
+        // HTML de la note sans rien de ce que l'aperçu a ajouté
         function getCleanHtml() {
-          var clone = document.documentElement.cloneNode(true);
-          var helpers = clone.querySelectorAll('#preview-snippet-menu, [data-injected-theme], [data-injected-preview-helpers], script[src*="mathjax"], style#mathjax-styles');
-          for (var i = 0; i < helpers.length; i++) {
-            helpers[i].remove();
-          }
-          var tagged = clone.querySelectorAll('[data-source-line]');
-          for (var j = 0; j < tagged.length; j++) {
-            tagged[j].removeAttribute('data-source-line');
-          }
-          var ce = clone.querySelectorAll('[contenteditable]');
-          for (var k = 0; k < ce.length; k++) {
-            ce[k].removeAttribute('contenteditable');
-          }
-          var body = clone.querySelector('body');
-          if (body) {
-            body.removeAttribute('contenteditable');
-            body.removeAttribute('spellcheck');
-            if (body.style.zoom) body.style.zoom = '';
-          }
-          // Nettoyer les balises <p></p> fantômes créées par contenteditable
-          var emptyPs = clone.querySelectorAll('p');
-          for (var pIdx = 0; pIdx < emptyPs.length; pIdx++) {
-            var ep = emptyPs[pIdx];
-            if (!ep.children.length && !ep.textContent.trim()) {
-              ep.remove();
-            }
-          }
-          if (originalHadHtml) {
-            return (originalHadDoctype ? '<!DOCTYPE html>\\n' : '') + clone.outerHTML;
-          } else {
-            return body ? body.innerHTML.trim() : clone.innerHTML.trim();
-          }
+          captureOriginalBodyStyle();
+          return cleanPreviewDocument(document, {
+            hadHtmlTag: originalHadHtml,
+            hadDoctype: originalHadDoctype,
+            originalBodyStyle: originalBodyStyle === undefined ? null : originalBodyStyle
+          });
         }
 
         var emitTimer = null;
@@ -415,38 +401,18 @@ export const prepareHtmlPreview = (
           }, 180);
         }
 
-        window.addEventListener('blur', function() {
-          var html = getCleanHtml();
-          window.parent.postMessage({
-            type: 'PREVIEW_DOC_BLUR',
-            html: html
-          }, '*');
-        });
+        // Pas d'envoi au blur : quitter l'aperçu ne doit jamais enregistrer la note.
+        // Seules les saisies (input, Entrée, snippets, collage…) appellent emitDocChange.
 
-        // Activer contenteditable sur le body pour l'édition directe Obsidian Live
+        // Activer contenteditable sur le body pour l'édition directe Obsidian Live.
+        // Rien n'est transformé à l'ouverture : une balise tapée en texte n'est convertie qu'au moment
+        // de la saisie (checkForHtmlTagTransform).
         function makeEditable() {
           try {
             if (document.body) {
+              captureOriginalBodyStyle();
               document.body.contentEditable = isLiveEditEnabled ? 'true' : 'false';
               document.body.spellcheck = false;
-              sanitizeTypedTagsOnLoad();
-            }
-          } catch(e) {}
-        }
-
-        // Nettoyage automatique à l'ouverture des balises qui auraient été saisies en texte brut (ex: <p>&lt;h1&gt;&lt;/h1&gt;</p>)
-        function sanitizeTypedTagsOnLoad() {
-          try {
-            var ps = document.querySelectorAll('p');
-            for (var i = 0; i < ps.length; i++) {
-              var t = ps[i].textContent.trim();
-              if (/^<([a-zA-Z1-6]+)(?:\\s+[^>]*)?>[\\s\\S]*?<\\/\\1>$/i.test(t)) {
-                var tmpl = document.createElement('template');
-                tmpl.innerHTML = t;
-                if (tmpl.content.childNodes.length > 0) {
-                  ps[i].replaceWith(tmpl.content);
-                }
-              }
             }
           } catch(e) {}
         }
@@ -1157,7 +1123,14 @@ export const prepareHtmlPreview = (
                 s.addRange(r);
                 return;
               }
+              // Paragraphe provisoire : marqué, non enregistré tant qu'on n'y tape rien
+              // (cleanPreviewDocument le retire s'il est resté vide). Un seul à la fois.
+              var stale = document.querySelectorAll('p[data-nf-pending]');
+              for (var k = 0; k < stale.length; k++) {
+                if (stale[k].textContent.trim() === '') stale[k].remove();
+              }
               var p = document.createElement('p');
+              p.setAttribute('data-nf-pending', '');
               p.innerHTML = '<br>';
               insertAfter.after(p);
               var r2 = document.createRange();
@@ -1166,7 +1139,6 @@ export const prepareHtmlPreview = (
               var s2 = window.getSelection();
               s2.removeAllRanges();
               s2.addRange(r2);
-              emitDocChange();
             }
           }
         });
@@ -1420,13 +1392,17 @@ export const prepareHtmlPreview = (
               reportScroll();
             }
           } else if (event.data.type === 'SET_HTML_ZOOM') {
+            // Zoom par une feuille de style d'aide (retirée à l'enregistrement), jamais par body.style
             var z = event.data.zoom || 100;
-            if (document.documentElement) document.documentElement.style.zoom = '';
-            if (document.body) {
-              document.body.style.zoom = z + '%';
-              document.body.style.margin = '0 auto';
-              updateLineMap();
+            var zoomStyle = document.getElementById('nf-preview-zoom');
+            if (!zoomStyle) {
+              zoomStyle = document.createElement('style');
+              zoomStyle.id = 'nf-preview-zoom';
+              zoomStyle.setAttribute('data-injected-preview-helpers', 'true');
+              (document.head || document.documentElement).appendChild(zoomStyle);
             }
+            zoomStyle.textContent = 'body { zoom: ' + z + '% !important; margin: 0 auto !important; }';
+            if (document.body) updateLineMap();
           } else if (event.data.type === 'UPDATE_PREVIEW_SNIPPETS') {
             if (Array.isArray(event.data.snippets)) {
               snippetsData = event.data.snippets;
@@ -1593,43 +1569,6 @@ export default function CodeWorkspace({
   const lastMemoizedSrcDocRef = useRef<string>('')
   const lastPreviewMutationTimeRef = useRef<number>(0)
   const isSyncingToMonacoRef = useRef<boolean>(false)
-  const normalizationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const latestRawPreviewHtmlRef = useRef<string>('')
-
-  const applyNormalization = useCallback(() => {
-    const raw =
-      latestRawPreviewHtmlRef.current || (editorRef.current ? editorRef.current.getValue() : '')
-    if (!raw) return
-    const normalized = normalizeHtml(raw)
-    if (!normalized || normalized === lastEmittedPreviewHtmlRef.current) return
-
-    lastEmittedPreviewHtmlRef.current = normalized
-    localEmittedValuesRef.current.add(normalized)
-    setDebouncedSrc(normalized)
-    onChange(normalized)
-
-    if (editorRef.current && editorRef.current.getValue() !== normalized) {
-      const model = editorRef.current.getModel()
-      if (model) {
-        isSyncingToMonacoRef.current = true
-        const pos = editorRef.current.getPosition()
-        try {
-          editorRef.current.executeEdits('preview-normalization', [
-            {
-              range: model.getFullModelRange(),
-              text: normalized,
-              forceMoveMarkers: true
-            }
-          ])
-          if (pos) editorRef.current.setPosition(pos)
-        } finally {
-          setTimeout(() => {
-            isSyncingToMonacoRef.current = false
-          }, 60)
-        }
-      }
-    }
-  }, [onChange])
 
   // Références pour le Copilote IA inline
   const isCopilotEnabledRef = useRef(isCopilotEnabled)
@@ -1927,7 +1866,6 @@ export default function CodeWorkspace({
         const rawNewHtml = event.data.html
         if (!rawNewHtml) return
         const newHtml = rawNewHtml.replace(/\r\n/g, '\n')
-        latestRawPreviewHtmlRef.current = newHtml
 
         if (newHtml !== lastEmittedPreviewHtmlRef.current) {
           lastEmittedPreviewHtmlRef.current = newHtml
@@ -1957,18 +1895,7 @@ export default function CodeWorkspace({
             }
           }
         }
-
-        // Déclencher la normalisation complète après ~800ms d'inactivité (JAMAIS pendant la frappe active)
-        if (normalizationTimeoutRef.current) clearTimeout(normalizationTimeoutRef.current)
-        normalizationTimeoutRef.current = setTimeout(() => {
-          applyNormalization()
-        }, 800)
-      } else if (event.data?.type === 'PREVIEW_DOC_BLUR') {
-        if (event.data.html) {
-          latestRawPreviewHtmlRef.current = event.data.html.replace(/\r\n/g, '\n')
-        }
-        if (normalizationTimeoutRef.current) clearTimeout(normalizationTimeoutRef.current)
-        applyNormalization()
+        // Plus de normalisation automatique (inactivité, blur) : seul Shift+Alt+F reformate la note
       } else if (event.data?.type === 'OUTLINE_ACTIVE_HEADING') {
         if (onActiveHeadingChange) {
           const activeKey = event.data.id || (event.data.line ? String(event.data.line) : null)

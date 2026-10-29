@@ -1,0 +1,2 @@
+# Notes de test du chantier 2 : octets exacts (BOM, CRLF ou LF), aucune conversion par Git
+test-vault/tests-sauvegarde/** -text

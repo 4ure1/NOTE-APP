@@ -43,8 +43,9 @@ import { extractOutline, OutlineHeading, slugifyHeading } from './utils/outlineE
 import { detectNextSession, SessionSuggestion, NoteTemplate } from './utils/sessionDetector'
 import { RenameOperationPlan } from './utils/linkUpdater'
 import { highlightAllCodeBlocksInHtml } from './utils/codeHighlighter'
-import { formatHtml } from './utils/formatHtml'
 import { parsePdfHref, resolveVaultLinkPath } from './utils/pdfLink'
+import { decideNoteSave } from './utils/noteSaveGuard'
+import UnreadableNotePanel from './components/UnreadableNotePanel'
 import getCaretCoordinates from 'textarea-caret'
 import { describeApiError, isAccessDenied, notifyApiError } from './utils/apiError'
 
@@ -480,8 +481,6 @@ function App() {
   const lastFullscreenMutationTimeRef = useRef<number>(0)
   const lastFullscreenEmittedHtmlRef = useRef<string>('')
   const lastFullscreenSrcDocRef = useRef<string>('')
-  const fullscreenNormalizeTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const latestFullscreenRawHtmlRef = useRef<string>('')
 
   const getMarkdownScrollElement = (container: HTMLElement | null) => {
     if (!container) return null
@@ -531,6 +530,16 @@ function App() {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const activeLoadedFileRef = useRef<string | null>(null)
   const fileContentRef = useRef<string>('')
+  // Contenu connu identique au disque pour la note ouverte (lu ou enregistré par l'app)
+  const savedContentRef = useRef<{ file: string | null; content: string }>({
+    file: null,
+    content: ''
+  })
+  const unsavedReportedRef = useRef(false)
+  const lastSaveErrorRef = useRef<string | null>(null)
+  // Lecture de la note ouverte échouée : éditeur remplacé par un panneau, aucune écriture possible
+  const [noteLoadError, setNoteLoadError] = useState<{ file: string; message: string } | null>(null)
+  const [isRetryingNoteLoad, setIsRetryingNoteLoad] = useState(false)
 
   // ── Side-by-side panel ──────────────────────────────────────────────────────
   const [sideBySideFile, setSideBySideFile] = useState<string | null>(null)
@@ -868,10 +877,15 @@ function App() {
       } else {
         const targetFile = selectedExistingFile
         if (targetFile) {
-          const existingContent = await window.api.readNote(targetFile)
-          await window.api.writeNote(targetFile, existingContent + contentBlock)
-          if (selectedFiles.length === 1 && selectedFiles[0] === targetFile) {
-            setFileContent(existingContent + contentBlock)
+          if (savedContentRef.current.file === targetFile) {
+            // Note ouverte : on part du contenu en mémoire (saisie non encore enregistrée comprise)
+            const updated = fileContentRef.current + contentBlock
+            setFileContent(updated)
+            fileContentRef.current = updated
+            if (!(await saveOpenNote(targetFile, updated))) return
+          } else {
+            const existingContent = await window.api.readNote(targetFile)
+            await window.api.writeNote(targetFile, existingContent + contentBlock)
           }
           fetchFiles()
           setSelectedFiles([targetFile])
@@ -989,16 +1003,14 @@ function App() {
       return
     }
 
-    // Si on change de fichier et qu'une sauvegarde était en attente pour l'ancien fichier, on la flush immédiatement
-    if (saveTimeoutRef.current && activeLoadedFileRef.current && fileContentRef.current) {
-      clearTimeout(saveTimeoutRef.current)
-      saveTimeoutRef.current = null
-      window.api
-        .writeNote(activeLoadedFileRef.current, fileContentRef.current)
-        .catch((err) => notifyApiError('Sauvegarde de la note', err))
-    }
+    // Changement de note : la sauvegarde en attente de l'ancienne part tout de suite
+    void flushPendingSave()
 
     activeLoadedFileRef.current = target
+    // Tant que la lecture n'est pas finie, aucune écriture n'est possible pour la nouvelle note
+    savedContentRef.current = { file: null, content: '' }
+    setNoteLoadError(null)
+    reportUnsavedState()
 
     if (target) {
       if (target.toLowerCase().endsWith('.pdf')) {
@@ -1006,20 +1018,101 @@ function App() {
         fileContentRef.current = ''
         return
       }
-      window.api
-        .readNote(target)
-        .then((content) => {
-          if (activeLoadedFileRef.current === target) {
-            setFileContent(content)
-            fileContentRef.current = content
-          }
-        })
-        .catch((err) => notifyApiError('Lecture de la note', err))
+      void loadOpenNote(target)
     } else {
       setFileContent('')
       fileContentRef.current = ''
     }
   }, [selectedFiles])
+
+  // Lecture de la note ouverte. En cas d'échec, l'éditeur est remplacé par UnreadableNotePanel :
+  // la note reste « non lue », donc decideNoteSave refuse toute écriture
+  const loadOpenNote = async (target: string): Promise<void> => {
+    try {
+      const content = await window.api.readNote(target)
+      if (activeLoadedFileRef.current !== target) return
+      savedContentRef.current = { file: target, content }
+      setNoteLoadError(null)
+      setFileContent(content)
+      fileContentRef.current = content
+      reportUnsavedState()
+    } catch (err) {
+      console.error('[Lecture de la note]', target, err)
+      if (activeLoadedFileRef.current !== target) return
+      setFileContent('')
+      fileContentRef.current = ''
+      setNoteLoadError({ file: target, message: describeApiError(err) })
+    }
+  }
+
+  const retryLoadOpenNote = async (): Promise<void> => {
+    const target = activeLoadedFileRef.current
+    if (!target) return
+    setIsRetryingNoteLoad(true)
+    try {
+      await loadOpenNote(target)
+    } finally {
+      setIsRetryingNoteLoad(false)
+    }
+  }
+
+  // Signale au main s'il reste une saisie non enregistrée (il retarde alors l'arrêt de Windows)
+  const reportUnsavedState = (): void => {
+    const saved = savedContentRef.current
+    const unsaved =
+      saved.file !== null &&
+      saved.file === activeLoadedFileRef.current &&
+      fileContentRef.current !== saved.content
+    if (unsaved === unsavedReportedRef.current) return
+    unsavedReportedRef.current = unsaved
+    window.api.setUnsavedChanges(unsaved).catch((err) => console.error('[Fermeture]', err))
+  }
+
+  // Seule porte d'écriture de la note ouverte. N'écrit rien si le contenu est celui du disque
+  // (lu ou déjà enregistré) ; la note doit avoir été lue dans cette session.
+  const persistOpenNote = async (file: string, content: string): Promise<boolean> => {
+    const decision = decideNoteSave(savedContentRef.current, file, content)
+    if (decision === 'unchanged') return true
+    if (decision === 'not-loaded') {
+      // Ancienne note déjà quittée : rien à faire. Note ouverte illisible : l'ajout est refusé.
+      if (file !== activeLoadedFileRef.current) return true
+      lastSaveErrorRef.current = 'Note illisible : les modifications ne seront pas enregistrées.'
+      notifyApiError('Sauvegarde de la note', new Error(lastSaveErrorRef.current))
+      return false
+    }
+    try {
+      await window.api.writeNote(file, content)
+      if (savedContentRef.current.file === file) savedContentRef.current = { file, content }
+      lastSaveErrorRef.current = null
+      return true
+    } catch (err) {
+      lastSaveErrorRef.current = describeApiError(err)
+      notifyApiError('Sauvegarde de la note', err)
+      return false
+    } finally {
+      reportUnsavedState()
+    }
+  }
+
+  // Écrit tout de suite la sauvegarde en attente (changement de note, renommage, fermeture)
+  const flushPendingSave = async (): Promise<boolean> => {
+    if (!saveTimeoutRef.current) return true
+    clearTimeout(saveTimeoutRef.current)
+    saveTimeoutRef.current = null
+    const file = activeLoadedFileRef.current
+    if (!file) return true
+    return persistOpenNote(file, fileContentRef.current)
+  }
+
+  // Écriture immédiate demandée par une action de l'utilisateur (lien inséré, réponse IA…) :
+  // annule la sauvegarde automatique en attente pour qu'elle n'écrase pas cet ajout
+  const saveOpenNote = async (file: string, content: string): Promise<boolean> => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+      saveTimeoutRef.current = null
+    }
+    return persistOpenNote(file, content)
+  }
 
   const handleContentChange = (value?: string) => {
     const newContent = value || ''
@@ -1028,22 +1121,65 @@ function App() {
 
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current)
+      saveTimeoutRef.current = null
     }
 
+    reportUnsavedState()
+    const fileToSave = activeLoadedFileRef.current
     if (
-      selectedFiles.length === 1 &&
-      selectedFiles[0] !== '__claude_code__' &&
-      !selectedFiles[0].toLowerCase().endsWith('.pdf')
+      !fileToSave ||
+      fileToSave === '__claude_code__' ||
+      fileToSave.toLowerCase().endsWith('.pdf')
     ) {
-      const fileToSave = selectedFiles[0]
-      saveTimeoutRef.current = setTimeout(() => {
-        saveTimeoutRef.current = null
-        window.api
-          .writeNote(fileToSave, newContent)
-          .catch((err) => notifyApiError('Sauvegarde de la note', err))
-      }, 700)
+      return
     }
+    // Revenu exactement au contenu du disque, ou note pas (encore) lue : rien à écrire
+    if (decideNoteSave(savedContentRef.current, fileToSave, newContent) !== 'write') return
+
+    saveTimeoutRef.current = setTimeout(() => {
+      saveTimeoutRef.current = null
+      void persistOpenNote(fileToSave, newContent)
+    }, 700)
   }
+
+  // Fermeture de l'app (Alt+F4, barre des tâches, arrêt de Windows) : la saisie en attente est
+  // écrite avant que le main ferme la fenêtre ; il demande confirmation si l'écriture échoue
+  const handleBeforeClose = async (): Promise<void> => {
+    let ok = await flushPendingSave()
+    // Une écriture précédente a pu échouer sans sauvegarde en attente : nouvel essai
+    const file = activeLoadedFileRef.current
+    if (
+      ok &&
+      file &&
+      savedContentRef.current.file === file &&
+      fileContentRef.current !== savedContentRef.current.content
+    ) {
+      ok = await persistOpenNote(file, fileContentRef.current)
+    }
+    await window.api.closeReady(
+      ok
+        ? { success: true }
+        : { success: false, error: lastSaveErrorRef.current || 'Écriture impossible.' }
+    )
+  }
+  // L'abonnement est posé une fois ; la ref donne toujours la version courante du gestionnaire
+  const beforeCloseRef = useRef(handleBeforeClose)
+  beforeCloseRef.current = handleBeforeClose
+  useEffect(() => window.api.onBeforeClose(() => void beforeCloseRef.current()), [])
+
+  // Temporaires d'écriture d'un arrêt brutal, rangés dans .recovery au démarrage
+  useEffect(() => {
+    window.api
+      .getRecoveryReport()
+      .then((report) => {
+        if (report.recovered.length > 0) {
+          showClaudeToast(
+            `${report.recovered.length} sauvegarde(s) interrompue(s) récupérée(s) dans le dossier .recovery de vos notes`
+          )
+        }
+      })
+      .catch((err) => console.error('[Récupération]', err))
+  }, [])
 
   useEffect(() => {
     const fetchSnippets = async () => {
@@ -1244,10 +1380,8 @@ function App() {
       fileContentRef.current = newContent
       setAutocompleteVisible(false)
 
-      if (selectedFiles.length === 1 && selectedFiles[0] !== '__claude_code__') {
-        window.api
-          .writeNote(selectedFiles[0], newContent)
-          .catch((err) => notifyApiError('Sauvegarde de la note', err))
+      if (activeLoadedFileRef.current) {
+        void saveOpenNote(activeLoadedFileRef.current, newContent)
       }
     }
   }
@@ -1497,6 +1631,9 @@ function App() {
         if (activeLoadedFileRef.current === sourcePath) {
           activeLoadedFileRef.current = newPath
         }
+        if (savedContentRef.current.file === sourcePath) {
+          savedContentRef.current = { ...savedContentRef.current, file: newPath }
+        }
 
         // Si le contenu du fichier actif ou d'une note impactée a changé
         const activeFilePlan = plan.affectedFiles.find(
@@ -1505,6 +1642,13 @@ function App() {
         if (activeFilePlan) {
           fileContentRef.current = activeFilePlan.newContent
           setFileContent(activeFilePlan.newContent)
+          // Ce contenu vient d'être écrit sur le disque par le main
+          if (savedContentRef.current.file === activeLoadedFileRef.current) {
+            savedContentRef.current = {
+              file: activeLoadedFileRef.current,
+              content: activeFilePlan.newContent
+            }
+          }
         }
 
         // Mettre à jour la sélection
@@ -1584,6 +1728,10 @@ function App() {
             if (restoredContent !== null) {
               fileContentRef.current = restoredContent
               setFileContent(restoredContent)
+              savedContentRef.current = {
+                file: activeLoadedFileRef.current,
+                content: restoredContent
+              }
             }
           }
         }
@@ -1596,6 +1744,8 @@ function App() {
   }
 
   const handleMoveItem = async (sourcePath: string, targetFolderPath: string) => {
+    // Le plan part du disque : la saisie en attente doit y être avant
+    await flushPendingSave()
     try {
       console.log('[MoveItem] Moving:', sourcePath, '->', targetFolderPath)
       const plan = await window.api.prepareRenameOrMove(sourcePath, targetFolderPath, false, true)
@@ -1663,10 +1813,8 @@ function App() {
       const parts = editingFile.split('/')
       const oldBase = parts.pop()?.replace(/\.(html|htm|md|markdown)$/i, '')
       if (editValue.trim() !== oldBase) {
-        if (saveTimeoutRef.current) {
-          clearTimeout(saveTimeoutRef.current)
-          saveTimeoutRef.current = null
-        }
+        // Le plan part du disque : la saisie en attente doit y être avant
+        await flushPendingSave()
         try {
           const plan = await window.api.prepareRenameOrMove(
             editingFile,
@@ -1699,6 +1847,9 @@ function App() {
                 if (activeLoadedFileRef.current === editingFile) {
                   activeLoadedFileRef.current = newFileName
                 }
+                if (savedContentRef.current.file === editingFile) {
+                  savedContentRef.current = { ...savedContentRef.current, file: newFileName }
+                }
                 await fetchFiles()
                 if (selectedFiles.includes(editingFile)) {
                   setSelectedFiles(selectedFiles.map((f) => (f === editingFile ? newFileName : f)))
@@ -1730,6 +1881,7 @@ function App() {
         saveTimeoutRef.current = null
       }
       activeLoadedFileRef.current = null
+      savedContentRef.current = { file: null, content: '' }
       fileContentRef.current = ''
       setFileContent('')
     }
@@ -1964,34 +2116,10 @@ function App() {
         const rawNewHtml = event.data.html
         if (!rawNewHtml) return
         const newHtml = rawNewHtml.replace(/\r\n/g, '\n')
-        latestFullscreenRawHtmlRef.current = newHtml
         lastFullscreenMutationTimeRef.current = Date.now()
         lastFullscreenEmittedHtmlRef.current = newHtml
+        // Plus de normalisation automatique (inactivité, blur) : seul Shift+Alt+F reformate la note
         handleContentChange(newHtml)
-
-        // Déclencher la normalisation après ~800ms d'inactivité (JAMAIS pendant la frappe active)
-        if (fullscreenNormalizeTimerRef.current) clearTimeout(fullscreenNormalizeTimerRef.current)
-        fullscreenNormalizeTimerRef.current = setTimeout(() => {
-          if (latestFullscreenRawHtmlRef.current) {
-            const normalized = formatHtml(latestFullscreenRawHtmlRef.current)
-            if (normalized && normalized !== latestFullscreenRawHtmlRef.current) {
-              lastFullscreenEmittedHtmlRef.current = normalized
-              handleContentChange(normalized)
-            }
-          }
-        }, 800)
-      } else if (event.data?.type === 'PREVIEW_DOC_BLUR') {
-        if (event.data.html) {
-          latestFullscreenRawHtmlRef.current = event.data.html.replace(/\r\n/g, '\n')
-        }
-        if (fullscreenNormalizeTimerRef.current) clearTimeout(fullscreenNormalizeTimerRef.current)
-        if (latestFullscreenRawHtmlRef.current) {
-          const normalized = formatHtml(latestFullscreenRawHtmlRef.current)
-          if (normalized && normalized !== latestFullscreenRawHtmlRef.current) {
-            lastFullscreenEmittedHtmlRef.current = normalized
-            handleContentChange(normalized)
-          }
-        }
       } else if (event.data?.type === 'OPEN_PDF_PAGE') {
         if (event.data.href) {
           handleOpenPdfLink(event.data.href)
@@ -3023,11 +3151,13 @@ function App() {
     try {
       const res = await webview.executeJavaScript(script)
       if (res && res.success && res.text) {
-        const separator = fileContent.trim() ? '\n\n---\n\n' : ''
-        const updated = fileContent + separator + res.text
+        const current = fileContentRef.current
+        const separator = current.trim() ? '\n\n---\n\n' : ''
+        const updated = current + separator + res.text
         setFileContent(updated)
-        if (currentFile) {
-          await window.api.writeNote(currentFile, updated)
+        fileContentRef.current = updated
+        if (activeLoadedFileRef.current) {
+          if (!(await saveOpenNote(activeLoadedFileRef.current, updated))) return
         }
         showClaudeToast('Réponse insérée dans la note ✓')
       } else {
@@ -4084,6 +4214,13 @@ function App() {
                           lastActiveNote={lastActiveNote}
                           allNotes={files}
                           onShowToast={showClaudeToast}
+                        />
+                      ) : noteLoadError && noteLoadError.file === currentFile ? (
+                        <UnreadableNotePanel
+                          filePath={currentFile}
+                          errorMessage={noteLoadError.message}
+                          isRetrying={isRetryingNoteLoad}
+                          onRetry={() => void retryLoadOpenNote()}
                         />
                       ) : (
                         <>
@@ -5970,6 +6107,13 @@ function App() {
                 onShowToast={showClaudeToast}
               />
             </div>
+          ) : noteLoadError && noteLoadError.file === currentFile ? (
+            <UnreadableNotePanel
+              filePath={currentFile}
+              errorMessage={noteLoadError.message}
+              isRetrying={isRetryingNoteLoad}
+              onRetry={() => void retryLoadOpenNote()}
+            />
           ) : isHtml ? (
             <iframe
               ref={fullscreenHtmlIframeRef}

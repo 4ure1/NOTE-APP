@@ -54,6 +54,17 @@ const api = {
       ipcRenderer.removeListener('download-completed', sub)
     }
   },
+  getRecoveryReport: () => ipcRenderer.invoke('get-recovery-report'),
+  setUnsavedChanges: (unsaved: boolean) => ipcRenderer.invoke('set-unsaved-changes', unsaved),
+  closeReady: (result: { success: boolean; error?: string }) =>
+    ipcRenderer.invoke('close-ready', result),
+  onBeforeClose: (callback: () => void): (() => void) => {
+    const sub = (): void => callback()
+    ipcRenderer.on('before-close', sub)
+    return () => {
+      ipcRenderer.removeListener('before-close', sub)
+    }
+  },
   toggleFullscreen: () => ipcRenderer.invoke('toggle-fullscreen'),
   setFullscreen: (flag: boolean) => ipcRenderer.invoke('set-fullscreen', flag),
   isFullscreen: () => ipcRenderer.invoke('is-fullscreen'),

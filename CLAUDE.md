@@ -82,10 +82,11 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
    L'utilisateur s'en charge.
 
 ## Chantiers en attente
-### 2b et 2c (ne jamais abîmer une note ; 2a = écritures atomiques, fait)
-- 2b, en premier : `save-config` doit fusionner avec l'existant côté main (+ test).
-- 2b : `.gitattributes` qui marque `-text` les notes de test BOM/CRLF de `test-vault/tests-sauvegarde/`.
-- 2c : test « relancer l'app avec des onglets ouverts n'affiche pas la barre de conflit ».
+### 2c (ne jamais abîmer une note ; 2a écritures atomiques et 2b écritures parasites : faits)
+- Empreinte SHA-256 par note côté main, code `EXTERNAL_CHANGE`, paramètre `force`, barre de conflit
+  (Recharger / Garder ma version / Enregistrer une copie). Note sans empreinte mais présente sur le disque
+  = conflit ; empreinte mise à jour après restauration, ajout, agent, renommage.
+- Test : relancer l'app avec des onglets ouverts n'affiche pas la barre de conflit.
 
 ### 3b (sécurité, relevé lors du bug de la regex PDF)
 - Fenêtre principale sans garde de navigation (`src/main/index.ts`, `browser-window-created`) : un lien web
@@ -95,13 +96,30 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
   limiter à `http(s)` (comme `assertWebUrl`).
 - Message `OPEN_PDF_PAGE` (`App.tsx`, `handleMessage`) traité sans vérifier `event.source` : le JS d'une note
   peut le forger. Le restreindre aux iframes d'aperçu, comme `OPEN_EXTERNAL_URL`.
+- Le JS d'une note peut forger `PREVIEW_DOC_MUTATED` (donc réécrire la note ; `App.tsx` et
+  `CodeWorkspace.tsx` ne vérifient pas `event.source`), et appeler `closeReady` / `setUnsavedChanges` via
+  `window.parent.api` (fermeture sans écrire la saisie en attente).
+
+### Dette
+- `hasDoctype` / `hasHtmlTag` (`prepareHtmlPreview`, `CodeWorkspace.tsx`) cherchent `<!doctype` / `<html` dans
+  tout le texte de la note : un exemple de code qui en contient fait ajouter un doctype ou un `<html>` à la
+  première vraie modification dans l'aperçu.
 
 ## Pièges connus
-- `normalizeHtml` (`renderer/src/utils/normalizeHtml.ts`) re-sérialise tout le document sans échapper texte ni
-  attributs, supprime les éléments vides et les espaces inline. Le blur de l'aperçu déclenche une réécriture
-  même sans modification. Ne pas s'en servir pour une nouvelle fonction.
+- `normalizeHtml` (`renderer/src/utils/normalizeHtml.ts`) ne fait que réindenter (Shift+Alt+F uniquement) :
+  zones brutes, commentaires et doctype recopiés à l'octet près. Ne jamais l'appeler automatiquement.
+- Sauvegarde de la note ouverte : uniquement via `persistOpenNote` / `saveOpenNote` / `flushPendingSave`
+  (`App.tsx`), qui n'écrivent rien si le contenu est identique à `savedContentRef` (dernier contenu lu ou
+  écrit) ni avant la fin de la lecture. Toute modification de `activeLoadedFileRef` doit mettre à jour
+  `savedContentRef`.
+- L'aperçu n'envoie `PREVIEW_DOC_MUTATED` que sur une vraie saisie ; rien au blur ni à l'ouverture. Ce
+  qu'il ajoute au DOM doit être marqué `data-injected-preview-helpers` ou `data-nf-pending` pour que
+  `cleanPreviewDocument` (`src/shared/previewClean.ts`) le retire.
+- Première vraie modification dans l'aperçu : toute la note est re-sérialisée par le navigateur (sens
+  conservé, forme non : `&eacute;` devient `é`, `<br/>` devient `<br>`…).
 - L'aperçu iframe utilise `sandbox="allow-scripts allow-same-origin"` : le JS d'une note atteint `window.parent.api`.
-- `save-config` remplace tout `.config.json` : toujours lire, fusionner, puis écrire.
+- `save-config` fusionne avec l'existant (`src/main/configStore.ts`) : on ne peut pas supprimer une clé,
+  seulement la remplacer. Un `.config.json` illisible est mis de côté (`.config.corrupt-<n>.json`).
 - Snippets : `src/main/defaultSnippets.json` et `src/renderer/src/assets/snippets.default.json` doivent rester
   identiques. À l'exécution, c'est `<notes>/.snippets/snippets.json` qui fait foi : il n'est créé qu'une fois,
   donc un nouveau snippet par défaut n'arrive pas chez un utilisateur existant.
@@ -110,4 +128,6 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
 - La note ouverte n'est jamais relue depuis le disque : une écriture externe (agent, autre éditeur) est
   écrasée par la sauvegarde automatique (700 ms).
 - Le fs du main est synchrone ; l'arbre est rescanné à chaque écriture, focus et toutes les 5 s.
-- Pas de `.gitattributes`, `core.autocrlf=true` → avertissements LF/CRLF dans les diffs (normal).
+- `core.autocrlf=true` → avertissements LF/CRLF dans les diffs (normal). `.gitattributes` marque `-text`
+  les notes de `test-vault/tests-sauvegarde/` (BOM, CRLF, LF) : ne pas les ouvrir dans un éditeur qui
+  convertit les fins de ligne.

@@ -13,6 +13,7 @@ coverage/
 .env.*
 # Données générées par l'app dans le dossier de test
 test-vault/.history/
+test-vault/.recovery/
 test-vault/.trash/
 test-vault/.snippets/
 test-vault/.templates/

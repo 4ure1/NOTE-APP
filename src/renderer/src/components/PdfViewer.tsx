@@ -886,14 +886,8 @@ export default function PdfViewer({
           await window.api.createNoteWithContent(destNote, quoteBlock)
         }
       } else {
-        let existingContent = ''
-        try {
-          if (window.api?.readNote) {
-            existingContent = await window.api.readNote(destNote)
-          }
-        } catch {
-          /* ignore */
-        }
+        // Lecture obligatoire : écrire sans elle remplacerait toute la note par la seule citation
+        const existingContent = await window.api.readNote(destNote)
 
         const updated = insertQuoteIntoNoteContent(existingContent, quoteBlock, isHtml)
         if (window.api?.writeNote) {
