@@ -79,6 +79,16 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
 8. Git : aucune commande qui modifie le dépôt (commit, push, rm --cached, reset, checkout de fichiers…).
    L'utilisateur s'en charge.
 
+## Chantiers en attente
+### 3b (sécurité, relevé lors du bug de la regex PDF)
+- Fenêtre principale sans garde de navigation (`src/main/index.ts`, `browser-window-created`) : un lien web
+  cliqué hors des aperçus remplace toute l'interface par la page, et un fichier servi en téléchargement
+  atterrit dans le vault via `will-download`. Bloquer `will-navigate` hors de l'URL de l'app.
+- `mainWindow.webContents.setWindowOpenHandler` appelle `shell.openExternal(details.url)` sans filtre :
+  limiter à `http(s)` (comme `assertWebUrl`).
+- Message `OPEN_PDF_PAGE` (`App.tsx`, `handleMessage`) traité sans vérifier `event.source` : le JS d'une note
+  peut le forger. Le restreindre aux iframes d'aperçu, comme `OPEN_EXTERNAL_URL`.
+
 ## Pièges connus
 - `normalizeHtml` (`renderer/src/utils/normalizeHtml.ts`) re-sérialise tout le document sans échapper texte ni
   attributs, supprime les éléments vides et les espaces inline. Le blur de l'aperçu déclenche une réécriture

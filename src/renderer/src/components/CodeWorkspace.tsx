@@ -9,6 +9,7 @@ import { highlightAllCodeBlocksInHtml } from '../utils/codeHighlighter'
 import { normalizeHtml } from '../utils/normalizeHtml'
 import { OutlineHeading } from '../utils/outlineExtractor'
 import { parsePdfHref } from '../utils/pdfLink'
+import { notifyApiError } from '../utils/apiError'
 
 loader.config({ monaco })
 
@@ -1108,6 +1109,17 @@ export const prepareHtmlPreview = (
               }, '*');
               return;
             }
+            // Lien web : ouvert dans le navigateur du système plutôt que dans l'aperçu
+            // (pas d'antislash ici : ce script est un template literal qui les consomme)
+            if (/^https?:/i.test(href.trim())) {
+              e.preventDefault();
+              e.stopPropagation();
+              window.parent.postMessage({
+                type: 'OPEN_EXTERNAL_URL',
+                href: href.trim()
+              }, '*');
+              return;
+            }
           }
         }, true);
 
@@ -1820,6 +1832,15 @@ export default function CodeWorkspace({
   // Listen for messages from inside the iframe (like Esc press or trigger fullscreen)
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'OPEN_EXTERNAL_URL') {
+        // Seule l'iframe d'aperçu de ce composant peut demander l'ouverture d'un lien web
+        if (!iframeRef.current || event.source !== iframeRef.current.contentWindow) return
+        if (typeof event.data.href !== 'string') return
+        window.api.openExternalUrl(event.data.href).catch((err: unknown) => {
+          notifyApiError('Ouverture du lien', err)
+        })
+        return
+      }
       if (event.data?.type === 'HTML_EXIT_FULLSCREEN') {
         if (typeof event.data?.scrollY === 'number') {
           activePreviewScrollYRef.current = event.data.scrollY

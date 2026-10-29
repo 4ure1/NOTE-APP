@@ -1896,6 +1896,16 @@ function App() {
     }
 
     const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'OPEN_EXTERNAL_URL') {
+        // Seule l'iframe plein écran est traitée ici (l'aperçu normal l'est par CodeWorkspace)
+        const frame = fullscreenHtmlIframeRef.current
+        if (!frame || event.source !== frame.contentWindow) return
+        if (typeof event.data.href !== 'string') return
+        window.api.openExternalUrl(event.data.href).catch((err: unknown) => {
+          notifyApiError('Ouverture du lien', err)
+        })
+        return
+      }
       if (event.data?.type === 'HTML_EXIT_FULLSCREEN') {
         if (currentFile && event.data?.ratio !== undefined) {
           try {
@@ -4314,6 +4324,25 @@ function App() {
                                                 color: 'var(--accent-color)',
                                                 textDecoration: 'underline',
                                                 cursor: 'pointer'
+                                              }}
+                                            >
+                                              {children}
+                                            </a>
+                                          )
+                                        }
+                                        // Lien web : navigateur du système, jamais la fenêtre de l'app
+                                        if (href && /^https?:\/\//i.test(href.trim())) {
+                                          return (
+                                            <a
+                                              {...props}
+                                              href={href}
+                                              onClick={(e) => {
+                                                e.preventDefault()
+                                                window.api
+                                                  .openExternalUrl(href.trim())
+                                                  .catch((err: unknown) =>
+                                                    notifyApiError('Ouverture du lien', err)
+                                                  )
                                               }}
                                             >
                                               {children}
