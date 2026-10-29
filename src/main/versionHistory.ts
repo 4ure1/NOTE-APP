@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { isVersionId } from './agent/security'
+import { writeFileAtomic } from './atomicWrite'
 
 export interface HistoryItem {
   id: string
@@ -78,7 +79,7 @@ export async function saveSnapshot(
       content
     }
 
-    fs.writeFileSync(path.join(targetDir, `${now}.json`), JSON.stringify(snapshot, null, 2), 'utf-8')
+    writeFileAtomic(path.join(targetDir, `${now}.json`), JSON.stringify(snapshot, null, 2))
 
     // Élagage : garder au maximum 50 versions par fichier
     if (existingFiles.length >= 50) {

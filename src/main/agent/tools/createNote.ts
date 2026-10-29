@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import { join, dirname } from 'node:path'
 import { ToolDefinition, ToolExecutionContext, ToolResult } from '../types'
 import { assertSafeNotePath, sanitizeFileName } from '../security'
+import { writeFileAtomic } from '../../atomicWrite'
 
 export const createNoteDefinition: ToolDefinition = {
   type: 'function',
@@ -87,7 +88,7 @@ export async function executeCreateNote(
     }
 
     // Écriture du fichier
-    fs.writeFileSync(finalFullPath, content, 'utf-8')
+    writeFileAtomic(finalFullPath, content)
 
     // Enregistrement dans l'historique d'annulation (Undo)
     context.undoManager.push({

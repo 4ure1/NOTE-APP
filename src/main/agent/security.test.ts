@@ -124,6 +124,14 @@ describe('assertSafeNotePath : sorties du dossier', () => {
     expect(() => assertSafeNotePath(vault, 'COM10.md')).not.toThrow()
   })
 
+  it('refuse les noms réservés aux fichiers temporaires', () => {
+    refused('.note.html.1234-a1b2c3d4.nftmp')
+    refused('cours/.note.html.1234-a1b2c3d4.nftmp')
+    refused('cours/note.html.tmp_1730000000000_ab12')
+    expect(() => assertSafeNotePath(vault, 'cours/mes.nftmp.md')).not.toThrow()
+    expect(() => assertSafeNotePath(vault, 'cours/rapport.tmp_2024_v2')).not.toThrow()
+  })
+
   it('refuse les entrées non textuelles', () => {
     refused(undefined as unknown as string)
     refused(42 as unknown as string)
@@ -145,6 +153,8 @@ describe('assertSafeNotePath : racine et dossiers internes', () => {
   it('refuse les dossiers internes, sauf avec allowInternal', () => {
     const internal = ['.history/x.json', '.trash/1___a.md', '.snippets/snippets.json']
     for (const p of [...internal, '.templates/t.html', '.config.json', '.HISTORY/x']) refused(p)
+    refused('.recovery/2026-10-29/note.md')
+    refused('.Recovery/x')
     expect(assertSafeNotePath(vault, '.history/x.json', { allowInternal: true })).toBe(
       path.join(vault, '.history', 'x.json')
     )

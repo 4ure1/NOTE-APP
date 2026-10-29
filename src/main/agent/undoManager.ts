@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import { join } from 'node:path'
 import { UndoEntry, UndoManager } from './types'
 import { assertSafeNotePath } from './security'
+import { writeFileAtomic } from '../atomicWrite'
 
 export class LocalUndoManager implements UndoManager {
   private history: UndoEntry[] = []
@@ -51,7 +52,8 @@ export class LocalUndoManager implements UndoManager {
 
       if (entry.type === 'append_note') {
         if (fs.existsSync(fullPath) && typeof entry.previousContent === 'string') {
-          fs.writeFileSync(fullPath, entry.previousContent, 'utf-8')
+          // Restauration exacte du contenu d'avant : pas d'adaptation de format
+          writeFileAtomic(fullPath, entry.previousContent)
           return { success: true, message: `Annulation réussie : le contenu de "${entry.targetPath}" a été restauré.` }
         }
       }

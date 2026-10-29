@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { isTempFileName, RECOVERY_DIR } from '../atomicWrite'
 
 // Erreur levée quand un chemin sort du dossier de notes ou n'est pas un nom de fichier sûr
 export class PathAccessError extends Error {
@@ -12,11 +13,19 @@ export class PathAccessError extends Error {
 export interface SafePathOptions {
   // Autorise la racine du dossier de notes ('' ou '.')
   allowRoot?: boolean
-  // Autorise les entrées internes de la racine (.history, .trash, .snippets, .templates, .config.json)
+  // Autorise les entrées internes de la racine (.history, .trash, .snippets, .templates, .recovery,
+  // .config.json)
   allowInternal?: boolean
 }
 
-const INTERNAL_ENTRIES = new Set(['.history', '.trash', '.snippets', '.templates', '.config.json'])
+const INTERNAL_ENTRIES = new Set([
+  '.history',
+  '.trash',
+  '.snippets',
+  '.templates',
+  RECOVERY_DIR,
+  '.config.json'
+])
 // Les caractères de contrôle sont interdits dans les noms Windows : la regex les cible volontairement
 // eslint-disable-next-line no-control-regex
 const FORBIDDEN_CHARS = /[<>:"|?*\x00-\x1F]/
@@ -62,6 +71,10 @@ function checkSegment(segment: string, original: string): void {
   }
   if (RESERVED_NAME.test(segment)) {
     throw new PathAccessError(`"${segment}" est un nom réservé par Windows.`)
+  }
+  // Sinon le nettoyage du démarrage le prendrait pour un temporaire orphelin
+  if (isTempFileName(segment)) {
+    throw new PathAccessError(`"${segment}" est réservé aux fichiers temporaires de l'application.`)
   }
 }
 

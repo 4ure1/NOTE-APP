@@ -30,6 +30,7 @@ import {
   PathAccessError,
   SafePathOptions
 } from './agent/security'
+import { writeFileAtomic, copyFileAtomic, cleanupTempFiles } from './atomicWrite'
 
 // Dossier de notes : NOTE_APP_NOTES_DIR si défini (ex. ./test-vault via `npm run dev:safe`), sinon ~/Notes
 const NOTES_DIR = resolveNotesDir(process.env[NOTES_DIR_ENV], os.homedir(), process.cwd())
@@ -1101,8 +1102,13 @@ function createWindow(): void {
           }
           return
         }
-        // Ignorer la corbeille interne, la config ou les fichiers temporaires
-        if (filename && (filename.startsWith('.') || filename.includes('node_modules'))) {
+        // Ignorer les dossiers internes, la config et les fichiers temporaires (".x.nftmp"), à tout
+        // niveau : un segment qui commence par un point suffit
+        if (
+          filename &&
+          (filename.split(/[\\/]/).some((segment) => segment.startsWith('.')) ||
+            filename.includes('node_modules'))
+        ) {
           return
         }
         if (debounceTimeout) clearTimeout(debounceTimeout)
@@ -1214,7 +1220,7 @@ function createWindow(): void {
           while (fs.existsSync(join(targetDir, `${base} (${c})${ext}`))) c++
           destPath = join(targetDir, `${base} (${c})${ext}`)
         }
-        fs.writeFileSync(destPath, buf)
+        writeFileAtomic(destPath, buf)
         console.log('[Download-pdf] PDF sauvegardé:', destPath)
         if (!mainWindow.isDestroyed()) {
           const rel = path.relative(NOTES_DIR, destPath).replace(/\\/g, '/')
@@ -1656,9 +1662,9 @@ ipcMain.handle(
   </script>
 </body>
 </html>`
-      fs.writeFileSync(fullPath, htmlStarter, 'utf-8')
+      writeFileAtomic(fullPath, htmlStarter)
     } else {
-      fs.writeFileSync(fullPath, `# ${noteTitle}\n\n`, 'utf-8')
+      writeFileAtomic(fullPath, `# ${noteTitle}\n\n`)
     }
 
     return path.relative(NOTES_DIR, fullPath).replace(/\\/g, '/')
@@ -1674,10 +1680,9 @@ ipcMain.handle('create-specific-note', (_event, title: string) => {
   const filePath = notePath(cleanTitle)
   if (!fs.existsSync(filePath)) {
     const rawTitle = cleanTitle.replace(/\.(html|htm|md)$/i, '')
-    fs.writeFileSync(
+    writeFileAtomic(
       filePath,
-      `<!DOCTYPE html>\n<html>\n<head><title>${rawTitle}</title></head>\n<body>\n<h1>${rawTitle}</h1>\n</body>\n</html>`,
-      'utf-8'
+      `<!DOCTYPE html>\n<html>\n<head><title>${rawTitle}</title></head>\n<body>\n<h1>${rawTitle}</h1>\n</body>\n</html>`
     )
   }
   return cleanTitle
@@ -1695,9 +1700,8 @@ ipcMain.handle('read-note', (_event, relativePath: string) => {
 ipcMain.handle('write-note', (_event, relativePath: string, content: string) => {
   ensureDir(NOTES_DIR)
   const filePath = notePath(relativePath)
-  const dir = path.dirname(filePath)
-  ensureDir(dir)
-  fs.writeFileSync(filePath, content, 'utf-8')
+  // BOM, fins de ligne et encodage de l'original conservés ; original intact en cas d'échec
+  writeFileAtomic(filePath, content, { preserveFormat: true })
   // Sauvegarde automatique d'un instantané dans l'historique local (Time Travel)
   saveSnapshot(NOTES_DIR, relativePath, content).catch(() => {})
 })
@@ -1960,7 +1964,7 @@ ipcMain.handle('get-config', () => {
 
 ipcMain.handle('save-config', (_event, config: Record<string, any>) => {
   ensureDir(NOTES_DIR)
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8')
+  writeFileAtomic(CONFIG_FILE, JSON.stringify(config, null, 2))
   return true
 })
 
@@ -1992,7 +1996,7 @@ function loadSnippets(): { snippets: any[]; trigger: string; error?: string } {
 
   if (!fs.existsSync(SNIPPETS_FILE)) {
     try {
-      fs.writeFileSync(SNIPPETS_FILE, JSON.stringify(defaults, null, 2), 'utf-8')
+      writeFileAtomic(SNIPPETS_FILE, JSON.stringify(defaults, null, 2))
       return { snippets: defaults.snippets || [], trigger: defaults.trigger || '/' }
     } catch (err: any) {
       return {
@@ -2032,7 +2036,7 @@ ipcMain.handle('get-snippets', () => {
 ipcMain.handle('save-snippets', (_event, content: string) => {
   ensureDir(NOTES_DIR)
   ensureDir(SNIPPETS_DIR)
-  fs.writeFileSync(SNIPPETS_FILE, content, 'utf-8')
+  writeFileAtomic(SNIPPETS_FILE, content)
   if (globalMainWindow && !globalMainWindow.isDestroyed()) {
     globalMainWindow.webContents.send('snippets-updated')
   }
@@ -2155,7 +2159,7 @@ function initTemplates(): void {
   const htmlTmplPath = join(TEMPLATES_DIR, 'modele-cours.html')
   if (!fs.existsSync(htmlTmplPath)) {
     try {
-      fs.writeFileSync(htmlTmplPath, DEFAULT_COURSE_TEMPLATE_HTML, 'utf-8')
+      writeFileAtomic(htmlTmplPath, DEFAULT_COURSE_TEMPLATE_HTML)
     } catch (e) {
       console.warn('Impossible de créer modele-cours.html:', e)
     }
@@ -2164,7 +2168,7 @@ function initTemplates(): void {
   const mdTmplPath = join(TEMPLATES_DIR, 'modele-cours.md')
   if (!fs.existsSync(mdTmplPath)) {
     try {
-      fs.writeFileSync(mdTmplPath, DEFAULT_COURSE_TEMPLATE_MD, 'utf-8')
+      writeFileAtomic(mdTmplPath, DEFAULT_COURSE_TEMPLATE_MD)
     } catch (e) {
       console.warn('Impossible de créer modele-cours.md:', e)
     }
@@ -2255,11 +2259,7 @@ ipcMain.handle(
     }
 
     const targetPath = join(targetDir, finalFileName)
-    const tempPath = `${targetPath}.tmp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
-
-    // Écriture atomique
-    fs.writeFileSync(tempPath, expanded, 'utf-8')
-    fs.renameSync(tempPath, targetPath)
+    writeFileAtomic(targetPath, expanded)
 
     const relPath = path.relative(NOTES_DIR, targetPath).replace(/\\/g, '/')
 
@@ -2280,9 +2280,9 @@ ipcMain.handle('create-note-with-content', (_event, fileName: string, content: s
   const filePath = notePath(fileName)
   if (fs.existsSync(filePath)) {
     const existing = fs.readFileSync(filePath, 'utf-8')
-    fs.writeFileSync(filePath, existing + '\n\n---\n\n' + content, 'utf-8')
+    writeFileAtomic(filePath, existing + '\n\n---\n\n' + content, { preserveFormat: true })
   } else {
-    fs.writeFileSync(filePath, content, 'utf-8')
+    writeFileAtomic(filePath, content)
   }
   return fileName
 })
@@ -2376,7 +2376,7 @@ ipcMain.handle('import-pdf-dialog', async (_event, targetFolderRel?: string) => 
       }
       destPath = join(targetDir, `${base} (${counter})${ext}`)
     }
-    fs.copyFileSync(srcPath, destPath)
+    copyFileAtomic(srcPath, destPath)
     const rel = path.relative(NOTES_DIR, destPath).replace(/\\/g, '/')
     importedRelPaths.push(rel)
   }
@@ -2405,7 +2405,7 @@ ipcMain.handle(
       destPath = join(targetDir, `${base} (${counter})${ext}`)
     }
 
-    fs.copyFileSync(srcPath, destPath)
+    copyFileAtomic(srcPath, destPath)
     return path.relative(NOTES_DIR, destPath).replace(/\\/g, '/')
   }
 )
@@ -2455,10 +2455,7 @@ ipcMain.handle(
     }
 
     try {
-      const content = JSON.stringify(payload, null, 2)
-      const tempPath = `${annotationsPath}.tmp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
-      fs.writeFileSync(tempPath, content, 'utf-8')
-      fs.renameSync(tempPath, annotationsPath)
+      writeFileAtomic(annotationsPath, JSON.stringify(payload, null, 2))
       return true
     } catch (err) {
       console.error(`[save-pdf-annotations] Erreur écriture ${annotationsPath}:`, err)
@@ -2493,7 +2490,7 @@ ipcMain.handle('save-pdf-base64', (_event, filename: string, base64: string) => 
     destPath = join(targetDir, `${base} (${c})${ext}`)
   }
   const buf = Buffer.from(base64, 'base64')
-  fs.writeFileSync(destPath, buf)
+  writeFileAtomic(destPath, buf)
   console.log('[save-pdf-base64] PDF sauvegardé:', destPath)
   return path.relative(NOTES_DIR, destPath).replace(/\\/g, '/')
 })
@@ -2514,7 +2511,7 @@ ipcMain.handle(
       destPath = join(targetDir, `${base} (${c})${ext}`)
     }
     const buf = Buffer.from(new Uint8Array(buffer))
-    fs.writeFileSync(destPath, buf)
+    writeFileAtomic(destPath, buf)
     console.log('[save-pdf-binary] PDF sauvegardé:', destPath)
     return path.relative(NOTES_DIR, destPath).replace(/\\/g, '/')
   }
@@ -2539,7 +2536,7 @@ ipcMain.handle('download-pdf-from-url', async (_event, url: string, filename: st
       while (fs.existsSync(join(targetDir, `${base} (${c})${ext}`))) c++
       destPath = join(targetDir, `${base} (${c})${ext}`)
     }
-    fs.writeFileSync(destPath, buf)
+    writeFileAtomic(destPath, buf)
     console.log('[download-pdf-from-url] PDF sauvegardé:', destPath)
     return path.relative(NOTES_DIR, destPath).replace(/\\/g, '/')
   } catch (err) {
@@ -2684,7 +2681,7 @@ ipcMain.handle('restore-note-version', async (_event, relativePath: string, vers
   const fullPath = notePath(relativePath)
   const content = await getVersionContent(NOTES_DIR, relativePath, versionId)
   if (content !== null) {
-    fs.writeFileSync(fullPath, content, 'utf-8')
+    writeFileAtomic(fullPath, content, { preserveFormat: true })
     await saveSnapshot(NOTES_DIR, relativePath, content)
     return content
   }
@@ -2733,6 +2730,18 @@ app.whenReady().then(async () => {
 
   // Activer la configuration des cookies
   setupCookieSynchronization()
+
+  // Temporaires d'écriture laissés par un arrêt brutal : supprimés s'ils sont identiques à l'original,
+  // sinon rangés dans .recovery/ (l'original n'est jamais touché)
+  ensureDir(NOTES_DIR)
+  const tempReport = cleanupTempFiles(NOTES_DIR)
+  if (tempReport.removed.length > 0 || tempReport.recovered.length > 0) {
+    console.warn(
+      `[AtomicWrite] ${tempReport.removed.length} temporaire(s) supprimé(s), ` +
+        `${tempReport.recovered.length} rangé(s) dans .recovery :`,
+      tempReport.recovered
+    )
+  }
 
   // Gestionnaire de protocole note-pdf://notes/<chemin relatif encodé> : fichiers du dossier de notes uniquement
   protocol.handle('note-pdf', (request) => {

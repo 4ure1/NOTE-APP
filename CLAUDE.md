@@ -44,7 +44,8 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
 - Dossier de notes : `src/main/notesDir.ts` (`NOTE_APP_NOTES_DIR`, sinon `~/Notes`), résolu une fois dans
   `NOTES_DIR` (`src/main/index.ts`). Tout le main en dérive.
 - Données à l'exécution, toutes dans le dossier de notes : `.trash/`, `.history/`, `.snippets/snippets.json`,
-  `.templates/`, `.config.json`.
+  `.templates/`, `.recovery/` (temporaires orphelins récupérés au démarrage), `.config.json`.
+  Temporaires d'écriture : `.<nom>.<pid>-<aléa>.nftmp`, nettoyés au démarrage (`cleanupTempFiles`).
 
 ## Conventions
 - Prettier : sans points-virgules, guillemets simples, largeur 100, pas de virgule finale.
@@ -65,7 +66,8 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
    processus `electron.exe` : ne jamais exécuter `relancer.bat`.
    `test-vault/securite/note-piegee.html` est un test de sécurité : ne jamais la copier hors de `test-vault`.
 3. Toute écriture de fichier de note ou de donnée utilisateur doit être atomique : fichier temporaire dans le
-   même dossier, puis `rename`. Réutiliser `writeAtomic` (`src/main/linkRefactorService.ts`).
+   même dossier, puis `rename`. Utiliser `writeFileAtomic` / `copyFileAtomic` (`src/main/atomicWrite.ts` ;
+   `preserveFormat` pour les notes : BOM, CRLF, refus du non-UTF-8). `writeAtomic` n'en est qu'un alias.
 4. Tout chemin reçu par IPC doit être confiné au dossier de notes avec `assertSafeNotePath`
    (`src/main/agent/security.ts`) avant de lire, écrire ou supprimer.
 5. Hors ligne : aucune ressource d'interface chargée depuis un CDN ou le réseau (scripts, CSS, polices, workers,
@@ -80,6 +82,11 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
    L'utilisateur s'en charge.
 
 ## Chantiers en attente
+### 2b et 2c (ne jamais abîmer une note ; 2a = écritures atomiques, fait)
+- 2b, en premier : `save-config` doit fusionner avec l'existant côté main (+ test).
+- 2b : `.gitattributes` qui marque `-text` les notes de test BOM/CRLF de `test-vault/tests-sauvegarde/`.
+- 2c : test « relancer l'app avec des onglets ouverts n'affiche pas la barre de conflit ».
+
 ### 3b (sécurité, relevé lors du bug de la regex PDF)
 - Fenêtre principale sans garde de navigation (`src/main/index.ts`, `browser-window-created`) : un lien web
   cliqué hors des aperçus remplace toute l'interface par la page, et un fichier servi en téléchargement

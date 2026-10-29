@@ -8,6 +8,7 @@ import {
 } from '../shared/linkUpdater'
 import { saveSnapshot } from './versionHistory'
 import { assertSafeNotePath, assertSafeFileName, isOperationId } from './agent/security'
+import { writeFileAtomic } from './atomicWrite'
 
 // Plans préparés par le main : le renderer ne renvoie que leur identifiant
 const PLAN_TTL_MS = 10 * 60 * 1000
@@ -211,16 +212,11 @@ export function prepareRenameOrMove(
 }
 
 /**
- * Écriture atomique d'un fichier (écriture temporaire puis renommage).
+ * Écriture atomique d'un fichier : alias historique de writeFileAtomic (atomicWrite.ts).
+ * Contenu écrit tel quel (le plan part déjà du texte exact de l'original).
  */
 export function writeAtomic(filePath: string, content: string): void {
-  const parentDir = path.dirname(filePath)
-  if (!fs.existsSync(parentDir)) {
-    fs.mkdirSync(parentDir, { recursive: true })
-  }
-  const tempPath = `${filePath}.tmp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
-  fs.writeFileSync(tempPath, content, 'utf-8')
-  fs.renameSync(tempPath, filePath)
+  writeFileAtomic(filePath, content)
 }
 
 /**
@@ -329,7 +325,7 @@ export async function applyRenameOrMove(
     // Sauvegarde persistée sur disque
     try {
       const opFile = path.join(getOperationsDir(notesDir), `${operationId}.json`)
-      fs.writeFileSync(opFile, JSON.stringify(record, null, 2), 'utf-8')
+      writeFileAtomic(opFile, JSON.stringify(record, null, 2))
     } catch (err) {
       console.warn('[applyRenameOrMove] Impossible de persister le log d’annulation:', err)
     }
