@@ -17,6 +17,7 @@ import { prepareRenameOrMove, applyRenameOrMove, undoRenameOrMove } from './link
 import { RenameOperationPlan } from '../shared/linkUpdater'
 import { expandTemplate, NoteTemplate, TemplateContext } from '../shared/sessionDetector'
 import { PdfAnnotation } from '../shared/pdfAnnotations'
+import { isPdfUrl } from '../shared/pdfLink'
 import { exportToHtml, exportToPdf, exportToDocx, ExportNoteParams } from './exportNote'
 import { runAgentLoop, checkOllamaModelAvailable } from './agent/ollamaAgent'
 import { globalUndoManager } from './agent/undoManager'
@@ -1230,7 +1231,7 @@ function createWindow(): void {
     webviewContents.on('will-navigate', (event, navUrl) => {
       const lowerUrl = navUrl.toLowerCase()
       if (
-        lowerUrl.includes('.pdf') ||
+        isPdfUrl(navUrl) ||
         lowerUrl.includes('files.oaiusercontent.com') ||
         lowerUrl.includes('/download')
       ) {
@@ -1267,7 +1268,7 @@ function createWindow(): void {
       const lowerUrl = url.toLowerCase()
       // PDF ou téléchargement ouvert dans nouvel onglet → intercepter
       if (
-        lowerUrl.includes('.pdf') ||
+        isPdfUrl(url) ||
         lowerUrl.includes('files.oaiusercontent.com') ||
         lowerUrl.includes('/download') ||
         url.startsWith('blob:')

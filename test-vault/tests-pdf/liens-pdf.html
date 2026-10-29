@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Liens PDF (HTML)</title>
+</head>
+<body>
+<h1>Liens PDF — note HTML</h1>
+<p>Note de test du bug de détection des liens PDF (src/shared/pdfLink.ts). Cliquer chaque lien dans l'aperçu.</p>
+
+<h2>Doivent ouvrir le PDF</h2>
+<ol>
+  <li><a href="../cours/CAHIER_DES_CHARGES.pdf#page=2">Relatif vers le dossier parent, page 2</a></li>
+  <li><a href="../cours/cahier_des_charges.PDF">Casse différente</a></li>
+  <li><a href="mes%20cours%20%C3%A9t%C3%A9.pdf#page=2">Espaces et accents encodés, page 2</a></li>
+  <li><a href="mes cours été.pdf">Espaces et accents non encodés</a></li>
+  <li><a href="../cours/CAHIER_DES_CHARGES.pdf?v=2#page=2">Avec paramètre ?v=2, page 2</a></li>
+  <li><a href="..\cours\CAHIER_DES_CHARGES.pdf">Antislashs Windows</a></li>
+  <li><a href="/cours/CAHIER_DES_CHARGES.pdf#zoom=100&amp;page=2">Depuis la racine, page 2 après zoom</a></li>
+</ol>
+
+<h2>Doivent être refusés proprement (toast, rien ne s'ouvre)</h2>
+<ol>
+  <li><a href="../../Windows/secret.pdf">Sort du dossier de notes → « Lien PDF refusé »</a></li>
+  <li><a href="absent.pdf">PDF inexistant → « PDF introuvable »</a></li>
+</ol>
+
+<h2>Ne sont pas des PDF du vault (pas de toast « Ouverture du PDF »)</h2>
+<ol>
+  <li><a href="../cours/liens.html#voir-cours.pdf">Note HTML avec « .pdf » dans l'ancre</a></li>
+  <li><a href="../Bienvenue.md?from=cours.pdf">Note Markdown avec « .pdf » dans la query</a></li>
+  <li><a href="https://example.com/document.pdf" target="_blank">PDF externe (s'ouvre dans le navigateur)</a></li>
+</ol>
+</body>
+</html>

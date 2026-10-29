@@ -44,7 +44,7 @@ import { detectNextSession, SessionSuggestion, NoteTemplate } from './utils/sess
 import { RenameOperationPlan } from './utils/linkUpdater'
 import { highlightAllCodeBlocksInHtml } from './utils/codeHighlighter'
 import { formatHtml } from './utils/formatHtml'
-import { parsePdfLink } from './utils/pdfAnnotations'
+import { parsePdfHref, resolveVaultLinkPath } from './utils/pdfLink'
 import getCaretCoordinates from 'textarea-caret'
 import { describeApiError, isAccessDenied, notifyApiError } from './utils/apiError'
 
@@ -1302,42 +1302,38 @@ function App() {
   // Navigation vers un document PDF à une page donnée
   const handleOpenPdfLink = useCallback(
     (href: string) => {
-      const parsed = parsePdfLink(href)
+      const parsed = parsePdfHref(href)
       if (!parsed) return
 
-      let resolvedPath = parsed.pdfPath
-      if (currentFile && currentFile.includes('/')) {
-        const currentDir = currentFile.substring(0, currentFile.lastIndexOf('/'))
-        const combined = `${currentDir}/${parsed.pdfPath}`
-        const parts = combined.split('/')
-        const norm: string[] = []
-        for (const p of parts) {
-          if (!p || p === '.') continue
-          if (p === '..') norm.pop()
-          else norm.push(p)
-        }
-        const candidate = norm.join('/')
-        if (files.includes(candidate)) {
-          resolvedPath = candidate
-        }
+      // Chemin relatif au dossier de la note qui contient le lien ; refusé s'il sort du dossier de notes
+      const resolved = resolveVaultLinkPath(currentFile || '', parsed.path)
+      if (!resolved) {
+        showClaudeToast(`Lien PDF refusé : « ${parsed.path} » sort du dossier de notes`)
+        return
       }
 
-      if (!files.includes(resolvedPath)) {
-        const match = files.find(
-          (f) =>
-            f.toLowerCase() === parsed.pdfPath.toLowerCase() ||
-            f.toLowerCase().endsWith(`/${parsed.pdfPath.toLowerCase()}`)
-        )
-        if (match) resolvedPath = match
+      const lowerResolved = resolved.toLowerCase()
+      const lowerLink = parsed.path.replace(/^(\.\/)+/, '').toLowerCase()
+      const resolvedPath = files.includes(resolved)
+        ? resolved
+        : files.find(
+            (f) =>
+              f.toLowerCase() === lowerResolved ||
+              f.toLowerCase() === lowerLink ||
+              f.toLowerCase().endsWith(`/${lowerLink}`)
+          )
+      if (!resolvedPath) {
+        showClaudeToast(`PDF introuvable : ${parsed.path}`)
+        return
       }
 
       try {
-        localStorage.setItem('pdf_page_' + resolvedPath, String(parsed.pageNumber))
+        localStorage.setItem('pdf_page_' + resolvedPath, String(parsed.page))
       } catch {}
 
-      setTargetPdfPage(parsed.pageNumber)
+      setTargetPdfPage(parsed.page)
       setSelectedFiles([resolvedPath])
-      showClaudeToast(`Ouverture du PDF à la page ${parsed.pageNumber}`)
+      showClaudeToast(`Ouverture du PDF à la page ${parsed.page}`)
     },
     [currentFile, files]
   )
@@ -4324,7 +4320,7 @@ function App() {
                                             </a>
                                           )
                                         }
-                                        const isPdfLink = href && /\.pdf(#|\?|$)/i.test(href)
+                                        const isPdfLink = href && parsePdfHref(href) !== null
                                         if (isPdfLink) {
                                           return (
                                             <a

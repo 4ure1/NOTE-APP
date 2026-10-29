@@ -2,6 +2,8 @@
  * Module pur et partagé pour les types et helpers d'annotations PDF
  */
 
+import { parsePdfHref } from './pdfLink'
+
 export type HighlightColor = 'yellow' | 'green' | 'pink' | 'cyan' | 'purple'
 
 export interface HighlightRect {
@@ -122,28 +124,8 @@ export function computeRelativePath(fromFilePath: string, toFilePath: string): s
  * Extrait le chemin PDF et le numéro de page d'un lien (ex: "cours.pdf#page=12")
  */
 export function parsePdfLink(href: string): { pdfPath: string; pageNumber: number } | null {
-  if (!href) return null
-  const cleanHref = href.trim()
-
-  const isPdf = /\.pdf(#|\?|$)/i.test(cleanHref)
-  if (!isPdf) return null
-
-  const hashIdx = cleanHref.indexOf('#')
-  const pdfPath = hashIdx !== -1 ? cleanHref.substring(0, hashIdx) : cleanHref
-  let pageNumber = 1
-
-  if (hashIdx !== -1) {
-    const hash = cleanHref.substring(hashIdx + 1)
-    const pageMatch = hash.match(/page=(\d+)/i)
-    if (pageMatch) {
-      const parsed = parseInt(pageMatch[1], 10)
-      if (!isNaN(parsed) && parsed >= 1) {
-        pageNumber = parsed
-      }
-    }
-  }
-
-  return { pdfPath, pageNumber }
+  const parsed = parsePdfHref(href)
+  return parsed ? { pdfPath: parsed.path, pageNumber: parsed.page } : null
 }
 
 function escapeHtml(str: string): string {

@@ -8,6 +8,7 @@ import { registerEnhancedCompletions, registerInlineCopilot } from '../utils/mon
 import { highlightAllCodeBlocksInHtml } from '../utils/codeHighlighter'
 import { normalizeHtml } from '../utils/normalizeHtml'
 import { OutlineHeading } from '../utils/outlineExtractor'
+import { parsePdfHref } from '../utils/pdfLink'
 
 loader.config({ monaco })
 
@@ -362,6 +363,8 @@ export const prepareHtmlPreview = (
         var snippetsData = ${safeSnippetsJson};
         var originalHadHtml = ${hasHtmlTag ? 'true' : 'false'};
         var originalHadDoctype = ${hasDoctype ? 'true' : 'false'};
+        // Détection des liens PDF : source de src/shared/pdfLink.ts (fonction autonome)
+        var parsePdfHref = ${parsePdfHref.toString()};
 
         // Fonction pour extraire le code propre sans aucun helper injecté
         function getCleanHtml() {
@@ -1096,7 +1099,7 @@ export const prepareHtmlPreview = (
           var a = e.target && e.target.closest ? e.target.closest('a') : null;
           if (a) {
             var href = a.getAttribute('href') || '';
-            if (/\.pdf(#|\?|$)/i.test(href)) {
+            if (parsePdfHref(href)) {
               e.preventDefault();
               e.stopPropagation();
               window.parent.postMessage({
