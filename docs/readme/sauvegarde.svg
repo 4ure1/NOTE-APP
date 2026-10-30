@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="220" viewBox="0 0 960 220" role="img" aria-labelledby="t d">
+  <title id="t">Sauvegarde atomique d'une note</title>
+  <desc id="d">Animation : le contenu est d'abord écrit dans un fichier temporaire du même dossier, forcé sur le disque, puis il remplace la note d'un seul coup. L'ancienne version reste intacte tant que le remplacement n'a pas eu lieu.</desc>
+  <defs>
+    <marker id="fleche" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0L10 5L0 10z" fill="#3e3e42"/>
+    </marker>
+    <style>
+      text { font-family: 'Segoe UI', sans-serif; }
+      .etiquette { font-size: 15px; font-weight: 600; fill: #d4d4d4; }
+      .detail { font-size: 12.5px; fill: #9d9d9d; }
+      .boite { fill: #2d2d30; stroke: #3e3e42; stroke-width: 1.5; }
+      .etape { animation: allume 6s ease-in-out infinite; opacity: 0.35; }
+      .e1 { animation-delay: 0s; }
+      .e2 { animation-delay: 1.5s; }
+      .e3 { animation-delay: 3s; }
+      @keyframes allume { 0%, 4% { opacity: 0.35; } 10%, 30% { opacity: 1; } 40%, 100% { opacity: 0.35; } }
+      .ok { opacity: 0; animation: ok 6s ease-in-out infinite; }
+      @keyframes ok { 0%, 62% { opacity: 0; } 70%, 92% { opacity: 1; } 100% { opacity: 0; } }
+      @media (prefers-reduced-motion: reduce) {
+        .etape, .ok { animation: none; opacity: 1; }
+      }
+    </style>
+  </defs>
+
+  <rect width="960" height="220" rx="16" fill="#1e1e1e"/>
+
+  <!-- Étape 1 : saisie -->
+  <g class="etape e1">
+    <rect class="boite" x="40" y="56" width="220" height="92" rx="10"/>
+    <rect x="40" y="56" width="4" height="92" rx="2" fill="#4fc1ff"/>
+    <text class="etiquette" x="62" y="88">1. Vous modifiez</text>
+    <text class="detail" x="62" y="112">rien n'est écrit sans</text>
+    <text class="detail" x="62" y="130">vraie modification</text>
+  </g>
+
+  <!-- Étape 2 : fichier temporaire -->
+  <g class="etape e2">
+    <rect class="boite" x="370" y="56" width="220" height="92" rx="10"/>
+    <rect x="370" y="56" width="4" height="92" rx="2" fill="#dcdcaa"/>
+    <text class="etiquette" x="392" y="88">2. Fichier temporaire</text>
+    <text class="detail" x="392" y="112">.note.html….nftmp</text>
+    <text class="detail" x="392" y="130">écrit puis forcé sur disque</text>
+  </g>
+
+  <!-- Étape 3 : remplacement -->
+  <g class="etape e3">
+    <rect class="boite" x="700" y="56" width="220" height="92" rx="10"/>
+    <rect x="700" y="56" width="4" height="92" rx="2" fill="#6a9955"/>
+    <text class="etiquette" x="722" y="88">3. Remplacement</text>
+    <text class="detail" x="722" y="112">la note change d'un coup,</text>
+    <text class="detail" x="722" y="130">jamais à moitié écrite</text>
+  </g>
+
+  <path d="M266 102H362" stroke="#3e3e42" stroke-width="2" marker-end="url(#fleche)"/>
+  <path d="M596 102H692" stroke="#3e3e42" stroke-width="2" marker-end="url(#fleche)"/>
+
+  <!-- Le contenu qui voyage d'une étape à l'autre -->
+  <circle r="7" fill="#4fc1ff">
+    <animateMotion dur="6s" repeatCount="indefinite" keyPoints="0;0;0.5;0.5;1;1" keyTimes="0;0.18;0.3;0.43;0.55;1" calcMode="linear" path="M150 102H480H810"/>
+    <animate attributeName="fill" dur="6s" repeatCount="indefinite" values="#4fc1ff;#4fc1ff;#dcdcaa;#dcdcaa;#6a9955;#6a9955" keyTimes="0;0.18;0.3;0.43;0.55;1"/>
+  </circle>
+
+  <text class="ok" x="480" y="190" text-anchor="middle" style="font-size:14px;fill:#6a9955;">✓ Enregistré : en cas de coupure, l'ancienne version reste intacte</text>
+</svg>
