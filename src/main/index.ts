@@ -2211,11 +2211,38 @@ function loadSnippets(): { snippets: any[]; trigger: string; error?: string } {
     const raw = fs.readFileSync(SNIPPETS_FILE, 'utf-8')
     const parsed = JSON.parse(raw)
     if (parsed && Array.isArray(parsed.snippets)) {
+      // Migration automatique d'un ancien snippet /page qui embarquait tout le CSS en dur :
+      // remplacé par la version moderne reliée au thème partagé (.theme/notes.css).
+      let hasLegacyPage = false
+      const sanitizedUserSnippets = parsed.snippets.map((s: any) => {
+        if (s && (s.prefix === 'page' || s.id === 'page')) {
+          const bodyStr = Array.isArray(s.body) ? s.body.join('\n') : String(s.body || '')
+          if (bodyStr.includes('<style>')) {
+            hasLegacyPage = true
+            const defaultPage = (defaults.snippets || []).find(
+              (d: any) => d.prefix === 'page' || d.id === 'page'
+            )
+            if (defaultPage) return defaultPage
+          }
+        }
+        return s
+      })
+
+      if (hasLegacyPage) {
+        try {
+          parsed.snippets = sanitizedUserSnippets
+          writeFileAtomic(SNIPPETS_FILE, JSON.stringify(parsed, null, 2))
+          console.log('[Snippets] migration de /page effectuée dans .snippets/snippets.json')
+        } catch (err) {
+          console.warn('[Snippets] mise à jour du fichier de snippets échouée :', err)
+        }
+      }
+
       // Snippets par défaut ajoutés depuis la création du fichier : proposés aussi (fusion en mémoire,
       // le fichier n'est pas modifié ; "disabledDefaults" permet d'en masquer)
       return {
         snippets: mergeDefaultSnippets(
-          parsed.snippets,
+          sanitizedUserSnippets,
           defaults.snippets || [],
           parsed.disabledDefaults
         ),

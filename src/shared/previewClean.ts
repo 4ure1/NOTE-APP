@@ -73,6 +73,9 @@ export function cleanPreviewDocument(doc: Document, options: PreviewCleanOptions
   const editable = clone.querySelectorAll('[contenteditable]')
   for (let i = 0; i < editable.length; i++) editable[i].removeAttribute('contenteditable')
 
+  const editingColors = clone.querySelectorAll('[data-nf-editing-color]')
+  for (let i = 0; i < editingColors.length; i++) editingColors[i].removeAttribute('data-nf-editing-color')
+
   // Champs d'un snippet en cours de saisie (snippetFields.ts) : on garde le texte saisi, jamais le
   // marqueur ; un champ resté vide disparaît. Les espaces de largeur nulle qui tiennent le curseur aussi.
   const zeroWidth = String.fromCharCode(8203)

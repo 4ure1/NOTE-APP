@@ -218,4 +218,9 @@ describe('cleanPreviewDocument : structure saine', () => {
     )
     expect(document.querySelector('[data-nf-keep-space]')).toBeNull()
   })
+
+  it('retire l’attribut data-nf-editing-color posé lors de la modification d’un texte en couleur', () => {
+    document.body.innerHTML = '<p><span class="r" data-nf-editing-color="">rouge</span></p>'
+    expect(cleanPreviewDocument(document, opts)).toBe('<p><span class="r">rouge</span></p>')
+  })
 })

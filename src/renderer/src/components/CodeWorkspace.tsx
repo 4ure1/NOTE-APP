@@ -371,17 +371,16 @@ export const prepareHtmlPreview = (
         }
       }
       /* Champs d'un snippet en cours de saisie (jamais enregistrés : voir previewClean.ts).
-         Surlignage en background-image, pas en background-color : Chrome recopie la couleur de fond en
-         style inline quand on tape par-dessus un champ (fond bleu resté dans la note). */
+         Fond transparent pour laisser la vraie couleur du texte visible, en conservant les bordures. */
       [data-nf-field] {
         outline: 1px dashed rgba(79, 193, 255, 0.85);
         outline-offset: 1px;
-        background-image: linear-gradient(rgba(79, 193, 255, 0.12), rgba(79, 193, 255, 0.12));
+        background: transparent;
         border-radius: 3px;
       }
       [data-nf-field].nf-active {
         outline-style: solid;
-        background-image: linear-gradient(rgba(79, 193, 255, 0.22), rgba(79, 193, 255, 0.22));
+        background: transparent;
       }
       [data-nf-field].nf-empty::before {
         content: attr(data-nf-hint);
@@ -391,6 +390,15 @@ export const prepareHtmlPreview = (
       [data-nf-field][data-nf-final] {
         outline: none;
         background: none;
+      }
+      /* Balise de couleur en cours d'édition (jamais enregistrée : retirée par cleanPreviewDocument).
+         Bordure fine en tirets bleus et fond transparent pour garder la couleur du texte intacte. */
+      [data-nf-editing-color] {
+        outline: 1px dashed rgba(79, 193, 255, 0.55);
+        outline-offset: 2px;
+        background: transparent;
+        border-radius: 3px;
+        transition: outline 0.12s ease;
       }
       #nf-choice-menu {
         position: fixed;
@@ -783,6 +791,122 @@ export const prepareHtmlPreview = (
         var choiceMenuEl = null;
         var choiceOccurrence = null;
         var choiceIndex = 0;
+        // Suivi et surlignage de la balise de couleur en cours d'édition
+        var activeColoredEl = null;
+        var COLOR_CLASSES = ['b', 't', 'y', 'o', 'l', 'g', 'p', 'a', 'r', 'k', 'f', 's', 'n', 'c', 'keyword', 'kw'];
+
+        function findColoredAncestor(node) {
+          if (!node || node === document.body) return null;
+          var el = node.nodeType === 1 ? node : node.parentElement;
+          while (el && el !== document.body) {
+            if (el.nodeName === 'SPAN' || el.nodeName === 'MARK' || el.nodeName === 'CODE' || el.nodeName === 'FONT') {
+              if (el.closest && el.closest('pre')) return null;
+              if (!el.hasAttribute('data-nf-field') && !el.classList.contains('tag')) {
+                for (var i = 0; i < COLOR_CLASSES.length; i++) {
+                  if (el.classList.contains(COLOR_CLASSES[i])) return el;
+                }
+                var styleAttr = el.getAttribute('style') || '';
+                if (styleAttr.indexOf('color') !== -1) return el;
+              }
+            }
+            if (['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'TD', 'TH', 'BLOCKQUOTE', 'PRE', 'DIV', 'SECTION'].indexOf(el.nodeName) !== -1) {
+              break;
+            }
+            el = el.parentElement;
+          }
+          return null;
+        }
+
+        function updateEditingColorOutline() {
+          if (snippetSession) {
+            if (activeColoredEl) {
+              activeColoredEl.removeAttribute('data-nf-editing-color');
+              activeColoredEl = null;
+            }
+            return;
+          }
+          var sel = window.getSelection();
+          var found = null;
+          if (sel && sel.rangeCount > 0 && isLiveEditEnabled) {
+            found = findColoredAncestor(sel.anchorNode);
+          }
+          if (found !== activeColoredEl) {
+            if (activeColoredEl) {
+              activeColoredEl.removeAttribute('data-nf-editing-color');
+            }
+            activeColoredEl = found;
+            if (activeColoredEl) {
+              activeColoredEl.setAttribute('data-nf-editing-color', '');
+            }
+          }
+        }
+
+        function exitColoredElement(coloredEl, toStart) {
+          if (!coloredEl || !coloredEl.parentNode) return;
+          if (activeColoredEl) {
+            activeColoredEl.removeAttribute('data-nf-editing-color');
+            activeColoredEl = null;
+          }
+          coloredEl.removeAttribute('data-nf-editing-color');
+          var parent = coloredEl.parentNode;
+          var sel = window.getSelection();
+          var r = document.createRange();
+
+          if (toStart) {
+            var prev = coloredEl.previousSibling;
+            var prevNode = null;
+            var prevOffset = 0;
+            if (prev && prev.nodeType === 3) {
+              var pVal = prev.nodeValue || '';
+              if (/[\s\u00A0]$/.test(pVal)) {
+                prevNode = prev;
+                prevOffset = pVal.length;
+              } else {
+                prev.nodeValue = pVal + '\u00A0';
+                prevNode = prev;
+                prevOffset = prev.nodeValue.length;
+              }
+            } else {
+              prevNode = document.createTextNode('\u00A0');
+              parent.insertBefore(prevNode, coloredEl);
+              prevOffset = 0;
+            }
+            r.setStart(prevNode, prevOffset);
+          } else {
+            // Sortir après le span en insérant un espace hors de la balise de couleur
+            var next = coloredEl.nextSibling;
+            var targetNode = null;
+            var targetOffset = 1;
+
+            if (next && next.nodeType === 3) {
+              var val = next.nodeValue || '';
+              if (/^[\s\u00A0]/.test(val)) {
+                targetNode = next;
+                targetOffset = 1;
+              } else {
+                next.nodeValue = '\u00A0' + val;
+                targetNode = next;
+                targetOffset = 1;
+              }
+            } else {
+              targetNode = document.createTextNode('\u00A0');
+              parent.insertBefore(targetNode, next || null);
+              targetOffset = 1;
+            }
+
+            r.setStart(targetNode, targetOffset);
+          }
+
+          r.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(r);
+
+          if (typeof previewEditing !== 'undefined' && previewEditing.disarm) {
+            previewEditing.disarm();
+          }
+          exitArmedAt = null;
+          emitDocChange();
+        }
 
         function fieldText(el) {
           return (el.textContent || '').split(ZERO_WIDTH).join('');
@@ -816,6 +940,10 @@ export const prepareHtmlPreview = (
         }
 
         function startSnippetSession(built) {
+          if (activeColoredEl) {
+            activeColoredEl.removeAttribute('data-nf-editing-color');
+            activeColoredEl = null;
+          }
           snippetSession = { groups: built.groups, finalMarker: built.finalMarker, current: -1 };
           built.groups.forEach(function(g) {
             g.occurrences.forEach(function(o) { if (o.kind === 'text') refreshField(o.element); });
@@ -941,6 +1069,23 @@ export const prepareHtmlPreview = (
             p.innerHTML = '<br>';
             parent.replaceChild(p, marker);
             r.setStart(p, 0);
+          } else if (prev && (prev.nodeName === 'SPAN' || prev.nodeName === 'MARK' || prev.nodeName === 'CODE')) {
+            var next = marker.nextSibling;
+            var targetNode = null;
+            if (next && next.nodeType === 3) {
+              var val = next.nodeValue || '';
+              if (/^[\s\u00A0]/.test(val)) {
+                targetNode = next;
+              } else {
+                next.nodeValue = '\u00A0' + val;
+                targetNode = next;
+              }
+            } else {
+              targetNode = document.createTextNode('\u00A0');
+              parent.insertBefore(targetNode, marker);
+            }
+            parent.removeChild(marker);
+            r.setStart(targetNode, 1);
           } else {
             r.setStartBefore(marker);
             parent.removeChild(marker);
@@ -1092,6 +1237,18 @@ export const prepareHtmlPreview = (
               e.preventDefault();
               e.stopPropagation();
               endSnippetSession(false);
+              return;
+            }
+          }
+
+          // Sortie d'une balise de couleur en cours d'édition via la touche Tab
+          if (e.key === 'Tab' && !e.ctrlKey && !e.altKey && !e.metaKey && isLiveEditEnabled && (!snippetMenuEl || snippetMenuEl.style.display === 'none')) {
+            var tabSel = window.getSelection();
+            var coloredEl = (tabSel && tabSel.rangeCount > 0) ? (activeColoredEl || findColoredAncestor(tabSel.anchorNode)) : null;
+            if (coloredEl) {
+              e.preventDefault();
+              e.stopPropagation();
+              exitColoredElement(coloredEl, e.shiftKey);
               return;
             }
           }
@@ -1649,6 +1806,14 @@ export const prepareHtmlPreview = (
               previewEditing.disarm();
               exitArmedAt = null;
             }
+          }
+          updateEditingColorOutline();
+        });
+
+        window.addEventListener('blur', function() {
+          if (activeColoredEl) {
+            activeColoredEl.removeAttribute('data-nf-editing-color');
+            activeColoredEl = null;
           }
         });
 
