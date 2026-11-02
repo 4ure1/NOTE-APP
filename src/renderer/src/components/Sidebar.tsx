@@ -177,11 +177,10 @@ export default function Sidebar({
     setNewItemName('')
   }
 
-  // Detect the template type from the typed name
+  // Type de la note d'après le nom tapé : HTML par défaut, Markdown seulement pour un nom en .md
   const detectTemplateType = (name: string): 'html' | 'md' => {
     const lower = name.toLowerCase()
-    if (lower.endsWith('.html') || lower.endsWith('.htm')) return 'html'
-    return 'md'
+    return lower.endsWith('.md') || lower.endsWith('.markdown') ? 'md' : 'html'
   }
 
   const handleFinishCreate = async () => {
@@ -546,7 +545,11 @@ export default function Sidebar({
                   )}
                   <input
                     ref={creationInputRef}
-                    placeholder={creatingInFolder!.type === 'folder' ? 'Nom du dossier...' : 'nom.html ou nom (→.md)'}
+                    placeholder={
+                      creatingInFolder!.type === 'folder'
+                        ? 'Nom du dossier...'
+                        : 'nom (→ .html) ou nom.md'
+                    }
                     value={newItemName}
                     onChange={(e) => setNewItemName(e.target.value)}
                     onBlur={handleFinishCreate}
@@ -1203,7 +1206,11 @@ export default function Sidebar({
               )}
               <input
                 ref={creationInputRef}
-                placeholder={creatingInFolder.type === 'folder' ? 'Nouveau dossier...' : 'nom.html ou nom (→.md)'}
+                placeholder={
+                  creatingInFolder.type === 'folder'
+                    ? 'Nouveau dossier...'
+                    : 'nom (→ .html) ou nom.md'
+                }
                 value={newItemName}
                 onChange={(e) => setNewItemName(e.target.value)}
                 onBlur={handleFinishCreate}

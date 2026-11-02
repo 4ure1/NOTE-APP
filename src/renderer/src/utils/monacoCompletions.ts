@@ -1,6 +1,8 @@
 import * as monaco from 'monaco-editor'
 import { Snippet } from '../types/snippets'
 import { getSnippetBodyText } from './snippetEngine'
+import { resolveNotesThemeVariable } from './notesTheme'
+import { generateDynamicSnippets } from './dynamicSnippets'
 
 // Liste exhaustive des balises HTML5 avec snippets d'expansion intelligents
 const HTML_TAGS: Array<{ tag: string; desc: string; snippet?: string; void?: boolean }> = [
@@ -120,7 +122,11 @@ const CSS_PROPERTIES: Array<{ prop: string; desc: string; snippet: string }> = [
 /**
  * Enregistre tous les fournisseurs de complétion enrichis (Snippets `/`, Balises HTML, CSS)
  */
-export function registerEnhancedCompletions(snippets: Snippet[]): () => void {
+// getNotePath : chemin de la note ouverte, pour calculer ${NOTES_THEME} au moment de l'insertion
+export function registerEnhancedCompletions(
+  snippets: Snippet[],
+  getNotePath: () => string = () => ''
+): () => void {
   const disposables: monaco.IDisposable[] = []
 
   // 1. FOURNISSEUR DE SNIPPETS AVEC DÉCLENCHEUR '/' (HINTER EN DIRECT)
@@ -146,7 +152,14 @@ export function registerEnhancedCompletions(snippets: Snippet[]): () => void {
         position.column
       )
 
-      const suggestions: monaco.languages.CompletionItem[] = snippets
+      // Snippets « à nombre » (/table-3-2, /cards-4…) générés d'après la saisie ; un snippet existant de
+      // même nom garde la priorité
+      const known = new Set(snippets.map((s) => s.prefix.toLowerCase()))
+      const generated: Snippet[] = generateDynamicSnippets(typedPrefix).filter(
+        (s) => s.scope === 'html' && !known.has(s.prefix)
+      )
+
+      const suggestions: monaco.languages.CompletionItem[] = [...generated, ...snippets]
         .filter((s) => s.scope === 'html' || s.scope === 'all')
         .map((s) => ({
           label: {
@@ -159,7 +172,7 @@ export function registerEnhancedCompletions(snippets: Snippet[]): () => void {
           documentation: {
             value: `**${s.name}** (${s.category})\n\n${s.description}\n\n\`\`\`html\n${getSnippetBodyText(s.body)}\n\`\`\``
           },
-          insertText: getSnippetBodyText(s.body),
+          insertText: resolveNotesThemeVariable(getSnippetBodyText(s.body), getNotePath()),
           insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           filterText: '/' + s.prefix,
           sortText: '00_' + s.prefix,

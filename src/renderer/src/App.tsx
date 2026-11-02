@@ -1,3 +1,4 @@
+/*! NOTE-APP — © 2026 4URE1 — https://github.com/4ure1 — Tous droits réservés. */
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Sidebar from '@renderer/components/Sidebar'
 import EditorHeader from '@renderer/components/EditorHeader'
@@ -6,7 +7,10 @@ import WorkflowView, { WorkflowStatus } from '@renderer/components/WorkflowView'
 import YouTubeWorkspace from '@renderer/components/YouTubeWorkspace'
 import MDEditor from '@uiw/react-md-editor'
 import { modernCommands } from '@renderer/components/editorCommands'
-import CodeWorkspace, { prepareHtmlPreview } from '@renderer/components/CodeWorkspace'
+import CodeWorkspace, {
+  prepareHtmlPreview,
+  PREVIEW_LOADING_SRCDOC
+} from '@renderer/components/CodeWorkspace'
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import wikiLinkPlugin from 'remark-wiki-link'
 import { TreeNode, DeletedNote } from './types'
@@ -31,9 +35,11 @@ import {
 import AutonomousAgentWorkspace from './components/AutonomousAgentWorkspace'
 import defaultSnippetsJson from '@renderer/assets/snippets.default.json'
 import { Snippet } from './types/snippets'
-import { expandSnippet, SnippetSession } from './utils/snippetEngine'
+import { expandSnippet, filterSnippets, SnippetSession } from './utils/snippetEngine'
+import { generateDynamicSnippets } from './utils/dynamicSnippets'
 import { SnippetPalette } from './components/SnippetPalette'
 import { SettingsModal } from './components/SettingsModal'
+import WelcomeTour from './components/WelcomeTour'
 import { HistoryModal } from './components/HistoryModal'
 import { ExportModal } from './components/ExportModal'
 import LinkRenameModal from './components/LinkRenameModal'
@@ -44,7 +50,7 @@ import { detectNextSession, SessionSuggestion, NoteTemplate } from './utils/sess
 import { RenameOperationPlan } from './utils/linkUpdater'
 import { highlightAllCodeBlocksInHtml } from './utils/codeHighlighter'
 import { parsePdfHref, resolveVaultLinkPath } from './utils/pdfLink'
-import { decideNoteSave, shouldConfirmLeavingNote } from './utils/noteSaveGuard'
+import { decideNoteSave, shouldConfirmLeavingNote, previewMatchesNote } from './utils/noteSaveGuard'
 import {
   remapMovedPath,
   remapMovedPaths,
@@ -478,6 +484,35 @@ function App() {
   const [editingFile, setEditingFile] = useState<string | null>(null)
   const [editValue, setEditValue] = useState<string>('')
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  // Visite guidée et choix du dossier de notes : au premier lancement (réglage onboardingDone, rangé hors
+  // des notes par le main), puis à la demande (bouton des Paramètres, événement « nf-open-tour »)
+  const [isTourOpen, setIsTourOpen] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    window.api
+      .getAppSetup()
+      .then((setup) => {
+        if (!cancelled && !setup.onboardingDone) setIsTourOpen(true)
+      })
+      .catch((err: unknown) => console.error('[WelcomeTour]', err))
+    const open = (): void => setIsTourOpen(true)
+    window.addEventListener('nf-open-tour', open)
+    return () => {
+      cancelled = true
+      window.removeEventListener('nf-open-tour', open)
+    }
+  }, [])
+  const closeTour = async (notesDir?: string): Promise<void> => {
+    setIsTourOpen(false)
+    try {
+      // Nouveau dossier de notes : l'app va redémarrer, la saisie en attente est écrite avant
+      if (notesDir) await flushPendingSave()
+      const res = await window.api.finishAppSetup(notesDir)
+      if (!res.success) notifyApiError('Dossier de notes', new Error(res.error))
+    } catch (err) {
+      notifyApiError('Visite guidée', err)
+    }
+  }
   const [notesToDelete, setNotesToDelete] = useState<string[]>([])
 
   // Zoom state
@@ -490,6 +525,8 @@ function App() {
   const lastFullscreenMutationTimeRef = useRef<number>(0)
   const lastFullscreenEmittedHtmlRef = useRef<string>('')
   const lastFullscreenSrcDocRef = useRef<string>('')
+  // Note pour laquelle l'aperçu plein écran affiché a été construit
+  const fullscreenSrcDocFileRef = useRef<string | null>(null)
 
   const getMarkdownScrollElement = (container: HTMLElement | null) => {
     if (!container) return null
@@ -548,6 +585,9 @@ function App() {
   const lastSaveErrorRef = useRef<string | null>(null)
   // Lecture de la note ouverte échouée : éditeur remplacé par un panneau, aucune écriture possible
   const [noteLoadError, setNoteLoadError] = useState<{ file: string; message: string } | null>(null)
+  // Note dont le contenu de l'éditeur est issu (lecture terminée) : l'aperçu ne s'affiche et ne
+  // s'enregistre que pour elle (previewMatchesNote)
+  const [loadedContentFile, setLoadedContentFile] = useState<string | null>(null)
   const [isRetryingNoteLoad, setIsRetryingNoteLoad] = useState(false)
   // Note modifiée, supprimée ou jamais lue côté disque : rien n'est écrit tant que l'utilisateur n'a
   // pas choisi dans la barre de conflit (la ref sert aux callbacks et minuteurs)
@@ -1055,6 +1095,7 @@ function App() {
     // Tant que la lecture n'est pas finie, aucune écriture n'est possible pour la nouvelle note
     savedContentRef.current = { file: null, content: '' }
     setNoteLoadError(null)
+    setLoadedContentFile(null)
     showNoteConflict(null)
     reportUnsavedState()
 
@@ -1079,6 +1120,7 @@ function App() {
       if (activeLoadedFileRef.current !== target) return
       savedContentRef.current = { file: target, content }
       setNoteLoadError(null)
+      setLoadedContentFile(target)
       setFileContent(content)
       fileContentRef.current = content
       reportUnsavedState()
@@ -1378,14 +1420,19 @@ function App() {
     }
   }
 
+  // Snippets de l'éditeur Markdown : ceux du fichier, plus ceux « à nombre » générés d'après la saisie
+  // (/tbl-3-2) ; un snippet existant de même nom garde la priorité
+  const markdownPaletteSnippets = useMemo(() => {
+    const known = new Set(snippets.map((s) => s.prefix.toLowerCase()))
+    const generated = generateDynamicSnippets(snippetQuery).filter((s) => !known.has(s.prefix))
+    return [...generated, ...snippets]
+  }, [snippets, snippetQuery])
+
   const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const target = e.target as HTMLTextAreaElement
     if (target && target.tagName === 'TEXTAREA' && isSnippetPaletteOpen) {
-      const filtered = snippets.filter(
-        (s) =>
-          (s.scope === 'markdown' || s.scope === 'all') &&
-          s.prefix.toLowerCase().includes(snippetQuery.toLowerCase())
-      )
+      // Même liste et même filtre que la palette affichée, sinon Entrée insérerait un autre snippet
+      const filtered = filterSnippets(markdownPaletteSnippets, snippetQuery, 'markdown')
       if (e.key === 'ArrowDown') {
         e.preventDefault()
         e.stopPropagation()
@@ -1462,7 +1509,12 @@ function App() {
     const selectedText = selEnd > selStart ? fileContent.substring(selStart, selEnd) : ''
 
     // Expansion du snippet
-    const expanded = expandSnippet(snippet.body, selectedText)
+    const expanded = expandSnippet(
+      snippet.body,
+      selectedText,
+      new Date(),
+      activeLoadedFileRef.current || ''
+    )
 
     const newContent =
       fileContent.substring(0, replaceStart) + expanded.text + fileContent.substring(pos)
@@ -1710,7 +1762,8 @@ function App() {
   const handleCreateNote = async (
     parentFolder = '',
     title = '',
-    templateType: 'html' | 'md' = 'md'
+    // HTML par défaut (design system, aperçu éditable) ; Markdown seulement sur demande
+    templateType: 'html' | 'md' = 'html'
   ) => {
     let newFile: string
     try {
@@ -1763,6 +1816,7 @@ function App() {
     setSelectedFiles((prev) => remapMovedPaths(prev, oldPath, newPath))
     setSideBySideFile((prev) => (prev ? remap(prev) : prev))
     setLastActiveNote((prev) => (prev ? remap(prev) : prev))
+    setLoadedContentFile((prev) => (prev ? remap(prev) : prev))
 
     const updatedFavs = remapMovedPaths(favorites, oldPath, newPath)
     if (updatedFavs !== favorites) {
@@ -2056,6 +2110,7 @@ function App() {
         setFileContent('')
         showNoteConflict(null)
         setNoteLoadError(null)
+        setLoadedContentFile(null)
         reportUnsavedState()
       }
       setSelectedFiles((prev) => withoutRemovedPaths(prev, deleted))
@@ -2272,6 +2327,19 @@ function App() {
           } catch {}
         }
       } else if (event.data?.type === 'PREVIEW_DOC_MUTATED') {
+        // Seulement l'iframe plein écran (l'aperçu normal est traité par CodeWorkspace), et seulement
+        // si elle affiche la note ouverte : sinon le HTML d'une autre note serait enregistré dans celle-ci
+        const frame = fullscreenHtmlIframeRef.current
+        if (!frame || event.source !== frame.contentWindow) return
+        if (
+          !previewMatchesNote({
+            previewFile: fullscreenSrcDocFileRef.current,
+            currentFile: activeLoadedFileRef.current,
+            contentFile: savedContentRef.current.file
+          })
+        ) {
+          return
+        }
         const rawNewHtml = event.data.html
         if (!rawNewHtml) return
         const newHtml = rawNewHtml.replace(/\r\n/g, '\n')
@@ -3441,10 +3509,17 @@ function App() {
 
   // Préparation mémoïsée du HTML plein écran pour éviter tout rechargement d'iframe pendant le défilement et la frappe
   const fullscreenHtmlSrcDoc = useMemo(() => {
-    // Si la modification provient directement de l'iframe plein écran, figer le srcDoc pour ne pas recharger l'iframe
+    // Contenu de la note ouverte pas encore chargé (ou encore celui de la note précédente) : écran neutre
+    if (!currentFile || loadedContentFile !== currentFile) {
+      fullscreenSrcDocFileRef.current = null
+      return PREVIEW_LOADING_SRCDOC
+    }
+    // Si la modification provient directement de l'iframe plein écran, figer le srcDoc pour ne pas
+    // recharger l'iframe, mais seulement pour la même note
     const isRecentlyEditedInFullscreen = Date.now() - lastFullscreenMutationTimeRef.current < 3000
     if (
       lastFullscreenSrcDocRef.current &&
+      fullscreenSrcDocFileRef.current === currentFile &&
       (isRecentlyEditedInFullscreen ||
         (lastFullscreenEmittedHtmlRef.current &&
           fileContent === lastFullscreenEmittedHtmlRef.current))
@@ -3462,10 +3537,18 @@ function App() {
         savedScrollY = parsed.scrollY || 0
       }
     } catch {}
-    const prepared = prepareHtmlPreview(fileContent, savedRatio, savedScrollY, snippets, true)
+    const prepared = prepareHtmlPreview(
+      fileContent,
+      savedRatio,
+      savedScrollY,
+      snippets,
+      true,
+      currentFile || ''
+    )
     lastFullscreenSrcDocRef.current = prepared
+    fullscreenSrcDocFileRef.current = currentFile
     return prepared
-  }, [fileContent, currentFile, snippets])
+  }, [fileContent, currentFile, snippets, loadedContentFile])
 
   return (
     <div
@@ -4462,6 +4545,7 @@ function App() {
                               value={fileContent}
                               onChange={handleContentChange}
                               currentFilePath={currentFile}
+                              contentFilePath={loadedContentFile}
                               editorMode={editorMode}
                               onChangeEditorMode={(mode) => setEditorMode(mode)}
                               onOpenInBrowser={
@@ -4706,7 +4790,7 @@ function App() {
                                   isOpen={isSnippetPaletteOpen}
                                   onClose={() => setIsSnippetPaletteOpen(false)}
                                   scope="markdown"
-                                  snippets={snippets}
+                                  snippets={markdownPaletteSnippets}
                                   initialQuery={snippetQuery}
                                   selectedIndex={snippetSelectedIndex}
                                   position={snippetPalettePos}
@@ -5552,6 +5636,7 @@ function App() {
       </div>
 
       {/* Settings & Help Modal */}
+      {isTourOpen && <WelcomeTour onClose={closeTour} />}
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
@@ -6447,7 +6532,7 @@ function App() {
                 isOpen={isSnippetPaletteOpen}
                 onClose={() => setIsSnippetPaletteOpen(false)}
                 scope="markdown"
-                snippets={snippets}
+                snippets={markdownPaletteSnippets}
                 initialQuery={snippetQuery}
                 selectedIndex={snippetSelectedIndex}
                 position={snippetPalettePos}

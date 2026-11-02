@@ -154,6 +154,7 @@ describe('assertSafeNotePath : racine et dossiers internes', () => {
     const internal = ['.history/x.json', '.trash/1___a.md', '.snippets/snippets.json']
     for (const p of [...internal, '.templates/t.html', '.config.json', '.HISTORY/x']) refused(p)
     refused('.recovery/2026-10-29/note.md')
+    refused('.theme/notes.css')
     refused('.Recovery/x')
     expect(assertSafeNotePath(vault, '.history/x.json', { allowInternal: true })).toBe(
       path.join(vault, '.history', 'x.json')

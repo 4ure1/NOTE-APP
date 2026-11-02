@@ -55,6 +55,20 @@ interface CustomAPI {
   createNoteWithContent: (fileName: string, content: string) => Promise<string>
   openInBrowser: (relativePath: string) => Promise<boolean>
   openExternalUrl: (url: string) => Promise<boolean>
+  // Premier lancement : dossier de notes (relance l'app s'il change) et visite guidée
+  getAppSetup: () => Promise<{
+    success: true
+    notesDir: string
+    defaultNotesDir: string
+    fromEnv: boolean
+    onboardingDone: boolean
+  }>
+  chooseNotesFolder: () => Promise<
+    { success: true; path: string } | { success: false; canceled?: boolean; error?: string }
+  >
+  finishAppSetup: (
+    notesDir?: string
+  ) => Promise<{ success: true; relaunching: boolean } | { success: false; error: string }>
   importPdfDialog: (targetFolder?: string) => Promise<string[]>
   importDroppedFile: (file: File, targetFolder?: string) => Promise<string | null>
   readBinaryFile: (relativePath: string) => Promise<string | null>

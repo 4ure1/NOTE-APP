@@ -1,3 +1,4 @@
+/*! NOTE-APP — © 2026 4URE1 — https://github.com/4ure1 — Tous droits réservés. */
 import { useState, useEffect, useRef, useMemo } from 'react'
 import Editor, { loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
@@ -10,6 +11,19 @@ import { normalizeHtml } from '../utils/normalizeHtml'
 import { OutlineHeading } from '../utils/outlineExtractor'
 import { parsePdfHref } from '../utils/pdfLink'
 import { cleanPreviewDocument } from '../utils/previewClean'
+import { isUserScrollIntent } from '../utils/scrollIntent'
+import { buildSnippetFragment } from '../utils/snippetFields'
+import { generateDynamicSnippets } from '../utils/dynamicSnippets'
+import { createPreviewEditing } from '../utils/previewEditing'
+import { createCanvasGeometry } from '../utils/canvasGeometry'
+import { installCanvasEditor } from '../utils/canvasEditor'
+import { installBlockDrag } from '../utils/blockDrag'
+import { createUndoHistory } from '../utils/undoHistory'
+import { installTableTools } from '../utils/tableTools'
+import { sanitizePastedHtml } from '../utils/pasteSanitize'
+import { rankSnippets } from '../utils/snippetRanking'
+import { notesThemeHref } from '../utils/notesTheme'
+import { previewMatchesNote } from '../utils/noteSaveGuard'
 import { notifyApiError } from '../utils/apiError'
 
 loader.config({ monaco })
@@ -21,6 +35,8 @@ interface CodeWorkspaceProps {
   editorMode: 'preview' | 'live' | 'edit' // edit = Code only, live = Split, preview = Live preview only
   onChangeEditorMode?: (mode: 'preview' | 'live' | 'edit') => void
   onOpenInBrowser?: () => void
+  // Note dont `value` est issu (lecture terminée) ; null pendant le chargement d'une autre note
+  contentFilePath?: string | null
   isHtmlFullscreen?: boolean
   onToggleHtmlFullscreen?: () => void
   zoomLevel?: number
@@ -94,13 +110,19 @@ const injectSourceLines = (html: string): string => {
   return output.join('\n')
 }
 
+// Aperçu neutre pendant le chargement d'une note : aucun script, rien à éditer ni à enregistrer
+export const PREVIEW_LOADING_SRCDOC =
+  '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;background:#09090b"></body></html>'
+
 // Helper exportable pour préparer le document HTML avec MathJax conditionnel, écouteur Esc/Ctrl+J, édition directe et moteur de snippets Obsidian
 export const prepareHtmlPreview = (
   rawCode: string,
   initialScrollRatio?: number,
   initialScrollY?: number,
   snippets?: Snippet[],
-  isEditable: boolean = true
+  isEditable: boolean = true,
+  // Chemin de la note (relatif au dossier de notes) : sert à ${NOTES_THEME} dans les snippets
+  notePath: string = ''
 ) => {
   const effectiveCode = rawCode.trim() === '' ? '<div class="container"><p><br></p></div>' : rawCode
   const taggedCode = injectSourceLines(effectiveCode)
@@ -108,7 +130,7 @@ export const prepareHtmlPreview = (
     taggedCode.includes('$') || taggedCode.includes('\\(') || taggedCode.includes('\\[')
   const mathJaxScript = hasMath
     ? `
-      <script>
+      <script data-injected-preview-helpers="true">
         window.MathJax = window.MathJax || {
           tex: {
             inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
@@ -117,7 +139,7 @@ export const prepareHtmlPreview = (
           svg: { fontCache: 'global' }
         };
       </script>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js"></script>
+      <script data-injected-preview-helpers="true" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js"></script>
     `
     : ''
 
@@ -210,100 +232,90 @@ export const prepareHtmlPreview = (
         border-radius: 4px;
       }
 
-      /* Menu flottant de Snippets Obsidian */
+      /* Menu « / » des snippets */
       #preview-snippet-menu {
         position: fixed !important;
         z-index: 9999999 !important;
-        width: 320px;
-        max-height: 290px;
-        background: #18181b;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        border-radius: 8px;
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
+        width: 400px;
+        max-width: calc(100vw - 20px);
+        background: rgba(24, 24, 27, 0.98);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(0, 0, 0, 0.35);
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family: 'Segoe UI', system-ui, sans-serif;
         color: #e4e4e7;
         user-select: none;
-        animation: snippetMenuFadeIn 0.1s ease-out;
+        animation: snippetMenuFadeIn 0.08s ease-out;
       }
       @keyframes snippetMenuFadeIn {
-        from { opacity: 0; transform: translateY(-4px) scale(0.98); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
-      }
-      .psm-header {
-        padding: 7px 10px;
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: #38bdf8;
-        background: rgba(56, 189, 248, 0.08);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        from { opacity: 0; transform: translateY(-3px); }
+        to { opacity: 1; transform: translateY(0); }
       }
       .psm-list {
-        flex: 1;
+        position: relative;
         overflow-y: auto;
+        max-height: 300px;
         padding: 4px;
-        max-height: 240px;
       }
       .psm-list::-webkit-scrollbar { width: 4px; }
-      .psm-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+      .psm-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.18); border-radius: 4px; }
       .psm-item {
-        display: flex;
-        flex-direction: column;
-        padding: 6px 8px;
+        display: grid;
+        grid-template-columns: minmax(72px, auto) 1fr auto;
+        column-gap: 10px;
+        align-items: center;
+        padding: 6px 10px;
         border-radius: 6px;
         cursor: pointer;
-        transition: background 0.1s ease;
-        margin-bottom: 2px;
-      }
-      .psm-item:hover, .psm-item.active {
-        background: rgba(56, 189, 248, 0.15);
       }
       .psm-item.active {
-        border-left: 2px solid #38bdf8;
-      }
-      .psm-row1 {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .psm-name {
-        font-size: 12.5px;
-        font-weight: 600;
-        color: #f4f4f5;
-        flex: 1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        background: rgba(56, 189, 248, 0.14);
+        box-shadow: inset 2px 0 0 #38bdf8;
       }
       .psm-prefix {
-        font-size: 11px;
-        font-family: monospace;
-        color: #38bdf8;
-        background: rgba(56, 189, 248, 0.12);
-        padding: 1px 5px;
-        border-radius: 3px;
+        font: 12px Consolas, 'Courier New', monospace;
+        color: #7dd3fc;
+        white-space: nowrap;
       }
-      .psm-cat {
-        font-size: 10px;
-        color: #a1a1aa;
-        background: rgba(255, 255, 255, 0.06);
-        padding: 1px 4px;
-        border-radius: 3px;
-      }
-      .psm-desc {
-        font-size: 11px;
-        color: #94a3b8;
-        margin-top: 2px;
+      .psm-prefix mark { background: none; color: #ffffff; font-weight: 700; }
+      .psm-name {
+        font-size: 13px;
+        color: #f4f4f5;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+      .psm-cat { font-size: 10.5px; color: #71717a; white-space: nowrap; }
+      .psm-desc {
+        display: none;
+        grid-column: 2 / 4;
+        margin-top: 2px;
+        font-size: 11.5px;
+        color: #a1a1aa;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .psm-item.active .psm-desc { display: block; }
+      .psm-footer {
+        display: flex;
+        gap: 14px;
+        padding: 6px 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.07);
+        font-size: 11px;
+        color: #71717a;
+      }
+      .psm-footer span:first-child { flex: 1; }
+      .psm-footer kbd {
+        font: 10.5px Consolas, monospace;
+        color: #d4d4d8;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 3px;
+        padding: 0 4px;
+        margin-right: 2px;
       }
 
       /* Barre de défilement ultra-fine, discrète et élégante */
@@ -358,6 +370,64 @@ export const prepareHtmlPreview = (
           grid-template-columns: 1fr !important;
         }
       }
+      /* Champs d'un snippet en cours de saisie (jamais enregistrés : voir previewClean.ts).
+         Surlignage en background-image, pas en background-color : Chrome recopie la couleur de fond en
+         style inline quand on tape par-dessus un champ (fond bleu resté dans la note). */
+      [data-nf-field] {
+        outline: 1px dashed rgba(79, 193, 255, 0.85);
+        outline-offset: 1px;
+        background-image: linear-gradient(rgba(79, 193, 255, 0.12), rgba(79, 193, 255, 0.12));
+        border-radius: 3px;
+      }
+      [data-nf-field].nf-active {
+        outline-style: solid;
+        background-image: linear-gradient(rgba(79, 193, 255, 0.22), rgba(79, 193, 255, 0.22));
+      }
+      [data-nf-field].nf-empty::before {
+        content: attr(data-nf-hint);
+        opacity: 0.5;
+        font-style: italic;
+      }
+      [data-nf-field][data-nf-final] {
+        outline: none;
+        background: none;
+      }
+      #nf-choice-menu {
+        position: fixed;
+        z-index: 9999999;
+        min-width: 170px;
+        padding: 4px;
+        background: #18181b;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
+        font-family: 'Segoe UI', sans-serif;
+        font-size: 13px;
+        color: #e4e4e7;
+        user-select: none;
+      }
+      #nf-choice-menu .nf-choice-hint {
+        padding: 4px 10px 6px;
+        font-size: 11px;
+        color: #a1a1aa;
+      }
+      #nf-choice-menu .nf-choice {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      #nf-choice-menu .nf-choice.active {
+        background: rgba(79, 193, 255, 0.18);
+      }
+      #nf-choice-menu .nf-swatch {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        flex: none;
+      }
     </style>
     <script data-injected-preview-helpers="true">
       (function() {
@@ -367,6 +437,32 @@ export const prepareHtmlPreview = (
         var originalHadDoctype = ${hasDoctype ? 'true' : 'false'};
         // Détection des liens PDF : source de src/shared/pdfLink.ts (fonction autonome)
         var parsePdfHref = ${parsePdfHref.toString()};
+        // Snippets « à nombre » : source de src/shared/dynamicSnippets.ts (fonction autonome)
+        var generateDynamicSnippets = ${generateDynamicSnippets.toString()};
+        // Tri du menu « / » : source de src/shared/snippetRanking.ts (fonction autonome)
+        var rankSnippets = ${rankSnippets.toString()};
+        // Saisie (Entrée, sortie des colorations) et canvas : src/shared/previewEditing.ts,
+        // canvasGeometry.ts et canvasEditor.ts (fonctions autonomes)
+        var createPreviewEditing = ${createPreviewEditing.toString()};
+        var createCanvasGeometry = ${createCanvasGeometry.toString()};
+        var installCanvasEditor = ${installCanvasEditor.toString()};
+        // Glisser-déposer des tableaux et blocs : src/shared/blockDrag.ts (fonction autonome)
+        var installBlockDrag = ${installBlockDrag.toString()};
+        // Annuler / rétablir dans l'aperçu : src/shared/undoHistory.ts (fonction autonome)
+        var createUndoHistory = ${createUndoHistory.toString()};
+        // Tableaux (sélection de cases, clic droit : fond, lignes, colonnes) et couleur des cartes :
+        // src/shared/tableTools.ts (fonction autonome)
+        var installTableTools = ${installTableTools.toString()};
+        // Collage riche nettoyé : src/shared/pasteSanitize.ts (fonction autonome)
+        var sanitizePastedHtml = ${sanitizePastedHtml.toString()};
+        // Défilement voulu par l'utilisateur : source de src/shared/scrollIntent.ts (fonction autonome)
+        var isUserScrollIntent = ${isUserScrollIntent.toString()};
+        var lastScrollGestureAt = 0;
+        ['wheel', 'touchmove', 'keydown', 'pointerdown'].forEach(function(type) {
+          document.addEventListener(type, function(e) {
+            if (e.isTrusted) lastScrollGestureAt = Date.now();
+          }, { capture: true, passive: true });
+        });
 
         // Nettoyage avant enregistrement : source de src/shared/previewClean.ts (fonction autonome)
         var cleanPreviewDocument = ${cleanPreviewDocument.toString()};
@@ -400,6 +496,50 @@ export const prepareHtmlPreview = (
             }, '*');
           }, 180);
         }
+
+        var previewEditing = createPreviewEditing();
+        // Historique propre à l'aperçu : l'annulation du navigateur ne suit pas les modifications faites
+        // par script (Entrée, snippets, canvas, glisser-déposer) et se vide dès que le DOM change hors d'elle.
+        // Un instantané est pris AVANT chaque modification (recordUndo).
+        var undoHistory = createUndoHistory(document);
+        function recordUndo(kind, data) {
+          if (isLiveEditEnabled) undoHistory.record(kind || 'edit', data);
+        }
+        window.addEventListener('keydown', function(e) {
+          if (!isLiveEditEnabled || e.altKey || !(e.ctrlKey || e.metaKey)) {
+            if (e.key && e.key.indexOf('Arrow') === 0) undoHistory.breakGroup();
+            return;
+          }
+          var k = (e.key || '').toLowerCase();
+          var isUndo = k === 'z' && !e.shiftKey;
+          var isRedo = k === 'y' || (k === 'z' && e.shiftKey);
+          if (!isUndo && !isRedo) return;
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          if (snippetSession) endSnippetSession(false);
+          closeSnippetMenu();
+          if (isUndo ? undoHistory.undo() : undoHistory.redo()) emitDocChange();
+        }, true);
+        window.addEventListener('pointerdown', function() { undoHistory.breakGroup(); }, true);
+        // Position du curseur quand Flèche droite a armé la sortie d'une coloration
+        var exitArmedAt = null;
+        // Cartes et flèches des .canvas : écouteurs posés avant ceux de l'aperçu (Suppr sur une flèche)
+        installCanvasEditor(document, {
+          geometry: createCanvasGeometry(),
+          onChange: emitDocChange,
+          beforeChange: function() { recordUndo('edit'); },
+          isEnabled: function() { return isLiveEditEnabled; }
+        });
+        installTableTools(document, {
+          onChange: emitDocChange,
+          beforeChange: function() { recordUndo('edit'); },
+          isEnabled: function() { return isLiveEditEnabled; }
+        });
+        installBlockDrag(document, {
+          onChange: emitDocChange,
+          beforeChange: function() { recordUndo('edit'); },
+          isEnabled: function() { return isLiveEditEnabled; }
+        });
 
         // Pas d'envoi au blur : quitter l'aperçu ne doit jamais enregistrer la note.
         // Seules les saisies (input, Entrée, snippets, collage…) appellent emitDocChange.
@@ -438,6 +578,21 @@ export const prepareHtmlPreview = (
             snippetMenuEl.style.display = 'none';
             snippetMenuEl.setAttribute('data-injected-preview-helpers', 'true');
             snippetMenuEl.setAttribute('contenteditable', 'false');
+            // Un seul écouteur pour toute la liste (elle est reconstruite à chaque frappe)
+            snippetMenuEl.addEventListener('mousedown', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              var item = e.target && e.target.closest ? e.target.closest('.psm-item') : null;
+              if (!item) return;
+              var idx = parseInt(item.getAttribute('data-index'), 10);
+              if (!isNaN(idx) && currentFilteredSnippets[idx]) insertSnippet(currentFilteredSnippets[idx]);
+            });
+            snippetMenuEl.addEventListener('mousemove', function(e) {
+              var item = e.target && e.target.closest ? e.target.closest('.psm-item') : null;
+              if (!item) return;
+              var idx = parseInt(item.getAttribute('data-index'), 10);
+              if (!isNaN(idx) && idx !== currentSelectedIndex) setActiveSnippet(idx, false);
+            });
             document.body.appendChild(snippetMenuEl);
           }
           return snippetMenuEl;
@@ -451,6 +606,7 @@ export const prepareHtmlPreview = (
           currentTriggerRange = null;
           currentFilteredSnippets = [];
           currentSelectedIndex = 0;
+          renderedMenuQuery = null;
         }
 
         function escapeHtml(str) {
@@ -458,110 +614,113 @@ export const prepareHtmlPreview = (
           return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
+        // Saisie affichée par le menu : la même saisie ne reconstruit pas la liste (input, keyup et
+        // selectionchange appellent tous checkForSnippetTrigger)
+        var renderedMenuQuery = null;
+
+        function snippetsForQuery(q) {
+          // Snippets « à nombre » (/table-3-2, /cards-4…) générés d'après la saisie ; un snippet
+          // existant de même nom garde la priorité
+          var knownPrefixes = {};
+          snippetsData.forEach(function(s) { knownPrefixes[String(s.prefix).toLowerCase()] = true; });
+          var generated = generateDynamicSnippets(q).filter(function(s) {
+            return s.scope === 'html' && !knownPrefixes[s.prefix];
+          });
+          var usable = snippetsData.filter(function(s) {
+            return !s.scope || s.scope === 'all' || s.scope === 'html';
+          });
+          return rankSnippets(generated.concat(usable), q);
+        }
+
+        function highlightMatch(text, q) {
+          var s = String(text || '');
+          var i = q ? s.toLowerCase().indexOf(q) : -1;
+          if (i === -1) return escapeHtml(s);
+          return escapeHtml(s.slice(0, i)) + '<mark>' + escapeHtml(s.slice(i, i + q.length)) + '</mark>' +
+            escapeHtml(s.slice(i + q.length));
+        }
+
+        function positionSnippetMenu(menu, rect) {
+          var width = menu.offsetWidth || 400;
+          var height = menu.offsetHeight || 320;
+          var spaceBelow = window.innerHeight - rect.bottom;
+          var top = (spaceBelow >= height + 10 || spaceBelow >= rect.top)
+            ? (rect.bottom + 6)
+            : Math.max(8, rect.top - height - 6);
+          var left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 12));
+          menu.style.top = top + 'px';
+          menu.style.left = left + 'px';
+        }
+
+        // Change l'élément actif sans reconstruire la liste ; fait défiler la liste (pas la page)
+        function setActiveSnippet(idx, scroll) {
+          var n = currentFilteredSnippets.length;
+          if (!snippetMenuEl || !n) return;
+          currentSelectedIndex = ((idx % n) + n) % n;
+          var items = snippetMenuEl.querySelectorAll('.psm-item');
+          for (var i = 0; i < items.length; i++) {
+            items[i].classList.toggle('active', i === currentSelectedIndex);
+          }
+          var list = snippetMenuEl.querySelector('.psm-list');
+          var el = items[currentSelectedIndex];
+          if (scroll && list && el) {
+            if (el.offsetTop < list.scrollTop + 4) {
+              list.scrollTop = Math.max(0, el.offsetTop - 4);
+            } else if (el.offsetTop + el.offsetHeight > list.scrollTop + list.clientHeight - 4) {
+              list.scrollTop = el.offsetTop + el.offsetHeight - list.clientHeight + 4;
+            }
+          }
+        }
+
         function renderSnippetMenu(query, rect) {
           var menu = ensureSnippetMenu();
           var q = (query || '').toLowerCase().trim();
+          if (q === renderedMenuQuery && menu.style.display !== 'none') {
+            positionSnippetMenu(menu, rect);
+            return;
+          }
 
-          currentFilteredSnippets = snippetsData.filter(function(s) {
-            if (s.scope && s.scope !== 'all' && s.scope !== 'html') return false;
-            if (!q) return true;
-            return s.prefix.toLowerCase().includes(q) ||
-                   s.name.toLowerCase().includes(q) ||
-                   s.description.toLowerCase().includes(q) ||
-                   s.category.toLowerCase().includes(q);
-          });
-
+          currentFilteredSnippets = snippetsForQuery(q);
           if (currentFilteredSnippets.length === 0) {
             closeSnippetMenu();
             return;
           }
+          if (q !== renderedMenuQuery) currentSelectedIndex = 0;
+          renderedMenuQuery = q;
 
-          if (currentSelectedIndex >= currentFilteredSnippets.length) {
-            currentSelectedIndex = 0;
-          }
-
-          var html = '<div class="psm-header">' +
-                     '<span>⚡ Snippets (' + currentFilteredSnippets.length + ')</span>' +
-                     '<span style="font-size:10px;opacity:0.7;">Entrée ⏎ pour insérer</span>' +
-                     '</div><div class="psm-list">';
-
+          var html = '<div class="psm-list">';
           currentFilteredSnippets.forEach(function(snip, idx) {
-            var isActive = idx === currentSelectedIndex;
-            html += '<div class="psm-item ' + (isActive ? 'active' : '') + '" data-index="' + idx + '">' +
-                    '  <div class="psm-row1">' +
-                    '    <span class="psm-prefix">/' + escapeHtml(snip.prefix) + '</span>' +
-                    '    <span class="psm-name">' + escapeHtml(snip.name) + '</span>' +
-                    '    <span class="psm-cat">' + escapeHtml(snip.category) + '</span>' +
-                    '  </div>' +
-                    (snip.description ? '  <div class="psm-desc">' + escapeHtml(snip.description) + '</div>' : '') +
+            html += '<div class="psm-item" data-index="' + idx + '">' +
+                    '<span class="psm-prefix">/' + highlightMatch(snip.prefix, q) + '</span>' +
+                    '<span class="psm-name">' + escapeHtml(snip.name) + '</span>' +
+                    '<span class="psm-cat">' + escapeHtml(snip.category) + '</span>' +
+                    (snip.description ? '<span class="psm-desc">' + escapeHtml(snip.description) + '</span>' : '') +
                     '</div>';
           });
-
-          html += '</div>';
+          var count = currentFilteredSnippets.length;
+          html += '</div><div class="psm-footer">' +
+                  '<span>' + count + (count > 1 ? ' snippets' : ' snippet') + '</span>' +
+                  '<span><kbd>↑</kbd><kbd>↓</kbd>choisir</span>' +
+                  '<span><kbd>Entrée</kbd>insérer</span>' +
+                  '<span><kbd>Échap</kbd>fermer</span>' +
+                  '</div>';
           menu.innerHTML = html;
-
-          var menuHeight = 260;
-          var menuWidth = 320;
-          var spaceBelow = window.innerHeight - rect.bottom;
-          var top = (spaceBelow >= 220 || spaceBelow >= rect.top)
-            ? (rect.bottom + 6)
-            : Math.max(10, rect.top - menuHeight - 6);
-          var left = Math.max(10, Math.min(rect.left, window.innerWidth - menuWidth - 20));
-
           menu.style.position = 'fixed';
-          menu.style.top = top + 'px';
-          menu.style.left = left + 'px';
           menu.style.display = 'flex';
-
-          var items = menu.querySelectorAll('.psm-item');
-          items.forEach(function(item) {
-            item.addEventListener('mousedown', function(e) {
-              e.preventDefault();
-              e.stopPropagation();
-              var idx = parseInt(item.getAttribute('data-index'), 10);
-              if (!isNaN(idx) && currentFilteredSnippets[idx]) {
-                insertSnippet(currentFilteredSnippets[idx]);
-              }
-            });
-          });
-
-          var activeEl = menu.querySelector('.psm-item.active');
-          if (activeEl) {
-            activeEl.scrollIntoView({ block: 'nearest' });
-          }
-        }
-
-        function expandSnippetText(snip, selectedText) {
-          var body = snip.body;
-          var text = Array.isArray(body) ? body.join('\\n') : String(body || '');
-          var now = new Date();
-          var D = String.fromCharCode(36);
-          text = text.replace(new RegExp('\\\\' + D + '\\\\{CURRENT_YEAR\\\\}', 'g'), String(now.getFullYear()));
-          text = text.replace(new RegExp('\\\\' + D + '\\\\{CURRENT_MONTH\\\\}', 'g'), String(now.getMonth() + 1).padStart(2, '0'));
-          text = text.replace(new RegExp('\\\\' + D + '\\\\{CURRENT_DATE\\\\}', 'g'), String(now.getDate()).padStart(2, '0'));
-
-          if (selectedText) {
-            text = text.replace(new RegExp('\\\\' + D + '\\\\{TM_SELECTED_TEXT(?::([^}]*))?\\\\}', 'g'), selectedText);
-            text = text.replace(new RegExp('\\\\' + D + 'TM_SELECTED_TEXT\\\\b', 'g'), selectedText);
-          } else {
-            text = text.replace(new RegExp('\\\\' + D + '\\\\{TM_SELECTED_TEXT(?::([^}]*))?\\\\}', 'g'), function(_m, fb) { return fb !== undefined ? fb : ''; });
-            text = text.replace(new RegExp('\\\\' + D + 'TM_SELECTED_TEXT\\\\b', 'g'), '');
-          }
-
-          text = text.replace(new RegExp('\\\\' + D + '\\\\{[0-9]+:(.*?)\\\\}', 'g'), '$1');
-          text = text.replace(new RegExp('\\\\' + D + '\\\\{[0-9]+\\\\|(.*?)\\\\|\\\\}', 'g'), function(_m, choices) {
-            return choices ? choices.split(',')[0] : '';
-          });
-          text = text.replace(new RegExp('\\\\' + D + '[0-9]+', 'g'), '');
-
-          return text;
+          setActiveSnippet(currentSelectedIndex, true);
+          positionSnippetMenu(menu, rect);
         }
 
         function insertSnippet(snip) {
           if (!snip) return;
+          recordUndo('edit');
           var sel = window.getSelection();
           var selectedText = sel ? sel.toString() : '';
-          var expanded = expandSnippetText(snip, selectedText);
+          var bodyText = Array.isArray(snip.body) ? snip.body.join(' ') : String(snip.body || '');
+          // Champs gardés (et non aplatis) pour pouvoir les remplir dans le rendu
+          var built = buildSnippetFragment(document, snip.body, selectedText, new Date(), snippetVariables);
+
+          if (snippetSession) endSnippetSession(false);
 
           if (currentTriggerRange) {
             sel.removeAllRanges();
@@ -571,29 +730,20 @@ export const prepareHtmlPreview = (
 
           if (sel && sel.rangeCount > 0) {
             var range = sel.getRangeAt(0);
-            var template = document.createElement('template');
-            template.innerHTML = expanded.trim();
-            var fragment = template.content;
+            var fragment = built.fragment;
             var firstNode = fragment.firstChild;
 
-            var isBlockSnippet = /^<(div|pre|table|figure|section|article|blockquote|header|footer|details)[\\s>]/i.test(expanded.trim());
-            var pParent = null;
-            var anc = range.commonAncestorContainer;
-            while (anc && anc !== document.body) {
-              if (anc.nodeName === 'P') {
-                pParent = anc;
-                break;
-              }
-              anc = anc.parentNode;
-            }
+            // Bloc tapé dans un paragraphe : le paragraphe est coupé autour (jamais de <div>, <ul>,
+            // <table>… dans un <p>, que le navigateur casserait au rechargement en <p></p> vides) ;
+            // un paragraphe qui ne contenait que le déclencheur « /… » disparaît.
+            previewEditing.insertFragment(document, fragment);
 
-            if (isBlockSnippet && pParent && (pParent.textContent.trim() === '' || pParent.textContent.trim() === snip.prefix || pParent.textContent.trim() === '/' + snip.prefix)) {
-              pParent.replaceWith(fragment);
-            } else {
-              range.insertNode(fragment);
-            }
-
-            if (firstNode) {
+            if (built.groups.length > 0) {
+              // Champs à remplir : surlignés, Tab / Maj+Tab pour passer de l'un à l'autre
+              startSnippetSession(built);
+            } else if (built.finalMarker && built.finalMarker.parentNode) {
+              placeCaretAtFinal(built.finalMarker);
+            } else if (firstNode) {
               var focusTarget = (firstNode.nodeType === 1)
                 ? (firstNode.querySelector('.label, pre code, h1, h2, h3, p, div') || firstNode)
                 : firstNode;
@@ -609,21 +759,295 @@ export const prepareHtmlPreview = (
           emitDocChange();
         }
 
+        // --- Session de champs d'un snippet inséré dans l'aperçu ---
+        // Tab / Maj+Tab : champ suivant / précédent ; Échap ou clic ailleurs : fin (le texte reste) ;
+        // un choix (couleur…) s'ouvre en menu, les flèches l'appliquent en direct.
+        var buildSnippetFragment = ${buildSnippetFragment.toString()};
+        var ZERO_WIDTH = String.fromCharCode(8203);
+        // Choix de couleur : nom affiché et pastille, pour les noms de variables du thème (purple…)
+        // comme pour les classes à une lettre (p, b, o…)
+        var CHOICE_LABELS = {
+          blue: ['Bleu', 'var(--blue)'], purple: ['Violet', 'var(--purple)'],
+          orange: ['Orange', 'var(--orange)'], green: ['Vert', 'var(--green)'],
+          yellow: ['Jaune', 'var(--yellow)'], red: ['Rouge', 'var(--red)'],
+          b: ['Bleu', '#569cd6'], t: ['Turquoise', '#4ec9b0'], y: ['Jaune', 'var(--yellow)'],
+          o: ['Orange', 'var(--orange)'], l: ['Vert clair', '#b5cea8'], g: ['Vert', 'var(--green)'],
+          p: ['Violet', 'var(--purple)'], a: ['Bleu clair', '#9cdcfe'], r: ['Rouge', 'var(--red)']
+        };
+        // Variables des snippets calculées par l'app pour cette note (ex. chemin du thème partagé)
+        var snippetVariables = ${JSON.stringify({ NOTES_THEME: notesThemeHref(notePath) })};
+        var BLOCK_NAMES = ['DIV', 'P', 'PRE', 'TABLE', 'UL', 'OL', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+          'DETAILS', 'FIGURE', 'BLOCKQUOTE', 'SECTION', 'FOOTER'];
+        var INLINE_WRAPPERS = ['SPAN', 'STRONG', 'EM', 'B', 'I', 'CODE', 'MARK'];
+        var snippetSession = null;
+        var choiceMenuEl = null;
+        var choiceOccurrence = null;
+        var choiceIndex = 0;
+
+        function fieldText(el) {
+          return (el.textContent || '').split(ZERO_WIDTH).join('');
+        }
+
+        function setCaret(range) {
+          var s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(range);
+        }
+
+        // Champ vide : indication grisée + espace de largeur nulle pour y garder le curseur
+        function refreshField(el) {
+          if (!el || el.hasAttribute('data-nf-final')) return;
+          if (fieldText(el) === '') {
+            el.classList.add('nf-empty');
+            if (el.textContent !== ZERO_WIDTH) el.textContent = ZERO_WIDTH;
+            return;
+          }
+          el.classList.remove('nf-empty');
+          if ((el.textContent || '').indexOf(ZERO_WIDTH) !== -1) {
+            var walker = document.createTreeWalker(el, 4);
+            for (var t = walker.nextNode(); t; t = walker.nextNode()) {
+              t.nodeValue = t.nodeValue.split(ZERO_WIDTH).join('');
+            }
+            var r = document.createRange();
+            r.selectNodeContents(el);
+            r.collapse(false);
+            setCaret(r);
+          }
+        }
+
+        function startSnippetSession(built) {
+          snippetSession = { groups: built.groups, finalMarker: built.finalMarker, current: -1 };
+          built.groups.forEach(function(g) {
+            g.occurrences.forEach(function(o) { if (o.kind === 'text') refreshField(o.element); });
+          });
+          activateField(0);
+        }
+
+        function activateField(position) {
+          var s = snippetSession;
+          if (!s || !s.groups[position]) return;
+          closeChoiceMenu();
+          s.groups.forEach(function(g) {
+            g.occurrences.forEach(function(o) { if (o.kind === 'text') o.element.classList.remove('nf-active'); });
+          });
+          s.current = position;
+          var occ = s.groups[position].occurrences[0];
+          if (occ.kind === 'text') {
+            occ.element.classList.add('nf-active');
+            refreshField(occ.element);
+            var r = document.createRange();
+            r.selectNodeContents(occ.element);
+            // Valeur par défaut sélectionnée : on tape pour la remplacer ; champ vide : curseur dedans
+            if (fieldText(occ.element) === '') r.collapse(false);
+            setCaret(r);
+          }
+          if (occ.choices && occ.choices.length > 1) openChoiceMenu(occ);
+        }
+
+        function moveField(step) {
+          var s = snippetSession;
+          if (!s) return;
+          var next = s.current + step;
+          if (next < 0) next = 0;
+          if (next >= s.groups.length) endSnippetSession(true);
+          else activateField(next);
+        }
+
+        function openChoiceMenu(occ) {
+          closeChoiceMenu();
+          choiceOccurrence = occ;
+          choiceIndex = Math.max(0, occ.choices.indexOf(occ.getValue()));
+          var menu = document.createElement('div');
+          menu.id = 'nf-choice-menu';
+          menu.setAttribute('data-injected-preview-helpers', 'true');
+          menu.setAttribute('contenteditable', 'false');
+          document.body.appendChild(menu);
+          choiceMenuEl = menu;
+          renderChoiceMenu();
+          var rect = occ.element.getBoundingClientRect();
+          menu.style.top = Math.max(8, Math.min(rect.bottom + 6, window.innerHeight - menu.offsetHeight - 8)) + 'px';
+          menu.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - menu.offsetWidth - 8)) + 'px';
+        }
+
+        function renderChoiceMenu() {
+          if (!choiceMenuEl || !choiceOccurrence) return;
+          var html = '<div class="nf-choice-hint">↑ ↓ pour choisir · Entrée pour valider</div>';
+          choiceOccurrence.choices.forEach(function(choice, i) {
+            var known = CHOICE_LABELS[choice];
+            var label = known ? known[0] : choice;
+            var swatch = known
+              ? '<span class="nf-swatch" style="background: ' + known[1] + '"></span>'
+              : '';
+            html += '<div class="nf-choice' + (i === choiceIndex ? ' active' : '') + '" data-choice="' + i + '">' +
+              swatch + '<span>' + label + '</span></div>';
+          });
+          choiceMenuEl.innerHTML = html;
+          choiceMenuEl.querySelectorAll('.nf-choice').forEach(function(item) {
+            item.addEventListener('pointerdown', function(ev) {
+              ev.preventDefault();
+              ev.stopPropagation();
+              applyChoice(parseInt(item.getAttribute('data-choice'), 10));
+              moveField(1);
+            });
+          });
+        }
+
+        // Appliqué tout de suite : on voit la couleur changer pendant qu'on parcourt la liste
+        function applyChoice(i) {
+          if (!choiceOccurrence) return;
+          var count = choiceOccurrence.choices.length;
+          choiceIndex = ((i % count) + count) % count;
+          choiceOccurrence.setValue(choiceOccurrence.choices[choiceIndex]);
+          if (choiceOccurrence.kind === 'text') refreshField(choiceOccurrence.element);
+          renderChoiceMenu();
+          emitDocChange();
+        }
+
+        function closeChoiceMenu() {
+          if (choiceMenuEl && choiceMenuEl.parentNode) choiceMenuEl.parentNode.removeChild(choiceMenuEl);
+          choiceMenuEl = null;
+          choiceOccurrence = null;
+        }
+
+        // Fin de champ : le texte reste, le marqueur part ; vide, il disparaît avec sa balise en ligne
+        function unwrapField(el) {
+          var parent = el.parentNode;
+          if (!parent) return;
+          if (fieldText(el) === '') {
+            parent.removeChild(el);
+            if (parent.nodeType === 1 && INLINE_WRAPPERS.indexOf(parent.nodeName) !== -1 &&
+                fieldText(parent) === '' && !parent.querySelector('*') && parent.parentNode) {
+              parent.parentNode.removeChild(parent);
+            }
+            return;
+          }
+          var walker = document.createTreeWalker(el, 4);
+          for (var t = walker.nextNode(); t; t = walker.nextNode()) {
+            t.nodeValue = t.nodeValue.split(ZERO_WIDTH).join('');
+          }
+          while (el.firstChild) parent.insertBefore(el.firstChild, el);
+          parent.removeChild(el);
+        }
+
+        // $0 : curseur à la fin du snippet ; entre deux blocs, un paragraphe provisoire l'accueille
+        function placeCaretAtFinal(marker) {
+          var parent = marker.parentNode;
+          if (!parent) return;
+          var prev = marker.previousElementSibling;
+          var r = document.createRange();
+          if (prev && BLOCK_NAMES.indexOf(prev.nodeName) !== -1) {
+            var p = document.createElement('p');
+            p.setAttribute('data-nf-pending', '');
+            p.innerHTML = '<br>';
+            parent.replaceChild(p, marker);
+            r.setStart(p, 0);
+          } else {
+            r.setStartBefore(marker);
+            parent.removeChild(marker);
+          }
+          r.collapse(true);
+          setCaret(r);
+        }
+
+        function endSnippetSession(goToFinal) {
+          var s = snippetSession;
+          if (!s) return;
+          snippetSession = null;
+          closeChoiceMenu();
+          // Champs répétés : ils reçoivent la valeur du premier
+          s.groups.forEach(function(g) {
+            var value = g.occurrences[0].getValue().split(ZERO_WIDTH).join('');
+            for (var i = 1; i < g.occurrences.length; i++) g.occurrences[i].setValue(value);
+          });
+          s.groups.forEach(function(g) {
+            g.occurrences.forEach(function(o) { if (o.kind === 'text') unwrapField(o.element); });
+          });
+          if (s.finalMarker && s.finalMarker.parentNode) {
+            if (goToFinal) placeCaretAtFinal(s.finalMarker);
+            else s.finalMarker.parentNode.removeChild(s.finalMarker);
+          }
+          // Copies d'encadrés créées par le navigateur (Entrée au milieu d'un champ) : retirées aussi
+          sweepStrayFields();
+          emitDocChange();
+        }
+
+        // Colle du texte brut dans le champ qui contient le curseur ; false si le curseur n'y est pas
+        function pasteIntoField(text) {
+          var sel = window.getSelection();
+          if (!sel || sel.rangeCount === 0) return false;
+          var position = fieldPositionOf(sel.anchorNode);
+          if (position === -1) return false;
+          var field = snippetSession.groups[position].occurrences[0].element;
+          var range = sel.getRangeAt(0);
+          var insideOnly = field.contains(range.startContainer) && field.contains(range.endContainer);
+          var covered = document.createRange();
+          covered.selectNodeContents(field);
+          var wholeField = fieldText(field) === '' || !insideOnly ||
+            (range.compareBoundaryPoints(Range.START_TO_START, covered) <= 0 &&
+             range.compareBoundaryPoints(Range.END_TO_END, covered) >= 0);
+          var node = document.createTextNode(text);
+          if (wholeField) {
+            field.textContent = '';
+            field.appendChild(node);
+          } else {
+            range.deleteContents();
+            range.insertNode(node);
+          }
+          refreshField(field);
+          var after = document.createRange();
+          after.setStartAfter(node);
+          after.collapse(true);
+          setCaret(after);
+          emitDocChange();
+          return true;
+        }
+
+        // Encadrés de champ que la session ne suit plus (Entrée qui coupe un champ et le duplique,
+        // session terminée) : on garde leur texte, on retire l'encadré
+        function sweepStrayFields() {
+          var stray = document.querySelectorAll('[data-nf-field]');
+          for (var i = 0; i < stray.length; i++) {
+            if (stray[i].hasAttribute('data-nf-final')) {
+              if (stray[i].parentNode) stray[i].parentNode.removeChild(stray[i]);
+            } else {
+              unwrapField(stray[i]);
+            }
+          }
+        }
+
+        // Le curseur a quitté tous les champs (flèches, frappe après le champ) : la saisie est finie
+        function endSessionIfCaretLeft() {
+          if (!snippetSession || choiceMenuEl) return;
+          var sel = window.getSelection();
+          if (!sel || sel.rangeCount === 0) return;
+          if (fieldPositionOf(sel.anchorNode) === -1 && fieldPositionOf(sel.focusNode) === -1) {
+            endSnippetSession(false);
+          }
+        }
+
+        function fieldPositionOf(node) {
+          var s = snippetSession;
+          if (!s || !node) return -1;
+          for (var i = 0; i < s.groups.length; i++) {
+            var occ = s.groups[i].occurrences[0];
+            if (occ.kind === 'text' && (occ.element === node || occ.element.contains(node))) return i;
+          }
+          return -1;
+        }
+
         // Navigation clavier pour les snippets, blocs de code, titres et protection des structures Obsidian
         window.addEventListener('keydown', function(e) {
           if (snippetMenuEl && snippetMenuEl.style.display !== 'none') {
             if (e.key === 'ArrowDown') {
               e.preventDefault();
               e.stopPropagation();
-              currentSelectedIndex = (currentSelectedIndex + 1) % currentFilteredSnippets.length;
-              renderSnippetMenu(lastSnippetQuery, lastSnippetRect);
+              setActiveSnippet(currentSelectedIndex + 1, true);
               return;
             }
             if (e.key === 'ArrowUp') {
               e.preventDefault();
               e.stopPropagation();
-              currentSelectedIndex = (currentSelectedIndex - 1 + currentFilteredSnippets.length) % currentFilteredSnippets.length;
-              renderSnippetMenu(lastSnippetQuery, lastSnippetRect);
+              setActiveSnippet(currentSelectedIndex - 1, true);
               return;
             }
             if (e.key === 'Enter' || e.key === 'Tab') {
@@ -640,6 +1064,49 @@ export const prepareHtmlPreview = (
               closeSnippetMenu();
               return;
             }
+          }
+
+          // Touches qui modifient la note par script (Entrée, Emmet, effacements protégés, Tab) :
+          // instantané avant (sans doublon si le navigateur fait la modification lui-même)
+          if ((e.key === 'Enter' || e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Tab') &&
+              !e.ctrlKey && !e.metaKey) {
+            // Effacements à la suite : une seule étape d'annulation
+            recordUndo(e.key === 'Backspace' || e.key === 'Delete' ? 'deleting' : 'edit');
+          }
+
+          // Session de champs d'un snippet : prioritaire sur Tab (indentation, Emmet) et Échap
+          if (snippetSession) {
+            if (choiceMenuEl && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+              e.preventDefault();
+              e.stopPropagation();
+              applyChoice(choiceIndex + (e.key === 'ArrowDown' ? 1 : -1));
+              return;
+            }
+            if (e.key === 'Tab' || (e.key === 'Enter' && choiceMenuEl)) {
+              e.preventDefault();
+              e.stopPropagation();
+              moveField(e.shiftKey && e.key === 'Tab' ? -1 : 1);
+              return;
+            }
+            if (e.key === 'Escape') {
+              e.preventDefault();
+              e.stopPropagation();
+              endSnippetSession(false);
+              return;
+            }
+          }
+
+          if (e.key === 'ArrowRight' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && isLiveEditEnabled && !snippetSession) {
+            if (previewEditing.armExit(document)) {
+              var armedSel = window.getSelection();
+              var armedRange = armedSel && armedSel.rangeCount ? armedSel.getRangeAt(0) : null;
+              exitArmedAt = armedRange ? { node: armedRange.startContainer, offset: armedRange.startOffset } : null;
+              e.preventDefault();
+              return;
+            }
+          } else if (e.key.length > 1 && e.key !== 'Shift' && e.key !== 'Dead' && e.key !== 'Process') {
+            previewEditing.disarm();
+            exitArmedAt = null;
           }
 
           var sel = window.getSelection();
@@ -675,12 +1142,15 @@ export const prepareHtmlPreview = (
                 emitDocChange();
                 return;
               }
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                e.stopPropagation();
-                document.execCommand('insertText', false, '\\n');
-                emitDocChange();
-                return;
+              // Entrée dans un <pre> : saut de ligne dans le même bloc (insertText de Chrome coupait le
+              // bloc en deux <code>) ; dans un <code> en ligne : coupure du paragraphe, hors du code
+              if (e.key === 'Enter' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                if (previewEditing.insertCodeNewline(document) || (!e.shiftKey && previewEditing.handleEnter(document))) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  emitDocChange();
+                  return;
+                }
               }
             }
 
@@ -693,7 +1163,11 @@ export const prepareHtmlPreview = (
               var fullBlockText = (currentBlock.textContent || '').trim();
 
               // 2. Touche Tab ou Entrée pour expansion Emmet (ex: "h1", "h2", "h3", "p", "step", "card", "pre", etc.)
-              if ((e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey)) && (!snippetMenuEl || snippetMenuEl.style.display === 'none')) {
+              // (seulement dans un bloc de texte simple : remplacer un bloc qui contient des balises
+              // ferait perdre son contenu)
+              if ((e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey)) && (!snippetMenuEl || snippetMenuEl.style.display === 'none') &&
+                  onlyBreaks(currentBlock) && ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].indexOf(currentBlock.nodeName) !== -1 &&
+                  !currentBlock.closest('.canvas, table')) {
                 var emmetTag = fullBlockText.toLowerCase();
                 var emmetTemplates = {
                   'h1': '<h1><br></h1>',
@@ -712,9 +1186,11 @@ export const prepareHtmlPreview = (
                   'table': '<table><thead><tr><th>Titre 1</th><th>Titre 2</th></tr></thead><tbody><tr><td>Donnée 1</td><td>Donnée 2</td></tr></tbody></table>',
                   'hr': '<hr><p><br></p>',
                   'step': '<div class="step"><span class="label">Étape</span><p><br></p></div>',
-                  'card': '<div class="card"><h3>Titre</h3><p><br></p></div>',
-                  'qcm': '<div class="qcm"><p>Question</p><label><input type="radio" name="q1"> Option A</label></div>',
-                  'callout': '<div class="callout"><p>Information importante</p></div>',
+                  // Blocs du design system (docs/reference/exemple-note.html) : card = .node, qcm = .quiz-item,
+                  // callout = .note
+                  'card': '<div class="node"><div class="node-title">Titre</div><p><br></p></div>',
+                  'qcm': '<div class="quiz-item"><div class="q-title">Question</div><p>A) <br>B) </p><details><summary>Voir la correction</summary><p><br></p></details></div>',
+                  'callout': '<div class="note"><span class="label">À retenir</span><p><br></p></div>',
                   'duo': '<div class="duo"><div><h3>Colonne 1</h3><p><br></p></div><div><h3>Colonne 2</h3><p><br></p></div></div>'
                 };
 
@@ -726,7 +1202,7 @@ export const prepareHtmlPreview = (
                   var newEl = tpl.content.firstChild;
                   currentBlock.replaceWith(tpl.content);
                   var focusTarget = (newEl && newEl.nodeType === 1)
-                    ? (newEl.querySelector('.label, code, p, h1, h2, h3, h4, h5, h6, li') || newEl)
+                    ? (newEl.querySelector('.node-title, .q-title, .label, code, p, h1, h2, h3, h4, h5, h6, li') || newEl)
                     : newEl;
                   if (focusTarget) {
                     var newR = document.createRange();
@@ -738,6 +1214,32 @@ export const prepareHtmlPreview = (
                   emitDocChange();
                   return;
                 }
+              }
+
+              // 2 bis. Tab hors code, hors snippet et hors Emmet : indentation par 4 espaces insécables
+              // (des espaces normaux seraient fusionnés par le HTML) ; Maj+Tab retire cette indentation
+              if (e.key === 'Tab' && isLiveEditEnabled && (!snippetMenuEl || snippetMenuEl.style.display === 'none')) {
+                e.preventDefault();
+                e.stopPropagation();
+                var NBSP = String.fromCharCode(160);
+                if (!e.shiftKey) {
+                  document.execCommand('insertText', false, NBSP + NBSP + NBSP + NBSP);
+                } else if (sel.isCollapsed && sel.anchorNode && sel.anchorNode.nodeType === 3) {
+                  var textNode = sel.anchorNode;
+                  var caret = sel.anchorOffset;
+                  var start = caret;
+                  while (start > 0 && caret - start < 4 && textNode.nodeValue.charAt(start - 1) === NBSP) start--;
+                  if (start < caret) {
+                    var outdent = document.createRange();
+                    outdent.setStart(textNode, start);
+                    outdent.setEnd(textNode, caret);
+                    sel.removeAllRanges();
+                    sel.addRange(outdent);
+                    document.execCommand('delete');
+                  }
+                }
+                emitDocChange();
+                return;
               }
 
               // 3. Raccourcis Markdown Obsidian sur frappe de la barre Espace (# , ## , ### , - , 1. , > )
@@ -776,22 +1278,6 @@ export const prepareHtmlPreview = (
                 }
               }
 
-              // 4. Entrée dans un titre (H1-H6) : créer proprement un paragraphe <p> sous le titre (style Obsidian)
-              if (e.key === 'Enter' && !e.shiftKey && /^H[1-6]$/i.test(currentBlock.nodeName)) {
-                e.preventDefault();
-                e.stopPropagation();
-                var p = document.createElement('p');
-                p.innerHTML = '<br>';
-                currentBlock.after(p);
-                var newRange = document.createRange();
-                newRange.setStart(p, 0);
-                newRange.collapse(true);
-                sel.removeAllRanges();
-                sel.addRange(newRange);
-                emitDocChange();
-                return;
-              }
-
               // 5. Entrée dans une liste <li> : sortie propre de la liste si l'élément est vide
               if (e.key === 'Enter' && !e.shiftKey && currentBlock.nodeName === 'LI') {
                 if (fullBlockText === '') {
@@ -812,6 +1298,17 @@ export const prepareHtmlPreview = (
                   newR3.collapse(true);
                   sel.removeAllRanges();
                   sel.addRange(newR3);
+                  emitDocChange();
+                  return;
+                }
+              }
+
+              // 4. Entrée : vrais paragraphes <p> (src/shared/previewEditing.ts) ; Maj+Entrée garde le <br>
+              if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && isLiveEditEnabled) {
+                if (snippetSession) endSnippetSession(false);
+                if (previewEditing.handleEnter(document)) {
+                  e.preventDefault();
+                  e.stopPropagation();
                   emitDocChange();
                   return;
                 }
@@ -944,6 +1441,11 @@ export const prepareHtmlPreview = (
         }
 
         // Détection et conversion en direct des balises HTML tapées (ex: <h1> seul, ou <h1>Titre</h1>, ou <style>...)
+        // Bloc sans autre balise que des <br> (ligne vide de remplissage) : sûr à remplacer d'après son texte
+        function onlyBreaks(el) {
+          return Array.prototype.every.call(el.children, function(c) { return c.nodeName === 'BR'; });
+        }
+
         function checkForHtmlTagTransform() {
           var sel = window.getSelection();
           if (!sel || !sel.rangeCount) return;
@@ -957,12 +1459,15 @@ export const prepareHtmlPreview = (
             node = node.parentNode;
           }
           if (!block) return;
+          // Jamais dans un bloc qui contient déjà des balises : la conversion repart de son texte
+          // seul (textContent) et ferait perdre couleurs, liens et sous-blocs. Ni dans le code.
+          if (!onlyBreaks(block) || block.closest('pre, code, table')) return;
 
           var text = block.textContent || '';
           var trimmed = text.trim();
 
           // 1. Tag ouvrant seul tapé dans un paragraphe : ex. "<h1>", "<h2>", "<pre>", etc.
-          var openTagMatch = trimmed.match(/^<([a-zA-Z1-6]+)(?:\s+[^>]*)?>$/);
+          var openTagMatch = trimmed.match(/^<([a-zA-Z1-6]+)(?:\\s+[^>]*)?>$/);
           if (openTagMatch) {
             var tag = openTagMatch[1].toLowerCase();
             if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'pre', 'blockquote', 'div', 'ul', 'ol', 'style'].includes(tag)) {
@@ -996,13 +1501,23 @@ export const prepareHtmlPreview = (
           }
 
           // 2. Balise HTML complète tapée : ex. "<h1>Titre</h1>", "<h1></h1>", "<strong>gras</strong>", "<style>...</style>"
-          var fullTagRegex = /<([a-zA-Z1-6]+)(?:\\s+[^>]*)?>[\\s\\S]*?<\\/\\1>|<(hr|br|img|input)[^>]*\\/?>/i;
+          // (tout le texte du bloc doit être la balise : « Utilise <b>x</b> » reste du texte)
+          var fullTagRegex = /^(?:<([a-zA-Z1-6]+)(?:\\s+[^>]*)?>[\\s\\S]*?<\\/\\1>|<(hr|br|img|input)[^>]*\\/?>)$/i;
           if (fullTagRegex.test(trimmed)) {
             var template = document.createElement('template');
             template.innerHTML = trimmed;
             if (template.content.childNodes.length > 0) {
               var lastChild = template.content.lastChild;
-              block.replaceWith(template.content);
+              var onlyInline = Array.prototype.every.call(template.content.childNodes, function(n) {
+                return n.nodeType !== 1 || ['B', 'STRONG', 'I', 'EM', 'U', 'S', 'SPAN', 'A', 'CODE', 'MARK', 'SMALL', 'SUB', 'SUP', 'KBD', 'BR', 'IMG', 'INPUT'].indexOf(n.nodeName) !== -1;
+              });
+              // Balise en ligne (<strong>…) : dans le paragraphe ; bloc (<h2>…) : à la place du paragraphe
+              if (onlyInline && block.nodeName !== 'DIV') {
+                while (block.firstChild) block.removeChild(block.firstChild);
+                block.appendChild(template.content);
+              } else {
+                block.replaceWith(template.content);
+              }
               if (lastChild) {
                 var r = document.createRange();
                 r.selectNodeContents(lastChild);
@@ -1016,7 +1531,46 @@ export const prepareHtmlPreview = (
           }
         }
 
+        var styledBeforeEdit = null;
+        document.addEventListener('beforeinput', function(e) {
+          if (!isLiveEditEnabled) return;
+          var type = e.inputType || '';
+          if (type !== 'historyUndo' && type !== 'historyRedo') {
+            recordUndo(type === 'insertText' ? 'typing' : type.indexOf('delete') === 0 ? 'deleting' : 'edit', e.data || '');
+          } else {
+            // Annuler du menu contextuel : passe par notre historique
+            e.preventDefault();
+            if (type === 'historyUndo' ? undoHistory.undo() : undoHistory.redo()) emitDocChange();
+            return;
+          }
+          // Toute saisie peut faire inventer à Chrome des <span style> (fusion de blocs, frappe sur un
+          // élément stylé supprimé) : retirés après coup s'ils sont nouveaux
+          styledBeforeEdit = previewEditing.snapshotStyled(document);
+          if (type === 'insertText' && e.data && !snippetSession) {
+            if (previewEditing.insertTextOutside(document, e.data)) {
+              e.preventDefault();
+              exitArmedAt = null;
+              emitDocChange();
+              checkForSnippetTrigger();
+            }
+            return;
+          }
+        }, true);
+
         document.addEventListener('input', function() {
+          // Fusion de blocs par effacement : Chrome ajoute des <span style="…"> recopiant le style calculé
+          if (styledBeforeEdit) {
+            previewEditing.unwrapNewStyled(document, styledBeforeEdit);
+            styledBeforeEdit = null;
+          }
+          if (snippetSession) {
+            var anchor = window.getSelection() ? window.getSelection().anchorNode : null;
+            var position = fieldPositionOf(anchor);
+            if (position !== -1) refreshField(snippetSession.groups[position].occurrences[0].element);
+            else endSessionIfCaretLeft();
+          } else if (document.querySelector('[data-nf-field]')) {
+            sweepStrayFields();
+          }
           emitDocChange();
           checkForSnippetTrigger();
           checkForHtmlTagTransform();
@@ -1024,8 +1578,18 @@ export const prepareHtmlPreview = (
 
         document.addEventListener('paste', function(e) {
           if (!isLiveEditEnabled) return;
+          recordUndo('edit');
           var text = (e.clipboardData || window.clipboardData).getData('text/plain');
-          if (!text) return;
+          // Sans texte brut, il peut rester du HTML (image copiée d'une page) : nettoyé plus bas
+          if (!text && !(e.clipboardData && e.clipboardData.getData('text/html'))) return;
+          text = text || '';
+          // Collage dans un champ de snippet : texte brut, dans le champ. Le collage du navigateur
+          // supprimait le champ (et sa balise colorée) avant de coller à côté.
+          if (snippetSession && text && pasteIntoField(text)) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
           var trimmed = text.trim();
           if (/<([a-zA-Z1-6]+)(?:\\s+[^>]*)?>[\\s\\S]*<\\/\\1>/i.test(trimmed) || /^<(div|style|pre|table|h[1-6]|p|section|article|blockquote|figure)[\\s>]/i.test(trimmed)) {
             e.preventDefault();
@@ -1034,11 +1598,34 @@ export const prepareHtmlPreview = (
             var fragment = template.content;
             var sel = window.getSelection();
             if (sel && sel.rangeCount > 0) {
-              var range = sel.getRangeAt(0);
-              range.deleteContents();
-              range.insertNode(fragment);
+              previewEditing.insertFragment(document, fragment);
               emitDocChange();
             }
+            return;
+          }
+          // Collage riche (page web, Word, autre note) : structure et classes du thème gardées, styles,
+          // polices et <span> d'origine retirés ; jamais dans un bloc de code (texte brut)
+          var richHtml = e.clipboardData ? e.clipboardData.getData('text/html') : '';
+          var pasteSel = window.getSelection();
+          var pasteAnchor = pasteSel && pasteSel.anchorNode
+            ? (pasteSel.anchorNode.nodeType === 1 ? pasteSel.anchorNode : pasteSel.anchorNode.parentElement)
+            : null;
+          if (richHtml && !(pasteAnchor && pasteAnchor.closest && pasteAnchor.closest('pre, code'))) {
+            var cleaned = sanitizePastedHtml(document, richHtml);
+            if ((cleaned.textContent || '').trim() || cleaned.querySelector('img, hr, table')) {
+              e.preventDefault();
+              e.stopPropagation();
+              previewEditing.insertFragment(document, cleaned);
+              emitDocChange();
+              return;
+            }
+          }
+          // Texte brut sur plusieurs lignes : un paragraphe par ligne (le navigateur créait des <div>
+          // et des <br>) ; dans un bloc de code, collé tel quel
+          if (previewEditing.pasteText(document, text)) {
+            e.preventDefault();
+            e.stopPropagation();
+            emitDocChange();
           }
         }, true);
 
@@ -1053,11 +1640,34 @@ export const prepareHtmlPreview = (
           if (snippetMenuEl && snippetMenuEl.style.display !== 'none') {
             checkForSnippetTrigger();
           }
+          // Flèches ou clic hors des champs : la session de snippet se termine
+          endSessionIfCaretLeft();
+          if (exitArmedAt) {
+            var cs = window.getSelection();
+            var cr = cs && cs.rangeCount ? cs.getRangeAt(0) : null;
+            if (!cr || cr.startContainer !== exitArmedAt.node || cr.startOffset !== exitArmedAt.offset) {
+              previewEditing.disarm();
+              exitArmedAt = null;
+            }
+          }
         });
 
         document.addEventListener('pointerdown', function(e) {
           if (snippetMenuEl && !snippetMenuEl.contains(e.target)) {
             closeSnippetMenu();
+          }
+          // Session de snippet : clic dans un champ = ce champ ; clic ailleurs = fin, le texte reste
+          if (snippetSession && !(choiceMenuEl && choiceMenuEl.contains(e.target))) {
+            var position = fieldPositionOf(e.target);
+            if (position === -1) endSnippetSession(false);
+            else if (position !== snippetSession.current) {
+              closeChoiceMenu();
+              snippetSession.groups.forEach(function(g) {
+                g.occurrences.forEach(function(o) { if (o.kind === 'text') o.element.classList.remove('nf-active'); });
+              });
+              snippetSession.current = position;
+              snippetSession.groups[position].occurrences[0].element.classList.add('nf-active');
+            }
           }
         });
 
@@ -1161,6 +1771,13 @@ export const prepareHtmlPreview = (
               e.preventDefault();
               e.stopPropagation();
               closeSnippetMenu();
+              return;
+            }
+            // Échap termine d'abord la saisie d'un snippet, sans quitter le plein écran
+            if (snippetSession) {
+              e.preventDefault();
+              e.stopPropagation();
+              endSnippetSession(false);
               return;
             }
             e.preventDefault();
@@ -1457,6 +2074,9 @@ export const prepareHtmlPreview = (
           }
 
           if (isCodeScrolling) return;
+          // Défilement sans geste récent dans l'aperçu (rechargement, restauration de position) :
+          // on ne le transmet pas à Monaco, sinon l'éditeur remonte pendant qu'on écrit
+          if (!isUserScrollIntent(Date.now(), lastScrollGestureAt)) return;
 
           if (previewRaf) cancelAnimationFrame(previewRaf);
           previewRaf = requestAnimationFrame(function() {
@@ -1537,6 +2157,7 @@ export default function CodeWorkspace({
   value,
   onChange,
   currentFilePath,
+  contentFilePath = currentFilePath,
   editorMode,
   isHtmlFullscreen: externalFullscreen,
   onToggleHtmlFullscreen: externalToggleFullscreen,
@@ -1562,6 +2183,15 @@ export default function CodeWorkspace({
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const localEmittedValuesRef = useRef<Set<string>>(new Set())
   const lastFilePathRef = useRef<string>(currentFilePath)
+  // Chemin courant pour les snippets de Monaco (${NOTES_THEME}), lu au moment de l'insertion
+  const currentFilePathRef = useRef<string>(currentFilePath)
+  currentFilePathRef.current = currentFilePath
+  const contentFilePathRef = useRef<string | null>(contentFilePath)
+  contentFilePathRef.current = contentFilePath
+  // Note dont vient le contenu retenu pour l'aperçu, et note pour laquelle l'aperçu affiché a été construit
+  const debouncedFileRef = useRef<string | null>(contentFilePath)
+  const srcDocFileRef = useRef<string | null>(null)
+  const [debouncedVersion, setDebouncedVersion] = useState(0)
 
   // État et références pour l'Aperçu Interactif Obsidian (écriture directe de texte/code et snippets dans le preview)
   const isLivePreviewEditable = true
@@ -1646,7 +2276,7 @@ export default function CodeWorkspace({
 
   useEffect(() => {
     if (snippets.length === 0) return
-    const cleanup = registerEnhancedCompletions(snippets)
+    const cleanup = registerEnhancedCompletions(snippets, () => currentFilePathRef.current)
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage(
         {
@@ -1676,6 +2306,9 @@ export default function CodeWorkspace({
     if (lastFilePathRef.current !== currentFilePath) {
       lastFilePathRef.current = currentFilePath
       localEmittedValuesRef.current.clear()
+      // Le gel de l'aperçu pendant une saisie ne vaut que pour la note où l'on écrivait
+      lastPreviewMutationTimeRef.current = 0
+      lastEmittedPreviewHtmlRef.current = ''
       if (editorRef.current) {
         if (editorRef.current.getValue() !== value) {
           editorRef.current.setValue(value)
@@ -1719,14 +2352,27 @@ export default function CodeWorkspace({
     return () => window.removeEventListener('keydown', handleKey)
   }, [isFullscreen])
 
-  // Debounce iframe updates for smooth typing (uniquement si le preview est visible)
+  // Debounce iframe updates for smooth typing (uniquement si le preview est visible).
+  // Le contenu retenu est rattaché à la note dont il vient (debouncedFileRef).
   useEffect(() => {
     if (editorMode === 'edit') return
+    const sourceFile = contentFilePath
     const handler = setTimeout(() => {
+      debouncedFileRef.current = sourceFile
       setDebouncedSrc(value)
+      setDebouncedVersion((v) => v + 1)
     }, 700)
     return () => clearTimeout(handler)
-  }, [value, editorMode])
+  }, [value, editorMode, contentFilePath])
+
+  // Contenu d'une note qu'on vient d'ouvrir : aperçu tout de suite, sans attendre le délai de frappe
+  useEffect(() => {
+    if (!contentFilePath || contentFilePath !== currentFilePath) return
+    debouncedFileRef.current = contentFilePath
+    setDebouncedSrc(value)
+    setDebouncedVersion((v) => v + 1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seulement à l'arrivée d'un nouveau contenu
+  }, [contentFilePath])
 
   // Handle split resize drag
   useEffect(() => {
@@ -1863,6 +2509,18 @@ export default function CodeWorkspace({
           editorRef.current.setScrollTop(Math.max(0, top - 15))
         }
       } else if (event.data?.type === 'PREVIEW_DOC_MUTATED') {
+        // Seulement notre iframe, et seulement si elle affiche la note ouverte (sinon le HTML d'une
+        // autre note serait enregistré dans celle-ci)
+        if (!iframeRef.current || event.source !== iframeRef.current.contentWindow) return
+        if (
+          !previewMatchesNote({
+            previewFile: srcDocFileRef.current,
+            currentFile: currentFilePathRef.current,
+            contentFile: contentFilePathRef.current
+          })
+        ) {
+          return
+        }
         const rawNewHtml = event.data.html
         if (!rawNewHtml) return
         const newHtml = rawNewHtml.replace(/\r\n/g, '\n')
@@ -2051,11 +2709,18 @@ export default function CodeWorkspace({
   const memoizedSrcDoc = useMemo(() => {
     if (!isHtml) return debouncedSrc
 
+    // Contenu d'une autre note (chargement en cours, délai de frappe) : écran neutre, jamais éditable
+    if (debouncedFileRef.current !== currentFilePath || contentFilePath !== currentFilePath) {
+      srcDocFileRef.current = null
+      return PREVIEW_LOADING_SRCDOC
+    }
+
     // Si la modification provient directement de l'aperçu interactif (dernières 3 secondes ou HTML équivalent),
     // figer strictement le srcDoc actuel pour ne jamais recharger l'iframe pendant que l'utilisateur tape
     const isRecentlyEditedInPreview = Date.now() - lastPreviewMutationTimeRef.current < 3000
     if (
       lastMemoizedSrcDocRef.current &&
+      srcDocFileRef.current === currentFilePath &&
       (isRecentlyEditedInPreview ||
         (lastEmittedPreviewHtmlRef.current && debouncedSrc === lastEmittedPreviewHtmlRef.current))
     ) {
@@ -2077,11 +2742,22 @@ export default function CodeWorkspace({
       savedRatio,
       savedScrollY,
       snippets,
-      isLivePreviewEditable
+      isLivePreviewEditable,
+      currentFilePath
     )
     lastMemoizedSrcDocRef.current = prepared
+    srcDocFileRef.current = currentFilePath
     return prepared
-  }, [debouncedSrc, currentFilePath, isHtml, snippets, isLivePreviewEditable])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- debouncedVersion porte debouncedFileRef
+  }, [
+    debouncedSrc,
+    debouncedVersion,
+    currentFilePath,
+    contentFilePath,
+    isHtml,
+    snippets,
+    isLivePreviewEditable
+  ])
 
   return (
     <div

@@ -14,7 +14,7 @@ export interface SafePathOptions {
   // Autorise la racine du dossier de notes ('' ou '.')
   allowRoot?: boolean
   // Autorise les entrées internes de la racine (.history, .trash, .snippets, .templates, .recovery,
-  // .config.json)
+  // .theme, .config.json)
   allowInternal?: boolean
 }
 
@@ -24,6 +24,8 @@ const INTERNAL_ENTRIES = new Set([
   '.snippets',
   '.templates',
   RECOVERY_DIR,
+  // Thème partagé .theme/notes.css, géré par l'app
+  '.theme',
   '.config.json'
 ])
 // Les caractères de contrôle sont interdits dans les noms Windows : la regex les cible volontairement

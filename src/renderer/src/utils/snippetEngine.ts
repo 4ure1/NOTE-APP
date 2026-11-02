@@ -1,4 +1,5 @@
 import { Snippet, SnippetExpansion, SnippetTabstop } from '../types/snippets'
+import { resolveNotesThemeVariable } from './notesTheme'
 
 /**
  * Normalise le corps d'un snippet (array de lignes ou chaîne)
@@ -19,9 +20,11 @@ export function getSnippetBodyText(body: string[] | string): string {
 export function expandSnippet(
   body: string[] | string,
   selectedText: string = '',
-  now: Date = new Date()
+  now: Date = new Date(),
+  // Chemin de la note (relatif au dossier de notes) : sert à ${NOTES_THEME}
+  notePath: string = ''
 ): SnippetExpansion {
-  let template = getSnippetBodyText(body)
+  let template = resolveNotesThemeVariable(getSnippetBodyText(body), notePath)
 
   // 1. Remplacement des variables temporelles
   const year = now.getFullYear().toString()

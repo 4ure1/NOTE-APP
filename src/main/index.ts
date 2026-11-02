@@ -1,3 +1,4 @@
+/*! NOTE-APP — © 2026 4URE1 — https://github.com/4ure1 — Tous droits réservés. */
 import { app, shell, BrowserWindow, ipcMain, session, dialog, protocol, net, Menu } from 'electron'
 import path, { join } from 'path'
 import { pathToFileURL } from 'url'
@@ -17,12 +18,30 @@ import { prepareRenameOrMove, applyRenameOrMove, undoRenameOrMove } from './link
 import { RenameOperationPlan } from '../shared/linkUpdater'
 import { expandTemplate, NoteTemplate, TemplateContext } from '../shared/sessionDetector'
 import { PdfAnnotation } from '../shared/pdfAnnotations'
+import { APP_NAME, AUTHOR, AUTHOR_GITHUB, COPYRIGHT } from '../shared/credits'
+import { buildNewHtmlNote } from '../shared/newNoteTemplate'
 import { isPdfUrl } from '../shared/pdfLink'
+import {
+  isAllowedExternalUrl,
+  isAppUrl,
+  isAllowedSubframeUrl,
+  isAllowedWebviewSrc,
+  isOAuthPopupUrl,
+  isYouTubeUrl,
+  isOpenAiFileUrl
+} from './navigationGuard'
 import { exportToHtml, exportToPdf, exportToDocx, ExportNoteParams } from './exportNote'
 import { runAgentLoop, checkOllamaModelAvailable } from './agent/ollamaAgent'
 import { globalUndoManager } from './agent/undoManager'
 import { AgentRunParams } from './agent/types'
-import { resolveNotesDir, isDefaultNotesDir, NOTES_DIR_ENV } from './notesDir'
+import {
+  resolveNotesDir,
+  NOTES_DIR_ENV,
+  APP_SETUP_FILE_NAME,
+  readAppSetup,
+  writeAppSetup,
+  validateNotesFolder
+} from './notesDir'
 import {
   assertSafeNotePath,
   assertSafeFileName,
@@ -33,10 +52,23 @@ import {
 import { writeFileAtomic, copyFileAtomic, cleanupTempFiles } from './atomicWrite'
 import { readConfig, mergeConfig } from './configStore'
 import { noteFingerprints, externalChangeMessage } from './noteFingerprints'
+import { NOTES_THEME_FILE, NOTES_THEME_HEADER, stripNotesThemeLink } from '../shared/notesTheme'
+import { mergeDefaultSnippets } from '../shared/snippetsMerge'
+// Thème des notes, source unique : le même fichier que celui injecté dans l'aperçu
+import bundledThemeCss from '../renderer/src/assets/theme.css?raw'
 
-// Dossier de notes : NOTE_APP_NOTES_DIR si défini (ex. ./test-vault via `npm run dev:safe`), sinon ~/Notes
-const NOTES_DIR = resolveNotesDir(process.env[NOTES_DIR_ENV], os.homedir(), process.cwd())
-const IS_DEFAULT_NOTES_DIR = isDefaultNotesDir(NOTES_DIR, os.homedir())
+// Réglages de l'app hors du dossier de notes (userData) : dossier choisi au premier lancement, visite vue
+const APP_SETUP_FILE = join(app.getPath('userData'), APP_SETUP_FILE_NAME)
+// Dossier de notes : NOTE_APP_NOTES_DIR si défini (ex. ./test-vault via `npm run dev:safe`), sinon le dossier
+// choisi au premier lancement, sinon ~/Notes. Résolu une fois : en changer relance l'app.
+const NOTES_DIR_FROM_ENV = !!process.env[NOTES_DIR_ENV]?.trim()
+const NOTES_DIR = resolveNotesDir(
+  process.env[NOTES_DIR_ENV],
+  os.homedir(),
+  process.cwd(),
+  readAppSetup(APP_SETUP_FILE).notesDir
+)
+const DEFAULT_NOTES_DIR = join(os.homedir(), 'Notes')
 console.log(`[Notes] dossier actif : ${NOTES_DIR}`)
 const TRASH_DIR = join(NOTES_DIR, '.trash')
 const CONFIG_FILE = join(NOTES_DIR, '.config.json')
@@ -93,6 +125,82 @@ function assertWebUrl(url: string): void {
     throw new PathAccessError(`seules les adresses http(s) sont autorisées ("${url}").`)
   }
 }
+
+// --- Gardes de sécurité posées sur TOUS les webContents (fenêtre de l'app, webviews, popups, fenêtres
+// de connexion), y compris ceux créés plus tard ---
+
+// webContents de l'app elle-même : seuls à voir leur navigation et celle de leurs iframes restreintes
+const appWebContents = new WeakSet<Electron.WebContents>()
+const WEBVIEW_PARTITION = 'persist:claude'
+
+function appEntryUrl(): string {
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) return process.env['ELECTRON_RENDERER_URL']
+  return pathToFileURL(join(__dirname, '../renderer/index.html')).href
+}
+
+function logSecurityRefusal(what: string, url: string): void {
+  console.warn(`[Sécurité] ${what} refusé : ${String(url).slice(0, 300)}`)
+}
+
+// Confie au système (navigateur, client mail) une URL http(s) ou mailto ; jamais file:, ms-msdt:…
+function openExternalSafe(url: string, origin: string): boolean {
+  if (!isAllowedExternalUrl(url)) {
+    logSecurityRefusal(`${origin} : ouverture externe`, url)
+    return false
+  }
+  shell.openExternal(url).catch((err) => console.error('[Sécurité] openExternal :', err))
+  return true
+}
+
+app.on('web-contents-created', (_event, contents) => {
+  // Nouvelles fenêtres refusées par défaut, http(s) et mailto envoyés au système. Les webviews IA
+  // remplacent ce gestionnaire par le leur (connexion OAuth, PDF) dans did-attach-webview.
+  contents.setWindowOpenHandler(({ url }) => {
+    openExternalSafe(url, 'Nouvelle fenêtre')
+    return { action: 'deny' }
+  })
+
+  // La fenêtre de l'app ne quitte jamais l'app (les webviews et popups naviguent librement)
+  contents.on('will-navigate', (event, url) => {
+    if (!appWebContents.has(contents) || isAppUrl(url, appEntryUrl())) return
+    event.preventDefault()
+    logSecurityRefusal("Navigation de la fenêtre de l'app", url)
+    openExternalSafe(url, "Navigation de la fenêtre de l'app")
+  })
+
+  // Iframes de la fenêtre de l'app (aperçus de notes) : aucune navigation hors de leur srcdoc
+  contents.on('will-frame-navigate', (details) => {
+    if (!appWebContents.has(contents) || details.isMainFrame) return
+    if (isAllowedSubframeUrl(details.url)) return
+    details.preventDefault()
+    logSecurityRefusal("Navigation d'un aperçu de note", details.url)
+  })
+
+  // <webview> : jamais de preload, de Node ni de sécurité web désactivée, quel que soit le créateur
+  contents.on('will-attach-webview', (_e, webPreferences, params) => {
+    delete webPreferences.preload
+    webPreferences.nodeIntegration = false
+    webPreferences.nodeIntegrationInSubFrames = false
+    webPreferences.contextIsolation = true
+    webPreferences.sandbox = true
+    webPreferences.webSecurity = true
+    webPreferences.allowRunningInsecureContent = false
+    for (const attr of [
+      'preload',
+      'nodeintegration',
+      'nodeintegrationinsubframes',
+      'disablewebsecurity',
+      'webpreferences'
+    ]) {
+      delete params[attr]
+    }
+    params.partition = WEBVIEW_PARTITION
+    if (!isAllowedWebviewSrc(params.src)) {
+      logSecurityRefusal('Adresse de départ de webview', params.src)
+      params.src = 'about:blank'
+    }
+  })
+})
 
 // Extensions qu'open-in-browser peut confier au système (shell.openPath exécuterait un .exe ou un .bat)
 const OPENABLE_EXTENSIONS = new Set(['.html', '.htm', '.md', '.pdf', '.txt'])
@@ -1000,7 +1108,12 @@ protocol.registerSchemesAsPrivileged([
 ])
 
 function createWindow(): void {
-  const applySessionSettings = (ses: Electron.Session) => {
+  // allowClipboardWrite : boutons « Copier » des sites IA et de YouTube (navigator.clipboard.writeText
+  // demande « clipboard-sanitized-write »). Réservé à la session des webviews, jamais aux notes.
+  const applySessionSettings = (
+    ses: Electron.Session,
+    options: { allowClipboardWrite?: boolean } = {}
+  ): void => {
     ses.setUserAgent(CHROME_UA)
 
     ses.webRequest.onBeforeSendHeaders((details, callback) => {
@@ -1033,13 +1146,15 @@ function createWindow(): void {
       callback({ requestHeaders: details.requestHeaders })
     })
 
+    const allowedPermissions = ['notifications', 'media', 'geolocation', 'clipboard-read']
+    if (options.allowClipboardWrite) allowedPermissions.push('clipboard-sanitized-write')
     ses.setPermissionRequestHandler((_wc, permission, callback) => {
-      callback(['notifications', 'media', 'geolocation', 'clipboard-read'].includes(permission))
+      callback(allowedPermissions.includes(permission))
     })
   }
 
   applySessionSettings(session.defaultSession)
-  applySessionSettings(session.fromPartition('persist:claude'))
+  applySessionSettings(session.fromPartition(WEBVIEW_PARTITION), { allowClipboardWrite: true })
 
   const mainWindow = new BrowserWindow({
     width: 1200,
@@ -1055,9 +1170,11 @@ function createWindow(): void {
     }
   })
   globalMainWindow = mainWindow
+  // Navigation de cette fenêtre et de ses iframes restreinte (app.on('web-contents-created'))
+  appWebContents.add(mainWindow.webContents)
 
-  // Rappel visuel quand l'app ne travaille pas sur le vrai dossier de notes
-  if (!IS_DEFAULT_NOTES_DIR) {
+  // Rappel visuel quand l'app travaille sur le dossier de test (variable NOTE_APP_NOTES_DIR)
+  if (NOTES_DIR_FROM_ENV) {
     mainWindow.on('page-title-updated', (event, title) => {
       event.preventDefault()
       mainWindow.setTitle(`${title} [TEST-VAULT]`)
@@ -1277,7 +1394,7 @@ function createWindow(): void {
         const targetDir = activeTargetDir()
         const res = await net.fetch(pdfUrl)
         if (!res.ok) {
-          shell.openExternal(pdfUrl)
+          openExternalSafe(pdfUrl, 'Téléchargement PDF')
           return
         }
         const buf = Buffer.from(await res.arrayBuffer())
@@ -1306,7 +1423,7 @@ function createWindow(): void {
         }
       } catch (err) {
         console.error('[Download-pdf] Erreur téléchargement PDF:', err)
-        if (!(err instanceof PathAccessError)) shell.openExternal(pdfUrl)
+        if (!(err instanceof PathAccessError)) openExternalSafe(pdfUrl, 'Téléchargement PDF')
       }
     }
 
@@ -1315,7 +1432,7 @@ function createWindow(): void {
       const lowerUrl = navUrl.toLowerCase()
       if (
         isPdfUrl(navUrl) ||
-        lowerUrl.includes('files.oaiusercontent.com') ||
+        isOpenAiFileUrl(navUrl) ||
         lowerUrl.includes('/download')
       ) {
         event.preventDefault()
@@ -1352,7 +1469,7 @@ function createWindow(): void {
       // PDF ou téléchargement ouvert dans nouvel onglet → intercepter
       if (
         isPdfUrl(url) ||
-        lowerUrl.includes('files.oaiusercontent.com') ||
+        isOpenAiFileUrl(url) ||
         lowerUrl.includes('/download') ||
         url.startsWith('blob:')
       ) {
@@ -1368,38 +1485,33 @@ function createWindow(): void {
         return { action: 'deny' }
       }
 
-      // Autoriser les popups d'authentification OAuth (Google, Apple, Claude, OpenAI, ChatGPT, etc.)
-      if (
-        lowerUrl.includes('accounts.google.com') ||
-        lowerUrl.includes('appleid.apple.com') ||
-        lowerUrl.includes('auth0.com') ||
-        lowerUrl.includes('auth.openai.com') ||
-        lowerUrl.includes('claude.ai') ||
-        lowerUrl.includes('chatgpt.com') ||
-        lowerUrl.includes('oaistatic.com') ||
-        lowerUrl.includes('google.com')
-      ) {
+      // Popups de connexion OAuth (Google, Apple, Claude, OpenAI, ChatGPT…) : hôte vérifié sur l'URL
+      // analysée, jamais par recherche de sous-chaîne ("https://evil.com/?google.com" est refusé)
+      if (isOAuthPopupUrl(url)) {
         return {
           action: 'allow',
           overrideBrowserWindowOptions: {
             width: 520,
             height: 680,
             autoHideMenuBar: true,
+            // Site tiers : processus isolé, sans Node
             webPreferences: {
               session: session.fromPartition('persist:claude'),
-              sandbox: false
+              sandbox: true,
+              contextIsolation: true,
+              nodeIntegration: false
             }
           }
         }
       }
 
       // Liens YouTube (vidéos, chaînes, playlists)
-      if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be')) {
+      if (isYouTubeUrl(url)) {
         return { action: 'allow' }
       }
 
-      // Autres liens externes → navigateur système
-      shell.openExternal(url)
+      // Autres liens externes → navigateur système (http(s) et mailto seulement)
+      openExternalSafe(url, 'Webview')
       return { action: 'deny' }
     })
 
@@ -1467,10 +1579,6 @@ function createWindow(): void {
     })
   })
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
-    return { action: 'deny' }
-  })
 
   mainWindow.webContents.on('did-finish-load', () => {
     console.log('MAIN: did-finish-load')
@@ -1595,6 +1703,82 @@ ipcMain.handle('list-markdown-files', () => {
   return flat
 })
 
+// --- Premier lancement : dossier de notes et visite guidée (réglages dans userData, hors des notes) ---
+// Dossier retenu par la fenêtre de sélection de cette session : le seul (avec le dossier actuel et ~/Notes)
+// que finish-app-setup accepte, pour qu'un appel venu d'ailleurs ne puisse pas déplacer le dossier de notes.
+let pickedNotesFolder: string | null = null
+
+ipcMain.handle('get-app-setup', () => {
+  const setup = readAppSetup(APP_SETUP_FILE)
+  return {
+    success: true,
+    notesDir: NOTES_DIR,
+    defaultNotesDir: DEFAULT_NOTES_DIR,
+    fromEnv: NOTES_DIR_FROM_ENV,
+    onboardingDone: setup.onboardingDone === true
+  }
+})
+
+ipcMain.handle('choose-notes-folder', async (event) => {
+  if (NOTES_DIR_FROM_ENV) {
+    return { success: false, error: 'Mode test : le dossier est imposé par NOTE_APP_NOTES_DIR.' }
+  }
+  const win = BrowserWindow.fromWebContents(event.sender)
+  const options: Electron.OpenDialogOptions = {
+    title: 'Où ranger tes notes ?',
+    buttonLabel: 'Choisir ce dossier',
+    defaultPath: NOTES_DIR,
+    properties: ['openDirectory', 'createDirectory', 'promptToCreate']
+  }
+  const res = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options)
+  if (res.canceled || !res.filePaths[0]) return { success: false, canceled: true }
+  const check = validateNotesFolder(res.filePaths[0])
+  if (!check.ok) return { success: false, error: check.error }
+  pickedNotesFolder = check.path
+  return { success: true, path: check.path }
+})
+
+ipcMain.handle('finish-app-setup', (_event, requestedDir: unknown) => {
+  try {
+    const setup = readAppSetup(APP_SETUP_FILE)
+    setup.onboardingDone = true
+    let relaunch = false
+    if (typeof requestedDir === 'string' && requestedDir.trim() && !NOTES_DIR_FROM_ENV) {
+      const target = path.resolve(requestedDir.trim())
+      const same = (a: string, b: string): boolean => path.relative(a, b) === ''
+      const allowed =
+        (pickedNotesFolder !== null && same(target, pickedNotesFolder)) ||
+        same(target, NOTES_DIR) ||
+        same(target, DEFAULT_NOTES_DIR)
+      if (!allowed) {
+        logSecurityRefusal('finish-app-setup', target)
+        return { success: false, error: 'Ce dossier n’a pas été choisi dans la fenêtre de sélection.' }
+      }
+      const check = validateNotesFolder(target)
+      if (!check.ok) return { success: false, error: check.error }
+      if (!same(check.path, NOTES_DIR)) {
+        fs.mkdirSync(check.path, { recursive: true })
+        relaunch = true
+      }
+      if (same(check.path, DEFAULT_NOTES_DIR)) delete setup.notesDir
+      else setup.notesDir = check.path
+    }
+    writeAppSetup(APP_SETUP_FILE, setup)
+    if (relaunch) {
+      // Le dossier de notes est résolu au démarrage : relance (la fermeture enregistre la saisie en attente)
+      console.log('[AppSetup] nouveau dossier de notes, relance')
+      setTimeout(() => {
+        app.relaunch()
+        app.quit()
+      }, 400)
+    }
+    return { success: true, relaunching: relaunch }
+  } catch (err) {
+    console.error('[AppSetup]', err)
+    return { success: false, error: err instanceof Error ? err.message : String(err) }
+  }
+})
+
 // Create folder
 ipcMain.handle('create-folder', (_event, parentRelativePath: string, folderName: string) => {
   ensureDir(NOTES_DIR)
@@ -1607,24 +1791,22 @@ ipcMain.handle('create-folder', (_event, parentRelativePath: string, folderName:
   return null
 })
 
-// Create note/page in folder or root (markdown by default, or html if specified)
+// Nouvelle note : HTML par défaut (extension ajoutée si le nom n'en a pas) ; Markdown seulement si demandé
+// (templateType 'md' ou nom en .md)
 ipcMain.handle(
   'create-note',
-  (_event, parentRelativePath?: string, title?: string, templateType: 'html' | 'md' = 'md') => {
+  (_event, parentRelativePath?: string, title?: string, templateType: 'html' | 'md' = 'html') => {
     ensureDir(NOTES_DIR)
     const cleanParent = parentRelativePath ? parentRelativePath.trim() : ''
     const targetDir = notePath(cleanParent, { allowRoot: true })
     ensureDir(targetDir)
 
     const rawTitle = title && title.trim() ? title.trim() : ''
-    const isHtml =
-      templateType === 'html' ||
-      rawTitle.toLowerCase().endsWith('.html') ||
-      rawTitle.toLowerCase().endsWith('.htm')
-    const hasExt =
-      rawTitle.toLowerCase().endsWith('.html') ||
-      rawTitle.toLowerCase().endsWith('.htm') ||
-      rawTitle.toLowerCase().endsWith('.md')
+    const lowerTitle = rawTitle.toLowerCase()
+    const typedHtml = lowerTitle.endsWith('.html') || lowerTitle.endsWith('.htm')
+    const typedMd = lowerTitle.endsWith('.md')
+    const isHtml = typedHtml || (!typedMd && templateType !== 'md')
+    const hasExt = typedHtml || typedMd
 
     let fileName = ''
     if (hasExt) {
@@ -1648,98 +1830,9 @@ ipcMain.handle(
     const noteTitle = fileName.replace(/\.(html|htm|md)$/i, '')
 
     if (isHtml) {
-      const htmlStarter = `<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${noteTitle}</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0f0f11;
-      color: #f4f4f5;
-      padding: 32px;
-      min-height: 100vh;
-    }
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    h1 {
-      color: #38bdf8;
-      font-size: 32px;
-      margin-bottom: 12px;
-    }
-    p {
-      color: #a1a1aa;
-      font-size: 16px;
-      line-height: 1.6;
-      margin-bottom: 20px;
-    }
-    .card {
-      background: #18181b;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 24px;
-      margin-top: 24px;
-    }
-    button {
-      background: #38bdf8;
-      color: #09090b;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 14px;
-      cursor: pointer;
-      transition: transform 0.15s, opacity 0.15s;
-    }
-    button:hover {
-      opacity: 0.9;
-      transform: translateY(-1px);
-    }
-    #counter-display {
-      font-size: 20px;
-      font-weight: 700;
-      color: #4ade80;
-      margin-top: 14px;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>${noteTitle}</h1>
-    <p>Cette page HTML supporte le CSS intégré et le JavaScript interactif en direct !</p>
-
-    <div class="card">
-      <h3 style="margin-bottom: 8px;">Test interactif</h3>
-      <p style="margin-bottom: 12px;">Cliquez pour tester l'exécution du JavaScript :</p>
-      <button id="btn-count">Incrémenter le compteur</button>
-      <div id="counter-display">Compteur : 0</div>
-    </div>
-  </div>
-
-  <script>
-    let count = 0;
-    const btn = document.getElementById('btn-count');
-    const display = document.getElementById('counter-display');
-
-    btn.addEventListener('click', () => {
-      count++;
-      display.textContent = 'Compteur : ' + count;
-    });
-
-    console.log('${noteTitle} prêt !');
-  </script>
-</body>
-</html>`
-      writeFileAtomic(fullPath, htmlStarter)
+      // Modèle partagé : thème des notes, repères pour démarrer, carte « Créé avec NOTE-APP »
+      const relative = path.relative(NOTES_DIR, fullPath).replace(/\\/g, '/')
+      writeFileAtomic(fullPath, buildNewHtmlNote(noteTitle, relative))
     } else {
       writeFileAtomic(fullPath, `# ${noteTitle}\n\n`)
     }
@@ -1858,9 +1951,12 @@ ipcMain.handle('open-in-browser', (_event, relativePath: string) => {
   return false
 })
 
-// Ouvrir une adresse web dans le navigateur du système (http et https uniquement)
+// Ouvrir une adresse dans le système (navigateur ou client mail : http, https et mailto uniquement)
 ipcMain.handle('open-external-url', async (_event, url: string) => {
-  assertWebUrl(url)
+  if (typeof url !== 'string' || !isAllowedExternalUrl(url)) {
+    logSecurityRefusal('open-external-url', String(url))
+    throw new PathAccessError(`seules les adresses http(s) et mailto sont autorisées ("${url}").`)
+  }
   await shell.openExternal(url)
   return true
 })
@@ -2115,7 +2211,16 @@ function loadSnippets(): { snippets: any[]; trigger: string; error?: string } {
     const raw = fs.readFileSync(SNIPPETS_FILE, 'utf-8')
     const parsed = JSON.parse(raw)
     if (parsed && Array.isArray(parsed.snippets)) {
-      return { snippets: parsed.snippets, trigger: parsed.trigger || '/' }
+      // Snippets par défaut ajoutés depuis la création du fichier : proposés aussi (fusion en mémoire,
+      // le fichier n'est pas modifié ; "disabledDefaults" permet d'en masquer)
+      return {
+        snippets: mergeDefaultSnippets(
+          parsed.snippets,
+          defaults.snippets || [],
+          parsed.disabledDefaults
+        ),
+        trigger: parsed.trigger || '/'
+      }
     } else {
       return {
         snippets: defaults.snippets || [],
@@ -2832,15 +2937,39 @@ ipcMain.handle('restore-note-version', async (_event, relativePath: string, vers
   return content
 })
 
+// Thème partagé .theme/notes.css : réécrit (atomiquement) seulement s'il diffère du thème de l'app.
+// Les notes créées avec /page s'y relient pour garder leur style hors de l'app.
+function syncNotesTheme(): void {
+  const target = join(NOTES_DIR, ...NOTES_THEME_FILE.split('/'))
+  const expected = NOTES_THEME_HEADER + bundledThemeCss
+  try {
+    if (fs.existsSync(target) && fs.readFileSync(target, 'utf-8') === expected) return
+    writeFileAtomic(target, expected)
+  } catch (err) {
+    console.error('[Thème] .theme/notes.css non écrit :', err)
+  }
+}
+
 // Handler Exportateur Pro Multi-formats (PDF, Word docx, HTML autonome)
 ipcMain.handle('export-note', async (_event, params: ExportNoteParams) => {
-  let themeCss = ''
+  // Thème de l'app embarqué dans l'export (un ancien .snippets/theme.css personnalisé reste prioritaire)
+  let themeCss = bundledThemeCss
   try {
     const themePath = join(NOTES_DIR, '.snippets', 'theme.css')
     if (fs.existsSync(themePath)) {
       themeCss = fs.readFileSync(themePath, 'utf-8')
     }
-  } catch {}
+  } catch (err) {
+    console.error('[Export] Thème personnalisé illisible, thème de l’app utilisé :', err)
+  }
+  // Le lien vers .theme/notes.css n'a pas de sens dans un fichier exporté (thème déjà embarqué)
+  params = {
+    ...params,
+    content: stripNotesThemeLink(params.content),
+    htmlRendered: params.htmlRendered
+      ? stripNotesThemeLink(params.htmlRendered)
+      : params.htmlRendered
+  }
 
   const baseFileName =
     params.defaultFileName ||
@@ -2868,6 +2997,14 @@ ipcMain.handle('export-note', async (_event, params: ExportNoteParams) => {
 })
 
 app.whenReady().then(async () => {
+  // Fenêtre « À propos » et métadonnées de l'app (auteur : src/shared/credits.ts)
+  app.setAboutPanelOptions({
+    applicationName: APP_NAME,
+    applicationVersion: app.getVersion(),
+    copyright: COPYRIGHT,
+    authors: [AUTHOR],
+    website: AUTHOR_GITHUB
+  })
   console.log('MAIN: app.whenReady fired!')
   electronApp.setAppUserModelId('com.electron')
   app.userAgentFallback = CHROME_UA
@@ -2880,6 +3017,7 @@ app.whenReady().then(async () => {
   ensureDir(NOTES_DIR)
   const tempReport = cleanupTempFiles(NOTES_DIR)
   recoveredTempFiles = tempReport.recovered
+  syncNotesTheme()
   if (tempReport.removed.length > 0 || tempReport.recovered.length > 0) {
     console.warn(
       `[AtomicWrite] ${tempReport.removed.length} temporaire(s) supprimé(s), ` +

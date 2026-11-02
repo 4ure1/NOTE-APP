@@ -222,6 +222,9 @@ export function updateLinksInContent(
   const { masked, unmask } = maskProtectedBlocks(content)
 
   const refDir = getDirname(normRef)
+  // Nouvel emplacement du fichier qui contient les liens, s'il est déplacé : lui-même (note renommée)
+  // ou une note située dans le dossier déplacé (le reste de son chemin est conservé)
+  const movedRefPath = isSelfMoved ? normNew + normRef.slice(normOld.length) : normRef
   const oldBaseNoExt = getBaseNameWithoutExt(normOld)
   const newBaseNoExt = getBaseNameWithoutExt(normNew)
 
@@ -348,8 +351,9 @@ export function updateLinksInContent(
     const normUrlPath = normalizePosix(decodedPath)
 
     // Résoudre le chemin de la cible dans la vault
-    // Si isSelfMoved : pour le fichier déplacé lui-même, sa référence originale était calculée depuis oldPath
-    const effectiveRefDir = isSelfMoved ? getDirname(normOld) : refDir
+    // Les liens d'origine sont relatifs au dossier d'origine du fichier qui les contient (y compris
+    // pour une note située dans un dossier déplacé, et non le dossier parent du dossier déplacé)
+    const effectiveRefDir = refDir
     const resolvedVaultTarget = resolvePosixPath(effectiveRefDir, normUrlPath)
 
     let targetChanged = false
@@ -380,7 +384,7 @@ export function updateLinksInContent(
     }
 
     // Si la cible a changé OU si le fichier lui-même a changé d'emplacement
-    const currentNewRefDir = isSelfMoved ? getDirname(normNew) : refDir
+    const currentNewRefDir = getDirname(movedRefPath)
     if (targetChanged || (isSelfMoved && effectiveRefDir !== currentNewRefDir)) {
       const newRel = computePosixRelativePath(currentNewRefDir, newVaultTarget)
       // Encoder les espaces si l'original était encodé
@@ -405,6 +409,13 @@ export function updateLinksInContent(
   // 1. HTML href="..."
   const hrefRegex = /(<a\b[^>]*?\bhref=(["']))(.*?)\2/gi
   result = result.replace(hrefRegex, (fullMatch, prefix, quote, url, offset) => {
+    const updated = processUrl(url, offset, 'html-href', fullMatch)
+    return `${prefix}${updated}${quote}`
+  })
+
+  // 1 bis. Feuilles de style <link href="..."> (dont le thème partagé .theme/notes.css)
+  const linkHrefRegex = /(<link\b[^>]*?\bhref=(["']))(.*?)\2/gi
+  result = result.replace(linkHrefRegex, (fullMatch, prefix, quote, url, offset) => {
     const updated = processUrl(url, offset, 'html-href', fullMatch)
     return `${prefix}${updated}${quote}`
   })

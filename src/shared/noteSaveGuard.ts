@@ -29,6 +29,24 @@ export function shouldConfirmLeavingNote(params: {
   return hasUnsavedEdits
 }
 
+/**
+ * L'aperçu affiche-t-il le contenu chargé de la note ouverte ? Après un changement de note, il peut
+ * encore montrer l'ancienne note (contenu en cours de lecture, aperçu figé pendant une saisie) : il est
+ * alors remplacé par un écran neutre, et ses modifications sont ignorées, sinon le HTML de l'ancienne
+ * note serait enregistré dans la nouvelle.
+ */
+export function previewMatchesNote(params: {
+  // Note pour laquelle l'aperçu affiché a été construit
+  previewFile: string | null
+  // Note ouverte
+  currentFile: string | null
+  // Note dont le contenu de l'éditeur est issu (lecture terminée)
+  contentFile: string | null
+}): boolean {
+  const { previewFile, currentFile, contentFile } = params
+  return !!currentFile && previewFile === currentFile && contentFile === currentFile
+}
+
 export function decideNoteSave(
   saved: SavedNoteState,
   file: string,

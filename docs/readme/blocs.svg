@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="380" viewBox="0 0 960 380" role="img" aria-labelledby="t d">
+  <title id="t">Déplacer et colorer les blocs</title>
+  <desc id="d">Animation : une carte est saisie par sa poignée et glissée à une autre place ; puis un clic droit dans un tableau ouvre le menu pour colorer les cases.</desc>
+  <!-- NOTE-APP — © 2026 4URE1 — https://github.com/4ure1 -->
+  <defs>
+    <pattern id="grille" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#ffffff" stroke-opacity="0.035"/>
+    </pattern>
+    <filter id="ombre" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="12" flood-color="#000" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+  <rect width="960" height="380" rx="18" fill="#121215"/>
+  <rect width="960" height="380" rx="18" fill="url(#grille)"/>
+
+  <g font-family="Segoe UI, sans-serif">
+    <!-- Grille de cartes : Parse, Validate (déplacée), Execute -->
+    <g transform="translate(60 54)">
+      <g>
+        <rect width="170" height="104" rx="14" fill="#2a1a1c" stroke="#ef4444" stroke-width="1.5"/>
+        <text x="16" y="32" font-size="16" font-weight="700" fill="#f2f2f2">Parse</text>
+        <rect x="16" y="52" width="120" height="7" rx="3.5" fill="#ffffff" fill-opacity="0.12"/>
+        <rect x="16" y="68" width="80" height="7" rx="3.5" fill="#ffffff" fill-opacity="0.12"/>
+      </g>
+      <!-- Execute glisse vers la gauche quand Validate passe derrière lui -->
+      <g>
+        <animateTransform attributeName="transform" type="translate" values="372 0;372 0;186 0;186 0;372 0" keyTimes="0;0.3;0.38;0.9;1" dur="8s" repeatCount="indefinite"/>
+        <rect width="170" height="104" rx="14" fill="#182523" stroke="#3fb9a8" stroke-width="1.5"/>
+        <text x="16" y="32" font-size="16" font-weight="700" fill="#f2f2f2">Execute</text>
+        <rect x="16" y="52" width="120" height="7" rx="3.5" fill="#ffffff" fill-opacity="0.12"/>
+        <rect x="16" y="68" width="80" height="7" rx="3.5" fill="#ffffff" fill-opacity="0.12"/>
+      </g>
+      <!-- Ligne de dépôt -->
+      <rect x="548" y="0" width="3" height="104" rx="1.5" fill="#38bdf8" opacity="0">
+        <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.24;0.27;0.38;0.4;1" dur="8s" repeatCount="indefinite"/>
+      </rect>
+      <!-- Validate : saisie par la poignée, levée, déplacée à la fin -->
+      <g filter="url(#ombre)">
+        <animateTransform attributeName="transform" type="translate" values="186 0;186 0;196 -12;400 -12;372 0;372 0;186 0" keyTimes="0;0.12;0.16;0.32;0.38;0.9;1" dur="8s" repeatCount="indefinite"/>
+        <rect width="170" height="104" rx="14" fill="#221c2e" stroke="#a371f7" stroke-width="1.5"/>
+        <text x="16" y="32" font-size="16" font-weight="700" fill="#f2f2f2">Validate</text>
+        <rect x="16" y="52" width="120" height="7" rx="3.5" fill="#ffffff" fill-opacity="0.12"/>
+        <rect x="16" y="68" width="80" height="7" rx="3.5" fill="#ffffff" fill-opacity="0.12"/>
+        <g transform="translate(-24 4)">
+          <rect width="18" height="24" rx="5" fill="#202024" stroke="#38bdf8"/>
+          <text x="9" y="17" text-anchor="middle" font-size="13" fill="#e4e4e7">⠿</text>
+        </g>
+      </g>
+    </g>
+
+    <!-- Tableau et clic droit -->
+    <g transform="translate(60 200)" font-family="Trebuchet MS, Segoe UI, sans-serif" font-size="13">
+      <rect width="520" height="132" rx="10" fill="#1e1e1e" stroke="#3e3e42"/>
+      <path d="M10 0 H510 a10 10 0 0 1 10 10 V44 H0 V10 a10 10 0 0 1 10 -10 Z" fill="#4fc1ff" fill-opacity="0.12"/>
+      <line x1="173" y1="0" x2="173" y2="132" stroke="#3e3e42"/>
+      <line x1="346" y1="0" x2="346" y2="132" stroke="#3e3e42"/>
+      <line x1="0" y1="44" x2="520" y2="44" stroke="#3e3e42"/>
+      <line x1="0" y1="88" x2="520" y2="88" stroke="#3e3e42"/>
+      <text x="16" y="28" fill="#4fc1ff" font-weight="700">Anomalie</text>
+      <text x="189" y="28" fill="#4fc1ff" font-weight="700">Ce qui se passe</text>
+      <text x="362" y="28" fill="#4fc1ff" font-weight="700">Solution</text>
+      <!-- Cases sélectionnées puis colorées -->
+      <rect x="1" y="45" width="172" height="42" fill="#38bdf8" fill-opacity="0">
+        <animate attributeName="fill-opacity" values="0;0;0.16;0.16;0;0" keyTimes="0;0.48;0.5;0.68;0.69;1" dur="8s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="1" y="89" width="172" height="42" fill="#38bdf8" fill-opacity="0">
+        <animate attributeName="fill-opacity" values="0;0;0.16;0.16;0;0" keyTimes="0;0.52;0.54;0.68;0.69;1" dur="8s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="1" y="45" width="172" height="86" fill="#e0823d" fill-opacity="0">
+        <animate attributeName="fill-opacity" values="0;0;0.24;0.24;0" keyTimes="0;0.68;0.7;0.95;1" dur="8s" repeatCount="indefinite"/>
+      </rect>
+      <text x="16" y="72" fill="#ce9178">Dirty read</text>
+      <text x="189" y="72" fill="#d4d4d8">lecture non validée</text>
+      <text x="362" y="72" fill="#d4d4d8">READ COMMITTED</text>
+      <text x="16" y="116" fill="#ce9178">Phantom read</text>
+      <text x="189" y="116" fill="#d4d4d8">nouvelles lignes</text>
+      <text x="362" y="116" fill="#d4d4d8">SERIALIZABLE</text>
+    </g>
+
+    <!-- Menu du clic droit -->
+    <g transform="translate(250 214)" opacity="0">
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.56;0.58;0.68;0.7;1" dur="8s" repeatCount="indefinite"/>
+      <rect width="230" height="150" rx="10" fill="#18181b" stroke="#ffffff" stroke-opacity="0.1" filter="url(#ombre)"/>
+      <text x="12" y="22" font-size="10.5" fill="#a1a1aa" letter-spacing="0.4">FOND DES 2 CASES</text>
+      <g transform="translate(12 32)">
+        <rect width="20" height="20" rx="6" fill="#2a2a2e" stroke="#ffffff" stroke-opacity="0.2"/>
+        <rect x="26" width="20" height="20" rx="6" fill="#ef4444"/>
+        <rect x="52" width="20" height="20" rx="6" fill="#e0823d" stroke="#ffffff" stroke-width="2"/>
+        <rect x="78" width="20" height="20" rx="6" fill="#d4b13a"/>
+        <rect x="104" width="20" height="20" rx="6" fill="#57ab5a"/>
+        <rect x="130" width="20" height="20" rx="6" fill="#a371f7"/>
+        <rect x="156" width="20" height="20" rx="6" fill="#3fb9a8"/>
+        <rect x="182" width="20" height="20" rx="6" fill="#4a8fe7"/>
+      </g>
+      <line x1="6" y1="64" x2="224" y2="64" stroke="#ffffff" stroke-opacity="0.08"/>
+      <text x="14" y="86" font-size="12.5" fill="#d4d4d8">Insérer une ligne en dessous</text>
+      <text x="14" y="110" font-size="12.5" fill="#d4d4d8">Insérer une colonne à droite</text>
+      <text x="14" y="134" font-size="12.5" fill="#d4d4d8">Vider les cases</text>
+    </g>
+
+    <!-- Légendes -->
+    <text x="700" y="96" font-size="13.5" fill="#d4d4d8">⠿ Glisser : déplacer une carte</text>
+    <text x="700" y="118" font-size="12.5" fill="#71717a">clic : sélectionner (Ctrl+clic : plusieurs)</text>
+    <text x="640" y="250" font-size="13.5" fill="#d4d4d8">Clic droit dans un tableau</text>
+    <text x="640" y="272" font-size="12.5" fill="#71717a">couleur des cases, lignes et colonnes</text>
+    <text x="640" y="294" font-size="12.5" fill="#71717a">Ctrl+clic ou glisser : plusieurs cases</text>
+  </g>
+</svg>

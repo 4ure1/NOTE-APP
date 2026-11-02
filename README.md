@@ -10,26 +10,83 @@
   <img alt="Vite 7" src="https://img.shields.io/badge/Vite-7-646CFF?style=flat-square&logo=vite&logoColor=white">
   <img alt="Tests Vitest" src="https://img.shields.io/badge/tests-Vitest-6E9F18?style=flat-square&logo=vitest&logoColor=white">
   <img alt="100 % local" src="https://img.shields.io/badge/donn%C3%A9es-100%25%20locales-6a9955?style=flat-square">
+  <a href="https://github.com/4ure1"><img alt="Auteur : 4URE1" src="https://img.shields.io/badge/auteur-4URE1-181717?style=flat-square&logo=github&logoColor=white"></a>
+  <a href="LICENSE"><img alt="Licence : tous droits réservés" src="https://img.shields.io/badge/licence-tous%20droits%20r%C3%A9serv%C3%A9s-c586c0?style=flat-square"></a>
 </p>
 
 <p align="center">
+  <a href="#comment-ça-marche">Comment ça marche</a> ·
   <a href="#fonctionnalités">Fonctionnalités</a> ·
   <a href="#vos-notes-sont-protégées">Protection des notes</a> ·
   <a href="#installation">Installation</a> ·
   <a href="#développement">Développement</a> ·
   <a href="#où-sont-les-données">Données</a> ·
-  <a href="#sécurité">Sécurité</a>
+  <a href="#auteur-et-licence">Auteur</a>
 </p>
 
 Application de bureau pour prendre des notes **en local**, sous Windows 11. Les notes sont de simples
 fichiers HTML ou Markdown rangés dans un dossier : pas de compte, pas de cloud, pas de base de données.
+On écrit **directement dans la page mise en forme**, comme dans un traitement de texte, et le fichier reste
+du HTML propre et lisible.
 
 Construite avec Electron 39, React 19, TypeScript 5.9 et electron-vite (Vite 7).
 
+## Comment ça marche
+
+### 1. Une visite guidée au premier lancement
+
+Au premier démarrage, une visite présente l'essentiel et demande **où ranger les notes** : le dossier
+proposé (`%USERPROFILE%\Notes`) ou n'importe quel autre, par exemple un dossier OneDrive ou un disque
+externe. Elle se relance à tout moment depuis les Paramètres, ce qui permet aussi de changer de dossier.
+
+<p align="center">
+  <img src="docs/readme/visite.svg" alt="La fenêtre de bienvenue fait défiler ses écrans : Bienvenue, Écrire, Relier" width="100%">
+</p>
+
+### 2. Une note = un fichier HTML
+
+`Ctrl+N` crée une note. Sans extension, le nom devient une page **HTML** (`Ma note` → `Ma note.html`) ;
+tapez `nom.md` pour une note Markdown. Chaque nouvelle note est reliée au thème partagé et commence par
+quelques repères pour démarrer.
+
+### 3. Écrire dans l'aperçu, avec le menu « / »
+
+Tapez `/` n'importe où : le menu des blocs s'ouvre. Un nombre choisit la taille du bloc :
+`/table-3-2` (3 colonnes, 2 lignes), `/cards-4`, `/canvas-3`, `/ul-5`, `/qcm-4`… Les couleurs de texte
+se retiennent par leur initiale : `/ho` orange, `/hg` vert, `/hb` bleu, `/hr` rouge.
+
+<p align="center">
+  <img src="docs/readme/ecrire.svg" alt="On tape /table-3-2, le menu des blocs s'ouvre, puis un tableau apparaît" width="100%">
+</p>
+
+L'éditeur s'occupe de la propreté du code : Entrée crée de vrais paragraphes (jamais de `<br>` en
+série), un bloc n'est jamais glissé dans un paragraphe, le collage depuis une page web garde la structure
+mais pas les styles, et `Ctrl+Z` annule tout, mot par mot.
+
+### 4. Déplacer, sélectionner, colorer
+
+La poignée **⠿** à gauche d'un bloc le déplace en douceur (le bloc suit la souris, une ligne montre où il
+sera posé). Un clic sur la poignée le sélectionne, `Ctrl+clic` en ajoute d'autres : `Suppr` les supprime,
+`Ctrl+D` les duplique. Dans un tableau, un clic droit colore les cases, ajoute ou retire lignes et colonnes.
+
+<p align="center">
+  <img src="docs/readme/blocs.svg" alt="Une carte glissée à une autre place, puis un clic droit qui colore deux cases d'un tableau" width="100%">
+</p>
+
+### 5. Relier ses idées dans un canvas
+
+`/canvas-4` place des cartes librement. On tire un point du bord d'une carte vers une autre pour créer une
+flèche souple, qui suit les cartes quand on les déplace. Double-clic dans le vide : nouvelle carte. Tout
+reste du HTML et du SVG statiques, lisibles à l'export comme dans un navigateur.
+
+<p align="center">
+  <img src="docs/readme/canvas.svg" alt="Une flèche souple se dessine entre deux cartes d'un canvas" width="100%">
+</p>
+
 ## Fonctionnalités
 
-- **Notes HTML** avec un design system sombre : éditeur de code Monaco et aperçu éditable directement
-  (menu de blocs « / », synchronisation du défilement entre le code et l'aperçu).
+- **Notes HTML** avec un design system sombre : éditeur de code Monaco et **aperçu éditable** (menu de
+  blocs « / », snippets à nombre, glisser-déposer, sélection de blocs, tableaux et canvas, annulation).
 - **Notes Markdown** avec @uiw/react-md-editor.
 - **Lecteur PDF** intégré, avec surlignages et citations insérées dans une note (lien vers la page).
 - **Historique « Time Travel »** : versions successives de chaque note, restaurables.
@@ -60,7 +117,7 @@ Construite avec Electron 39, React 19, TypeScript 5.9 et electron-vite (Vite 7).
 Prérequis : Windows 11, [Node.js](https://nodejs.org) (développé avec la version 24) et Git.
 
 ```powershell
-git clone <url-du-dépôt> note-app
+git clone https://github.com/4ure1/NOTE-APP.git note-app
 cd note-app
 npm install
 ```
@@ -100,7 +157,9 @@ points-virgules, guillemets simples, largeur 100.
 
 ## Où sont les données
 
-Tout se trouve dans le dossier de notes (`%USERPROFILE%\Notes`, ou celui indiqué par `NOTE_APP_NOTES_DIR`) :
+Tout se trouve dans le dossier de notes : celui choisi au premier lancement (par défaut
+`%USERPROFILE%\Notes`), ou celui indiqué par `NOTE_APP_NOTES_DIR` en développement. Seul le choix de ce
+dossier est gardé à part, dans le dossier de données de l'application (`app-setup.json`) :
 
 | Élément | Contenu |
 |---|---|
@@ -111,7 +170,8 @@ Tout se trouve dans le dossier de notes (`%USERPROFILE%\Notes`, ou celui indiqu�
 | `.recovery/` | Écritures interrompues récupérées au démarrage (après un arrêt brutal) |
 | `.snippets/snippets.json` | Blocs proposés par le menu « / » |
 | `.templates/` | Modèles de notes |
-| `.config.json` | Favoris, tags et réglages |
+| `.theme/notes.css` | Thème partagé auquel se relient les nouvelles notes et `/page` (géré par l'application) |
+| `.config.json` | Favoris, tags, réglages et visite guidée déjà vue |
 
 Sauvegarder ce dossier suffit à sauvegarder toutes vos notes et leur historique.
 
@@ -144,3 +204,10 @@ Les règles de développement du projet (sécurité, écritures, conventions, pi
 
 `test-vault/securite/note-piegee.html` est une note de test de sécurité : ne la copiez jamais hors de
 `test-vault/`.
+
+## Auteur et licence
+
+Conçu et développé par **[4URE1](https://github.com/4ure1)** — dépôt : [github.com/4ure1/NOTE-APP](https://github.com/4ure1/NOTE-APP).
+
+© 2026 4URE1. Tous droits réservés : voir [`LICENSE`](LICENSE). Aucune copie, modification ni redistribution
+sans autorisation écrite de l'auteur.

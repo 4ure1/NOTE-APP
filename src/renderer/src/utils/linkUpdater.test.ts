@@ -300,3 +300,71 @@ Lien vers [[dossierA/commune]] et [[dossierB/commune]].
     expect(updatedContent).toContain('[Lien Markdown](Manuel.html#conclusion)')
   })
 })
+
+describe('updateLinksInContent : notes situées dans un dossier déplacé', () => {
+  it('recalcule leurs liens vers l’extérieur du dossier', () => {
+    const { updatedContent } = updateLinksInContent(
+      'cours/algo/a.html',
+      '<a href="../../sommaire.html">s</a>',
+      'cours',
+      'archives/2026/cours',
+      true
+    )
+    expect(updatedContent).toBe('<a href="../../../../sommaire.html">s</a>')
+  })
+
+  it('laisse intacts leurs liens vers une autre note du même dossier déplacé', () => {
+    const { updatedContent, changes } = updateLinksInContent(
+      'cours/algo/a.html',
+      '<a href="../intro.html">i</a> <a href="b.html">b</a>',
+      'cours',
+      'archives/2026/cours',
+      true
+    )
+    expect(updatedContent).toBe('<a href="../intro.html">i</a> <a href="b.html">b</a>')
+    expect(changes).toHaveLength(0)
+  })
+
+  it('ne touche pas une note hors du dossier déplacé dont les liens n’y pointent pas', () => {
+    const { changes } = updateLinksInContent(
+      'autre/x.html',
+      '<a href="../sommaire.html">s</a>',
+      'cours',
+      'archives/cours',
+      true
+    )
+    expect(changes).toHaveLength(0)
+  })
+})
+
+describe('updateLinksInContent : feuille de style partagée <link href>', () => {
+  const head = (href: string): string => `<link rel="stylesheet" href="${href}" data-nf-theme>`
+
+  it('recalcule le lien vers .theme/notes.css quand la note change de profondeur', () => {
+    const { updatedContent } = updateLinksInContent(
+      'a.html',
+      head('.theme/notes.css'),
+      'a.html',
+      'cours/algo/a.html',
+      false
+    )
+    expect(updatedContent).toBe(head('../../.theme/notes.css'))
+  })
+
+  it('le recalcule aussi pour une note dans un dossier déplacé', () => {
+    const { updatedContent } = updateLinksInContent(
+      'cours/a.html',
+      head('../.theme/notes.css'),
+      'cours',
+      'archives/2026/cours',
+      true
+    )
+    expect(updatedContent).toBe(head('../../../.theme/notes.css'))
+  })
+
+  it('ne touche pas une feuille de style externe', () => {
+    const external = head('https://cdn.example.com/x.css')
+    const { updatedContent } = updateLinksInContent('a.html', external, 'a.html', 'b/a.html', false)
+    expect(updatedContent).toBe(external)
+  })
+})

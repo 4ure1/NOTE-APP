@@ -39,12 +39,24 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
   le contenu renvoyé par le renderer et abandonne si une note a changé depuis `prepare`.
 - `src/renderer/src/App.tsx` (~6 200 lignes) : tout l'état de l'app (useState, pas de store),
   passé aux composants par props. `components/CodeWorkspace.tsx` = Monaco + aperçu iframe.
+- Auteur : 4URE1 (https://github.com/4ure1), tous droits réservés (`LICENSE`). Nom et liens dans
+  `src/shared/credits.ts` (Paramètres, fenêtre « À propos », console) ; `package.json` (author, repository) et
+  `electron-builder.yml` (copyright) le reprennent. En-tête `/*! … */` (gardé au build) dans les fichiers essentiels.
+- Nouvelle note : HTML par défaut (`create-note`, Sidebar, App ; Markdown seulement pour un nom en `.md` ou sur
+  demande), contenu tiré de `buildNewHtmlNote` (`src/shared/newNoteTemplate.ts` : lien vers le thème partagé,
+  repères, carte animée `.nf-credit` du thème). Visite guidée au premier lancement : `WelcomeTour.tsx`
+  (écran du choix du dossier de notes ; `onboardingDone` dans `app-setup.json`, relançable depuis les Paramètres
+  par l'événement `nf-open-tour`).
 - `src/shared/` : logique pure partagée (liens, plan, annotations PDF). Les fichiers `renderer/src/utils/*.ts`
   d'une seule ligne ne font que la réexporter : modifier `src/shared/`.
-- Dossier de notes : `src/main/notesDir.ts` (`NOTE_APP_NOTES_DIR`, sinon `~/Notes`), résolu une fois dans
-  `NOTES_DIR` (`src/main/index.ts`). Tout le main en dérive.
+- Dossier de notes : `src/main/notesDir.ts` (`NOTE_APP_NOTES_DIR`, sinon le dossier choisi au premier lancement,
+  sinon `~/Notes`), résolu une fois dans `NOTES_DIR` (`src/main/index.ts`). Tout le main en dérive. Le choix et
+  la visite vue sont dans `<userData>/app-setup.json` (hors des notes) ; `finish-app-setup` n'accepte que le
+  dossier rendu par `choose-notes-folder` (ou l'actuel, ou `~/Notes`) et relance l'app s'il change. En mode test
+  (variable définie), le choix est désactivé et le titre porte `[TEST-VAULT]`.
 - Données à l'exécution, toutes dans le dossier de notes : `.trash/`, `.history/`, `.snippets/snippets.json`,
-  `.templates/`, `.recovery/` (temporaires orphelins récupérés au démarrage), `.config.json`.
+  `.templates/`, `.recovery/` (temporaires orphelins récupérés au démarrage), `.theme/notes.css` (copie de
+  `theme.css` réécrite au démarrage si elle diffère), `.config.json`.
   Temporaires d'écriture : `.<nom>.<pid>-<aléa>.nftmp`, nettoyés au démarrage (`cleanupTempFiles`).
 
 ## Conventions
@@ -82,12 +94,13 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
    L'utilisateur s'en charge.
 
 ## Chantiers en attente
-### 3b (sécurité, relevé lors du bug de la regex PDF)
-- Fenêtre principale sans garde de navigation (`src/main/index.ts`, `browser-window-created`) : un lien web
-  cliqué hors des aperçus remplace toute l'interface par la page, et un fichier servi en téléchargement
-  atterrit dans le vault via `will-download`. Bloquer `will-navigate` hors de l'URL de l'app.
-- `mainWindow.webContents.setWindowOpenHandler` appelle `shell.openExternal(details.url)` sans filtre :
-  limiter à `http(s)` (comme `assertWebUrl`).
+### 3b (isoler le JavaScript des notes ; 3b-1, gardes du main : fait)
+- 3b-2 : iframes d'aperçu sans `allow-same-origin`, protocole de messages fermé et validé
+  (`src/shared/previewProtocol.ts`), jeton par rendu, geste réel (2 s), substitut `localStorage` en mémoire,
+  refus journalisés côté main, note piégée étendue.
+- 3b-3 : SSRF (`downloadPdfFromUrl`, `download-pdf-from-url`, `web_fetch` de l'agent) : adresses privées
+  refusées, `lookup` personnalisé (résoudre, valider, se connecter sur la même IP), redirections revérifiées.
+- 3b-4 : CSP sans `unsafe-eval` (`isEvalSupported: false` pour pdf.js).
 - Message `OPEN_PDF_PAGE` (`App.tsx`, `handleMessage`) traité sans vérifier `event.source` : le JS d'une note
   peut le forger. Le restreindre aux iframes d'aperçu, comme `OPEN_EXTERNAL_URL`.
 - Le JS d'une note peut forger `PREVIEW_DOC_MUTATED` (donc réécrire la note ; `App.tsx` et
@@ -102,6 +115,15 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
   première vraie modification dans l'aperçu.
 
 ## Pièges connus
+- Thème unique : `src/renderer/src/assets/theme.css`, injecté dans l'aperçu, embarqué dans l'export (le main
+  l'importe en `?raw`) et copié dans `<notes>/.theme/notes.css`. `/page` ne copie plus de CSS : il insère
+  `<link rel="stylesheet" href="${NOTES_THEME}" data-nf-theme>`, chemin relatif calculé par les trois
+  moteurs (`src/shared/notesTheme.ts`), retiré à l'export, recalculé par le renommage avec liens.
+  Les anciennes notes gardent leur `<style>` copié (inoffensif).
+- Couleurs par initiale dans le thème : `.b .t .y .o .l .g .p .a .r` (bleu, turquoise, jaune, orange, vert
+  clair, vert, violet, bleu clair, rouge ; `:not(.tag)`), utilisées par `/hb /ht /hy /ho /hl /hg /hp /ha /hr`,
+  `/hx`, `/couleur`, `/h2-couleur`, `/h3-couleur`. Les classes de rôle `.k .t .f .s .n .c` restent pour
+  les anciennes notes et Ctrl+Maj+H ; `.c` reste le vert des commentaires (jamais une couleur cyan).
 - `normalizeHtml` (`renderer/src/utils/normalizeHtml.ts`) ne fait que réindenter (Shift+Alt+F uniquement) :
   zones brutes, commentaires et doctype recopiés à l'octet près. Ne jamais l'appeler automatiquement.
 - Sauvegarde de la note ouverte : uniquement via `persistOpenNote` / `saveOpenNote` / `flushPendingSave`
@@ -119,14 +141,62 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
   `cleanPreviewDocument` (`src/shared/previewClean.ts`) le retire.
 - Première vraie modification dans l'aperçu : toute la note est re-sérialisée par le navigateur (sens
   conservé, forme non : `&eacute;` devient `é`, `<br/>` devient `<br>`…).
-- L'aperçu iframe utilise `sandbox="allow-scripts allow-same-origin"` : le JS d'une note atteint `window.parent.api`.
+- L'aperçu iframe utilise `sandbox="allow-scripts allow-same-origin"` : le JS d'une note atteint `window.parent.api`
+  (corrigé en 3b-2).
+- Gardes posées sur tous les webContents dans `app.on('web-contents-created')` (`src/main/index.ts`, règles
+  pures dans `src/main/navigationGuard.ts`) : nouvelles fenêtres refusées par défaut, la fenêtre de l'app ne
+  navigue que vers elle-même et ses iframes que vers `about:srcdoc` / `about:blank`, `<webview>` forcée sans
+  preload ni Node. Ouvrir une URL dans le système : `openExternalSafe` (http, https, mailto), jamais
+  `shell.openExternal` directement. Hôtes comparés sur `new URL().hostname`, jamais par `includes`.
 - `save-config` fusionne avec l'existant (`src/main/configStore.ts`) : on ne peut pas supprimer une clé,
   seulement la remplacer. Un `.config.json` illisible est mis de côté (`.config.corrupt-<n>.json`).
 - Snippets : `src/main/defaultSnippets.json` et `src/renderer/src/assets/snippets.default.json` doivent rester
-  identiques. À l'exécution, c'est `<notes>/.snippets/snippets.json` qui fait foi : il n'est créé qu'une fois,
-  donc un nouveau snippet par défaut n'arrive pas chez un utilisateur existant.
+  identiques. À l'exécution, `<notes>/.snippets/snippets.json` n'est créé qu'une fois ; `get-snippets` y ajoute
+  en mémoire les snippets par défaut absents (`src/shared/snippetsMerge.ts`, même préfixe ou id : celui de
+  l'utilisateur gagne ; `"disabledDefaults": [ids]` en masque). Le fichier n'est jamais modifié par cette fusion.
 - Trois moteurs de snippets : textarea Markdown (`snippetEngine.ts`), Monaco (`monacoCompletions.ts`),
-  iframe (`CodeWorkspace.tsx`, sans tabstops : le premier choix est pris).
+  iframe (`CodeWorkspace.tsx`). Dans l'iframe, `buildSnippetFragment` (`src/shared/snippetFields.ts`) garde
+  les champs : marqueurs `<span data-nf-field>` surlignés (Tab / Maj+Tab, Échap, clic ailleurs) et choix
+  `${n|…|}` en menu appliqué en direct, y compris dans un attribut (couleur). Les marqueurs ne doivent jamais
+  être enregistrés : `cleanPreviewDocument` les retire. Les valeurs par défaut `${n:…}` ne peuvent pas
+  contenir d'accolade (pas d'imbrication) dans aucun des trois moteurs.
+- Snippets « à nombre » (`/table-3-2`, `/cards-4`, `/etapes-5`, `/ul-6`, `/ol-6`, `/qcm-5`, `/colonnes-3`,
+  `/tbl-3-2` en Markdown) : générés à la saisie par `generateDynamicSnippets` (`src/shared/dynamicSnippets.ts`),
+  dans les trois moteurs, jamais écrits dans les JSON. Fonction autonome (injectée par `toString()` dans
+  l'iframe) : aucun import ni constante externe. Un préfixe défini par l'utilisateur gagne.
+- Saisie dans l'aperçu : `createPreviewEditing` (`src/shared/previewEditing.ts`). Entrée crée des `<p>` (ou `<li>`)
+  en reprenant l'indentation du voisin, sans prolonger une coloration sur la ligne vide ; Maj+Entrée garde le
+  `<br>` ; code, cellules et zones non éditables restent au navigateur. Flèche droite au bout d'un texte coloré
+  « arme » la sortie : la frappe suivante s'écrit après le `<span>`. Après un effacement, les `<span style>` /
+  `<font>` que Chrome invente en fusionnant des blocs sont retirés (seulement les nouveaux, sans classe).
+- Canvas (`.canvas` > `.node[data-node]` + `<svg class="canvas-links">` > `g.link[data-from="1:right"][data-to]`) :
+  tout est statique dans la note (positions en style, tracés `d`). `installCanvasEditor`
+  (`src/shared/canvasEditor.ts`, géométrie dans `canvasGeometry.ts`) ajoute dans l'aperçu les points de bord,
+  la barre de carte et la sélection de flèche, marqués `data-injected-preview-helpers`. Les flèches ne sont
+  recalculées qu'après un geste (relier, déplacer, élargir, saisie dans le canvas), jamais à l'ouverture.
+- Entrée dans un `<pre>` : `insertCodeNewline` (saut de ligne dans le même `<code>`, indentation reprise ;
+  `execCommand('insertText', '\n')` coupait le bloc en deux). Glisser-déposer des tableaux et blocs :
+  `installBlockDrag` (`src/shared/blockDrag.ts`), poignée et repères en éléments d'interface, jamais de classe
+  posée sur la note pendant un geste ; les cartes d'une grille (`.duo > *`, `.nodes > *`) se déplacent une par
+  une (le groupe a sa seconde poignée). Clic sur la poignée : sélection de blocs (Ctrl/Maj+clic pour en ajouter),
+  Suppr / Ctrl+D / barre d'actions, glisser déplace toute la sélection. Tableaux : `installTableTools` (`src/shared/tableTools.ts`), sélection de
+  cases (glisser, Ctrl+clic) et clic droit (fond `bg-*`, lignes, colonnes ; couleur des `.node` / `.step`).
+  `cleanPreviewDocument` sépare d'un saut de ligne deux blocs collés (`</div><p>`) ; hors `<pre>`, `<script>`,
+  `<style>` ; les `<p></p>` de la note restent. Il coupe aussi un `<p>`/titre qui contiendrait un bloc (sans
+  laisser de `<p></p>`) et retire le `<br>` final invisible d'un bloc ; rien n'est ajouté à côté d'un bloc
+  inline-block ou dans un conteneur `white-space: pre` (marquage temporaire `data-nf-keep-space`). À l'insertion,
+  un bloc (snippet, collage) passe par `insertFragment` : jamais dans un `<p>`. Collage riche :
+  `sanitizePastedHtml` (`src/shared/pasteSanitize.ts`, structure et classes du thème gardées) ; plusieurs lignes
+  de texte brut : `pasteText` (un paragraphe par ligne). Conversion des balises tapées et Emmet : seulement dans un bloc sans balise
+  (sinon perte de la mise en forme). Surlignage des champs de snippet en `background-image` : Chrome recopiait
+  un `background-color` en style inline (fond bleu resté) ; `cleanPreviewDocument` retire ces anciens fonds.
+- Annuler dans l'aperçu (Ctrl+Z, Ctrl+Y, Ctrl+Maj+Z) : `createUndoHistory` (`src/shared/undoHistory.ts`), pas celui
+  du navigateur. Toute modification de la note dans l'aperçu doit appeler `recordUndo()` AVANT de toucher au DOM
+  (beforeinput, touches Entrée/Retour/Suppr/Tab, insertSnippet, collage, `beforeChange` du canvas et du
+  glisser-déposer). La restauration remplace le contenu du `<body>` (l'interface ajoutée est gardée ; les
+  écouteurs posés par le JS d'une note sur ses éléments sont perdus).
+- Menu « / » de l'aperçu : trié par `rankSnippets` (`src/shared/snippetRanking.ts`), liste reconstruite seulement
+  quand la saisie change ; les flèches ne font que déplacer l'élément actif.
 - La note ouverte n'est jamais relue automatiquement depuis le disque. Une écriture externe (agent, autre
   éditeur) est détectée à la sauvegarde suivante par l'empreinte SHA-256 (`src/main/noteFingerprints.ts`) :
   `write-note` renvoie `code: 'EXTERNAL_CHANGE'` et la barre de conflit (`ExternalChangeBar`) propose

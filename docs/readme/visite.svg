@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="380" viewBox="0 0 960 380" role="img" aria-labelledby="t d">
+  <title id="t">Visite guidée au premier lancement</title>
+  <desc id="d">Animation : la fenêtre de bienvenue de NOTE-APP fait défiler ses écrans (Bienvenue, Écrire, Relier) avec des points de progression.</desc>
+  <!-- NOTE-APP — © 2026 4URE1 — https://github.com/4ure1 -->
+  <defs>
+    <linearGradient id="logo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4fc1ff"/>
+      <stop offset="1" stop-color="#c586c0"/>
+    </linearGradient>
+    <linearGradient id="titre" x1="0" y1="0" x2="960" y2="0" gradientUnits="userSpaceOnUse" spreadMethod="repeat">
+      <stop offset="0" stop-color="#4fc1ff"/>
+      <stop offset="0.33" stop-color="#c586c0"/>
+      <stop offset="0.66" stop-color="#ce9178"/>
+      <stop offset="1" stop-color="#4fc1ff"/>
+      <animateTransform attributeName="gradientTransform" type="translate" from="0 0" to="960 0" dur="6s" repeatCount="indefinite"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0.3" cy="0.2" r="0.8">
+      <stop offset="0" stop-color="#4fc1ff" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#4fc1ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="960" height="380" rx="18" fill="#0d0d10"/>
+
+  <!-- Carte de la visite -->
+  <g transform="translate(200 22)" font-family="Segoe UI, sans-serif">
+    <rect width="560" height="336" rx="18" fill="#18181b" stroke="#ffffff" stroke-opacity="0.08"/>
+    <rect width="560" height="190" rx="18" fill="#121215"/>
+    <rect width="560" height="190" rx="18" fill="url(#halo)"/>
+
+    <!-- Écran 1 : Bienvenue -->
+    <g opacity="1">
+      <animate attributeName="opacity" values="1;1;0;0;1" keyTimes="0;0.3;0.33;0.97;1" dur="9s" repeatCount="indefinite"/>
+      <circle cx="280" cy="80" r="62" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-dasharray="4 6">
+        <animateTransform attributeName="transform" type="rotate" from="0 280 80" to="360 280 80" dur="14s" repeatCount="indefinite"/>
+      </circle>
+      <rect x="248" y="48" width="64" height="64" rx="18" fill="url(#logo)">
+        <animate attributeName="opacity" values="1;0.8;1" dur="2.4s" repeatCount="indefinite"/>
+      </rect>
+      <text x="280" y="92" text-anchor="middle" font-size="30" fill="#ffffff">✦</text>
+      <text x="280" y="162" text-anchor="middle" font-size="24" font-weight="800" letter-spacing="2" fill="url(#titre)">NOTE-APP</text>
+      <text x="30" y="226" font-size="12" font-weight="600" fill="#4fc1ff" letter-spacing="0.8">BIENVENUE</text>
+      <text x="30" y="254" font-size="20" font-weight="700" fill="#fafafa">Tes notes, tes fichiers, ta machine</text>
+      <text x="30" y="280" font-size="13.5" fill="#a1a1aa">Des fichiers HTML ou Markdown dans ton dossier. Rien ne part sur Internet.</text>
+    </g>
+
+    <!-- Écran 2 : Écrire -->
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.31;0.34;0.63;0.66;1" dur="9s" repeatCount="indefinite"/>
+      <rect x="130" y="32" width="300" height="126" rx="10" fill="#1e1e1e" stroke="#ffffff" stroke-opacity="0.06"/>
+      <text x="150" y="62" font-size="15" font-weight="700" fill="#4fc1ff">Cours de SQL</text>
+      <text x="150" y="88" font-family="Consolas, monospace" font-size="13" fill="#e4e4e7">/cards-3</text>
+      <rect x="150" y="100" width="80" height="44" rx="8" fill="#2a1a1c" stroke="#ef4444"/>
+      <rect x="240" y="100" width="80" height="44" rx="8" fill="#2c2318" stroke="#e0823d"/>
+      <rect x="330" y="100" width="80" height="44" rx="8" fill="#29261a" stroke="#d4b13a"/>
+      <text x="30" y="226" font-size="12" font-weight="600" fill="#4fc1ff" letter-spacing="0.8">2 · ÉCRIRE</text>
+      <text x="30" y="254" font-size="20" font-weight="700" fill="#fafafa">Écris directement dans l'aperçu</text>
+      <text x="30" y="280" font-size="13.5" fill="#a1a1aa">Tape « / » pour insérer un bloc : /table-3-2, /cards-4, /ul-5…</text>
+    </g>
+
+    <!-- Écran 3 : Relier -->
+    <g opacity="0">
+      <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.64;0.67;0.95;0.98" dur="9s" repeatCount="indefinite"/>
+      <rect x="120" y="40" width="120" height="60" rx="10" fill="#2a1a1c" stroke="#ef4444"/>
+      <rect x="320" y="96" width="120" height="60" rx="10" fill="#1a2620" stroke="#57ab5a"/>
+      <path d="M 240 70 C 290 70 270 126 320 126" fill="none" stroke="#9a9a9a" stroke-width="2.5" stroke-dasharray="130" stroke-dashoffset="130">
+        <animate attributeName="stroke-dashoffset" values="130;130;0;0" keyTimes="0;0.7;0.8;1" dur="9s" repeatCount="indefinite"/>
+      </path>
+      <text x="30" y="226" font-size="12" font-weight="600" fill="#4fc1ff" letter-spacing="0.8">4 · RELIER</text>
+      <text x="30" y="254" font-size="20" font-weight="700" fill="#fafafa">Des canvas pour relier tes idées</text>
+      <text x="30" y="280" font-size="13.5" fill="#a1a1aa">Tire un point du bord d'une carte : une flèche souple apparaît.</text>
+    </g>
+
+    <!-- Pied : points de progression et boutons -->
+    <g transform="translate(30 306)">
+      <rect width="22" height="8" rx="4" fill="#4fc1ff">
+        <animate attributeName="x" values="0;0;30;30;60;60;0" keyTimes="0;0.31;0.34;0.64;0.67;0.97;1" dur="9s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="30" width="8" height="8" rx="4" fill="#3f3f46" opacity="0.8"/>
+      <rect x="60" width="8" height="8" rx="4" fill="#3f3f46" opacity="0.8"/>
+      <rect x="90" width="8" height="8" rx="4" fill="#3f3f46" opacity="0.8"/>
+      <text x="130" y="8" font-size="12" fill="#71717a">par <tspan fill="#7dd3fc">4URE1</tspan></text>
+    </g>
+    <g transform="translate(374 292)">
+      <rect width="72" height="32" rx="8" fill="none" stroke="#ffffff" stroke-opacity="0.12"/>
+      <text x="36" y="21" text-anchor="middle" font-size="13" fill="#a1a1aa">Passer</text>
+      <rect x="82" width="76" height="32" rx="8" fill="#4fc1ff"/>
+      <text x="120" y="21" text-anchor="middle" font-size="13" font-weight="700" fill="#0b0b0d">Suivant</text>
+    </g>
+  </g>
+</svg>

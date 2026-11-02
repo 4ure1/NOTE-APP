@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="380" viewBox="0 0 960 380" role="img" aria-labelledby="t d">
+  <title id="t">Écrire dans l'aperçu</title>
+  <desc id="d">Animation : on tape /table-3-2 dans une note, le menu des blocs s'ouvre, puis un tableau de 3 colonnes et 2 lignes apparaît.</desc>
+  <!-- NOTE-APP — © 2026 4URE1 — https://github.com/4ure1 -->
+  <defs>
+    <pattern id="grille" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#ffffff" stroke-opacity="0.035"/>
+    </pattern>
+  </defs>
+  <rect width="960" height="380" rx="18" fill="#121215"/>
+  <rect width="960" height="380" rx="18" fill="url(#grille)"/>
+
+  <!-- Fenêtre de note -->
+  <g transform="translate(150 34)">
+    <rect width="660" height="312" rx="14" fill="#1e1e1e" stroke="#ffffff" stroke-opacity="0.08"/>
+    <circle cx="22" cy="20" r="5" fill="#3f3f46"/><circle cx="40" cy="20" r="5" fill="#3f3f46"/><circle cx="58" cy="20" r="5" fill="#3f3f46"/>
+    <text x="330" y="25" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="13" fill="#71717a">Cours SQL.html — aperçu</text>
+    <line x1="0" y1="40" x2="660" y2="40" stroke="#ffffff" stroke-opacity="0.06"/>
+    <text x="34" y="86" font-family="Trebuchet MS, Segoe UI, sans-serif" font-size="26" font-weight="700" fill="#4fc1ff">Les jointures</text>
+    <text x="34" y="116" font-family="Georgia, serif" font-size="15" fill="#a1a1aa">Une jointure relie les lignes de deux tables par une colonne commune.</text>
+
+    <!-- Saisie /table-3-2 -->
+    <g font-family="Consolas, monospace" font-size="16" fill="#e4e4e7">
+      <text x="34" y="156">/table-3-2</text>
+      <rect x="30" y="140" width="120" height="22" fill="#1e1e1e">
+        <animate attributeName="x" values="30;30;150;150;30" keyTimes="0;0.06;0.22;0.95;1" dur="9s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="1;1;1;0;0;1" keyTimes="0;0.22;0.44;0.45;0.98;1" dur="9s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="34" y="141" width="2" height="20" fill="#4fc1ff">
+        <animate attributeName="x" values="34;34;132;132;34" keyTimes="0;0.06;0.22;0.95;1" dur="9s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="1;0;1;0;1;0;1" keyTimes="0;0.08;0.16;0.3;0.38;0.45;1" dur="9s" repeatCount="indefinite"/>
+      </rect>
+      <!-- La ligne tapée disparaît quand le tableau est inséré -->
+      <rect x="30" y="138" width="130" height="26" fill="#1e1e1e" opacity="0">
+        <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.44;0.45;0.98;1" dur="9s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+
+    <!-- Menu des blocs -->
+    <g opacity="0" font-family="Segoe UI, sans-serif" font-size="13">
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.2;0.24;0.42;0.45;1" dur="9s" repeatCount="indefinite"/>
+      <rect x="34" y="172" width="330" height="128" rx="10" fill="#18181b" stroke="#ffffff" stroke-opacity="0.1"/>
+      <rect x="40" y="178" width="318" height="26" rx="6" fill="#38bdf8" fill-opacity="0.14"/>
+      <rect x="40" y="178" width="2" height="26" fill="#38bdf8"/>
+      <text x="52" y="196" fill="#7dd3fc" font-family="Consolas, monospace">/table-3-2</text>
+      <text x="150" y="196" fill="#f4f4f5">Tableau 3 colonnes × 2 lignes</text>
+      <text x="52" y="224" fill="#7dd3fc" font-family="Consolas, monospace">/table</text>
+      <text x="150" y="224" fill="#d4d4d8">Tableau simple</text>
+      <text x="52" y="250" fill="#7dd3fc" font-family="Consolas, monospace">/tbl-3-3</text>
+      <text x="150" y="250" fill="#d4d4d8">Tableau Markdown</text>
+      <line x1="34" y1="268" x2="364" y2="268" stroke="#ffffff" stroke-opacity="0.07"/>
+      <text x="48" y="288" fill="#71717a" font-size="11.5">3 snippets   ↑↓ choisir   Entrée insérer   Échap fermer</text>
+    </g>
+
+    <!-- Tableau inséré -->
+    <g font-family="Trebuchet MS, Segoe UI, sans-serif" font-size="14" opacity="0">
+      <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.45;0.5;0.95;1" dur="9s" repeatCount="indefinite"/>
+      <rect x="34" y="140" width="592" height="126" rx="10" fill="#1e1e1e" stroke="#3e3e42"/>
+      <path d="M44 140 H616 a10 10 0 0 1 10 10 V182 H34 V150 a10 10 0 0 1 10 -10 Z" fill="#4fc1ff" fill-opacity="0.12"/>
+      <line x1="231" y1="140" x2="231" y2="266" stroke="#3e3e42"/>
+      <line x1="428" y1="140" x2="428" y2="266" stroke="#3e3e42"/>
+      <line x1="34" y1="182" x2="626" y2="182" stroke="#3e3e42"/>
+      <line x1="34" y1="224" x2="626" y2="224" stroke="#3e3e42"/>
+      <text x="50" y="166" fill="#4fc1ff" font-weight="700">Jointure</text>
+      <text x="247" y="166" fill="#4fc1ff" font-weight="700">Garde</text>
+      <text x="444" y="166" fill="#4fc1ff" font-weight="700">Exemple</text>
+      <g opacity="0">
+        <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.55;0.6;0.95;1" dur="9s" repeatCount="indefinite"/>
+        <text x="50" y="208" fill="#ce9178">INNER JOIN</text>
+        <text x="247" y="208" fill="#d4d4d8">les correspondances</text>
+        <text x="444" y="208" fill="#d4d4d8">clients ⋈ commandes</text>
+      </g>
+      <g opacity="0">
+        <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.68;0.73;0.95;1" dur="9s" repeatCount="indefinite"/>
+        <rect x="35" y="225" width="196" height="40" fill="#57ab5a" fill-opacity="0.22"/>
+        <text x="50" y="250" fill="#ce9178">LEFT JOIN</text>
+        <text x="247" y="250" fill="#d4d4d8">tout à gauche</text>
+        <text x="444" y="250" fill="#d4d4d8">+ lignes sans commande</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Légende -->
+  <text x="480" y="368" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="13" fill="#71717a">Tape « / » dans l'aperçu : le menu des blocs s'ouvre, le nombre choisit la taille.</text>
+</svg>

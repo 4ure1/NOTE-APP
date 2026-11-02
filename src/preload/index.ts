@@ -1,3 +1,4 @@
+/*! NOTE-APP — © 2026 4URE1 — https://github.com/4ure1 — Tous droits réservés. */
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 const api = {
@@ -26,6 +27,10 @@ const api = {
     ipcRenderer.invoke('create-note-with-content', fileName, content),
   openInBrowser: (relativePath: string) => ipcRenderer.invoke('open-in-browser', relativePath),
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
+  // Premier lancement : dossier de notes et visite guidée
+  getAppSetup: () => ipcRenderer.invoke('get-app-setup'),
+  chooseNotesFolder: () => ipcRenderer.invoke('choose-notes-folder'),
+  finishAppSetup: (notesDir?: string) => ipcRenderer.invoke('finish-app-setup', notesDir),
   importPdfDialog: (targetFolder?: string) => ipcRenderer.invoke('import-pdf-dialog', targetFolder),
   // Le chemin disque n'est lu que depuis un vrai File (glisser-déposer ou <input type="file">) :
   // une page ne peut pas fabriquer un File qui pointe vers un fichier arbitraire du disque

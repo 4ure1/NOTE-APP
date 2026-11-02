@@ -1,5 +1,35 @@
 import { describe, it, expect } from 'vitest'
-import { decideNoteSave, shouldConfirmLeavingNote } from './noteSaveGuard'
+import { decideNoteSave, shouldConfirmLeavingNote, previewMatchesNote } from './noteSaveGuard'
+
+describe('previewMatchesNote', () => {
+  it('accepte un aperçu construit pour la note ouverte, une fois son contenu chargé', () => {
+    expect(
+      previewMatchesNote({ previewFile: 'a.html', currentFile: 'a.html', contentFile: 'a.html' })
+    ).toBe(true)
+  })
+
+  it('refuse un aperçu resté sur la note précédente (aperçu figé après une saisie)', () => {
+    expect(
+      previewMatchesNote({ previewFile: 'b.html', currentFile: 'a.html', contentFile: 'a.html' })
+    ).toBe(false)
+  })
+
+  it('refuse un aperçu tant que la lecture de la nouvelle note n’est pas finie', () => {
+    // L'éditeur contient encore l'ancienne note : l'aperçu ne doit rien enregistrer dans la nouvelle
+    expect(
+      previewMatchesNote({ previewFile: 'a.html', currentFile: 'a.html', contentFile: 'b.html' })
+    ).toBe(false)
+    expect(
+      previewMatchesNote({ previewFile: 'a.html', currentFile: 'a.html', contentFile: null })
+    ).toBe(false)
+  })
+
+  it('refuse sans note ouverte', () => {
+    expect(previewMatchesNote({ previewFile: null, currentFile: null, contentFile: null })).toBe(
+      false
+    )
+  })
+})
 
 describe('shouldConfirmLeavingNote', () => {
   const base = {

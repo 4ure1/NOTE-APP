@@ -12,6 +12,9 @@ Ajouter **la même entrée** dans les deux fichiers, qui doivent rester identiqu
 
 Ne jamais toucher à `<dossier de notes>/.snippets/snippets.json` (données utilisateur).
 
+Un bloc dont le nombre d'éléments varie (lignes, cartes, choix…) va plutôt dans un générateur de
+`src/shared/dynamicSnippets.ts` (`/nom-N`), avec ses tests dans `renderer/src/utils/dynamicSnippets.test.ts`.
+
 ## Format (`src/renderer/src/types/snippets.ts`)
 { "prefix": "…", "name": "…", "description": "…", "category": "…",
   "scope": "html" | "markdown" | "all", "body": ["ligne 1", "ligne 2", "", "$0"], "id": "<= prefix>" }
@@ -48,5 +51,8 @@ Aucune ressource externe (CDN, police, image distante) dans un snippet.
 node -e "const a=require('./src/main/defaultSnippets.json'),b=require('./src/renderer/src/assets/snippets.default.json');const p=a.snippets.map(s=>s.prefix);if(JSON.stringify(a)!==JSON.stringify(b))throw 'fichiers différents';if(new Set(p).size!==p.length)throw 'prefix en double';console.log('OK',p.length)"
 
 ## Prévenir l'utilisateur
-Le fichier `<dossier de notes>/.snippets/snippets.json` n'est créé qu'une fois : le nouveau snippet
-n'apparaîtra qu'après l'avoir ajouté via l'app ou dans ce fichier. Donner l'entrée JSON à coller.
+Un nouveau snippet par défaut apparaît tout seul au prochain lancement de l'app : `get-snippets` ajoute en
+mémoire ceux qui manquent au fichier `<dossier de notes>/.snippets/snippets.json` (`src/shared/snippetsMerge.ts`).
+Exception : si l'utilisateur a déjà un snippet de même préfixe, c'est le sien qui reste ; le prévenir dans ce cas.
+Un snippet par défaut **modifié** (même préfixe) n'arrive donc pas chez un utilisateur qui a l'ancienne version
+dans son fichier : lui donner l'entrée JSON à remplacer.

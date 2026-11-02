@@ -9,6 +9,8 @@
     card    -> .step (+ .purple / .orange / .green / .red) ; grille de cartes = .duo + auto-fit (snippet « cards »)
     callout -> .note (analogie, piège) ou .result (+ .warn / .bad) (à retenir, erreur)
     duo     -> .duo (deux colonnes)
+    carte canvas -> .node (+ .red/.orange/.yellow/.green/.purple/.teal/.blue/.brown) + .node-title ;
+               grille = .nodes (snippet « cards-N ») ; cartes reliées par des flèches = .canvas (« canvas-N »)
     qcm     -> .quiz-item + .q-title + <details> (snippets « qcm » et « vf »)
 -->
 <html lang="fr">
@@ -17,258 +19,453 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Les boucles en Java et en Python</title>
 <style>
-  :root{
-    --bg: #1e1e1e;
-    --card: #2d2d30;
-    --border: #3e3e42;
-    --text: #d4d4d4;
-    --text-dim: #9d9d9d;
-    --blue: #4fc1ff;
-    --purple: #c586c0;
-    --orange: #ce9178;
-    --green: #6a9955;
-    --yellow: #dcdcaa;
-    --red: #f48771;
-  }
-  * { box-sizing: border-box; }
-  body{
-    background: #252526;
-    color: var(--text);
-    font-family: Georgia, Cambria, 'Times New Roman', serif;
-    line-height: 1.65;
-    margin: 0;
-    padding: 40px 18px 80px;
-  }
-  .container{ max-width: 960px; margin: 0 auto; }
+/*! NOTE-APP — © 2026 4URE1 — https://github.com/4ure1 — Tous droits réservés. */
+:root{
+  --bg: #1e1e1e;
+  --card: #2d2d30;
+  --border: #3e3e42;
+  --text: #d4d4d4;
+  --text-dim: #9d9d9d;
+  --blue: #4fc1ff;
+  --purple: #c586c0;
+  --orange: #ce9178;
+  --green: #6a9955;
+  --yellow: #dcdcaa;
+  --red: #f48771;
+}
+* { box-sizing: border-box; }
+body{
+  background: #252526;
+  color: var(--text);
+  font-family: Georgia, Cambria, 'Times New Roman', serif;
+  line-height: 1.65;
+  margin: 0;
+  padding: 40px 18px 80px;
+}
+.container{ max-width: 960px; margin: 0 auto; }
 
-  h1{
-    text-align: center;
-    font-family: 'Trebuchet MS', sans-serif;
-    font-size: 2.3em;
-    font-weight: 800;
-    background: linear-gradient(90deg, var(--blue), var(--purple), var(--orange), var(--green), var(--yellow), var(--blue));
-    background-size: 400% 100%;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: gradientMove 6s linear infinite;
-    margin-bottom: 6px;
-    letter-spacing: 0.5px;
-  }
-  @keyframes gradientMove{
-    0%{ background-position: 0% 50%; }
-    100%{ background-position: 400% 50%; }
-  }
-  .subtitle{ text-align:center; font-style:italic; color:#bdbdbd; font-size:1.05em; margin-bottom:40px; }
+h1{
+  text-align: center;
+  font-family: 'Trebuchet MS', sans-serif;
+  font-size: 2.3em;
+  font-weight: 800;
+  background: linear-gradient(90deg, var(--blue), var(--purple), var(--orange), var(--green), var(--yellow), var(--blue));
+  background-size: 400% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientMove 6s linear infinite;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+@keyframes gradientMove{
+  0%{ background-position: 0% 50%; }
+  100%{ background-position: 400% 50%; }
+}
+.subtitle{ text-align:center; font-style:italic; color:#bdbdbd; font-size:1.05em; margin-bottom:40px; }
 
-  h2{
-    font-family: 'Trebuchet MS', sans-serif;
-    color: var(--blue);
-    border-bottom: 2px solid var(--border);
-    padding-bottom: 10px;
-    margin-top: 55px;
-    margin-bottom: 20px;
-    font-size: 1.5em;
-  }
-  h3{
-    font-family: 'Trebuchet MS', sans-serif;
-    color: var(--purple);
-    margin-top: 30px;
-    font-size: 1.15em;
-  }
-  p { margin: 12px 0; }
+h2{
+  font-family: 'Trebuchet MS', sans-serif;
+  color: var(--blue);
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 10px;
+  margin-top: 55px;
+  margin-bottom: 20px;
+  font-size: 1.5em;
+}
+h3{
+  font-family: 'Trebuchet MS', sans-serif;
+  color: var(--purple);
+  margin-top: 30px;
+  font-size: 1.15em;
+}
+p { margin: 12px 0; }
 
-  .step{
-    background: var(--card);
-    border-left: 6px solid var(--blue);
-    border-radius: 6px;
-    padding: 18px 22px;
-    margin: 22px 0;
-  }
-  .step.purple{ border-left-color: var(--purple); }
-  .step.orange{ border-left-color: var(--orange); }
-  .step.green{ border-left-color: var(--green); }
-  .step.red{ border-left-color: var(--red); }
+.step{
+  background: var(--card);
+  border-left: 6px solid var(--blue);
+  border-radius: 6px;
+  padding: 18px 22px;
+  margin: 22px 0;
+}
+.step.purple{ border-left-color: var(--purple); }
+.step.orange{ border-left-color: var(--orange); }
+.step.green{ border-left-color: var(--green); }
+.step.red{ border-left-color: var(--red); }
 
-  .label{
-    display:block;
-    font-family:'Trebuchet MS', sans-serif;
-    font-weight:bold;
-    color: var(--blue);
-    margin-bottom:10px;
-    font-size:0.95em;
-    letter-spacing:0.3px;
-  }
-  .step.purple .label{ color: var(--purple); }
-  .step.orange .label{ color: var(--orange); }
-  .step.green .label{ color: var(--green); }
-  .step.red .label{ color: var(--red); }
+.label{
+  display:block;
+  font-family:'Trebuchet MS', sans-serif;
+  font-weight:bold;
+  color: var(--blue);
+  margin-bottom:10px;
+  font-size:0.95em;
+  letter-spacing:0.3px;
+}
+.step.purple .label{ color: var(--purple); }
+.step.orange .label{ color: var(--orange); }
+.step.green .label{ color: var(--green); }
+.step.red .label{ color: var(--red); }
 
-  .result{
-    background: linear-gradient(135deg, rgba(79,193,255,0.08), rgba(197,134,192,0.08));
-    border: 2px solid var(--green);
-    border-radius: 8px;
-    padding: 18px 22px;
-    margin: 22px 0;
-    text-align: center;
-  }
-  .result.bad{ border-color: var(--red); background: linear-gradient(135deg, rgba(244,135,113,0.1), rgba(206,145,120,0.05)); }
-  .result.warn{ border-color: var(--yellow); background: linear-gradient(135deg, rgba(220,220,170,0.1), rgba(206,145,120,0.05)); }
-  .result .label{
-    text-transform: uppercase;
-    color: var(--yellow);
-    font-size:0.85em;
-    letter-spacing:1.5px;
-    margin-bottom:8px;
-  }
-  .result .value{ font-size:1.2em; font-weight:bold; color: var(--text); line-height:1.8; }
+.result{
+  background: linear-gradient(135deg, rgba(79,193,255,0.08), rgba(197,134,192,0.08));
+  border: 2px solid var(--green);
+  border-radius: 8px;
+  padding: 18px 22px;
+  margin: 22px 0;
+  text-align: center;
+}
+.result.bad{ border-color: var(--red); background: linear-gradient(135deg, rgba(244,135,113,0.1), rgba(206,145,120,0.05)); }
+.result.warn{ border-color: var(--yellow); background: linear-gradient(135deg, rgba(220,220,170,0.1), rgba(206,145,120,0.05)); }
+.result .label{
+  text-transform: uppercase;
+  color: var(--yellow);
+  font-size:0.85em;
+  letter-spacing:1.5px;
+  margin-bottom:8px;
+}
+.result .value{ font-size:1.2em; font-weight:bold; color: var(--text); line-height:1.8; }
 
-  .note{
-    border: 2px dashed var(--yellow);
-    border-radius: 6px;
-    padding: 16px 20px;
-    margin: 22px 0;
-    background: rgba(220,220,170,0.04);
-  }
-  .note .label{ color: var(--yellow); font-size:0.9em; margin-bottom:8px; }
+.note{
+  border: 2px dashed var(--yellow);
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin: 22px 0;
+  background: rgba(220,220,170,0.04);
+}
+.note .label{ color: var(--yellow); font-size:0.9em; margin-bottom:8px; }
 
-  table{
-    width:100%;
-    border-collapse: collapse;
-    margin: 20px 0;
-    font-family:'Trebuchet MS', sans-serif;
-    font-size:0.95em;
-  }
-  th, td{ border:1px solid var(--border); padding:10px 14px; text-align:left; vertical-align:top; }
-  th{ background: rgba(79,193,255,0.12); color: var(--blue); font-weight:700; }
-  tr:nth-child(even) td{ background: rgba(255,255,255,0.02); }
+table{
+  width:100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin: 20px 0;
+  font-family:'Trebuchet MS', sans-serif;
+  font-size:0.95em;
+}
+th, td{ border:0; border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:10px 14px; text-align:left; vertical-align:top; }
+th:last-child, td:last-child{ border-right:0; }
+table > :last-child > tr:last-child > *{ border-bottom:0; }
+/* Coins arrondis aussi pour le fond des cases d'angle */
+table > :first-child > tr:first-child > :first-child{ border-top-left-radius: 9px; }
+table > :first-child > tr:first-child > :last-child{ border-top-right-radius: 9px; }
+table > :last-child > tr:last-child > :first-child{ border-bottom-left-radius: 9px; }
+table > :last-child > tr:last-child > :last-child{ border-bottom-right-radius: 9px; }
+th{ background: rgba(79,193,255,0.12); color: var(--blue); font-weight:700; }
+tr:nth-child(even) td{ background: rgba(255,255,255,0.02); }
+/* Fond de case ou de bloc (clic droit sur une case dans l'aperçu) */
+.bg-red, table tr > .bg-red{ background: rgba(239,68,68,0.22); }
+.bg-orange, table tr > .bg-orange{ background: rgba(224,130,61,0.22); }
+.bg-yellow, table tr > .bg-yellow{ background: rgba(212,177,58,0.22); }
+.bg-green, table tr > .bg-green{ background: rgba(87,171,90,0.22); }
+.bg-purple, table tr > .bg-purple{ background: rgba(163,113,247,0.22); }
+.bg-teal, table tr > .bg-teal{ background: rgba(63,185,168,0.22); }
+.bg-blue, table tr > .bg-blue{ background: rgba(74,143,231,0.22); }
+.bg-brown, table tr > .bg-brown{ background: rgba(160,128,101,0.25); }
+.bg-gray, table tr > .bg-gray{ background: rgba(139,148,158,0.22); }
 
-  ul, ol{ margin:10px 0 10px 24px; }
-  li{ margin:6px 0; }
+ul, ol{ margin:10px 0 10px 24px; }
+li{ margin:6px 0; }
 
-  .keyword{ color: var(--orange); font-weight:bold; }
-  code{
-    font-family: Consolas, 'Courier New', monospace;
-    background: rgba(255,255,255,0.07);
-    padding: 1px 6px;
-    border-radius: 4px;
-    color: var(--yellow);
-    font-size: 0.92em;
-  }
+.keyword{ color: var(--orange); font-weight:bold; }
+code{
+  font-family: Consolas, 'Courier New', monospace;
+  background: rgba(255,255,255,0.07);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--yellow);
+  font-size: 0.92em;
+}
 
-  /* ---- Blocs de code ---- */
-  pre{
-    background: #1e1e1e;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 14px 16px;
-    overflow-x: auto;
-    margin: 8px 0 14px;
-    font-family: Consolas, 'Courier New', monospace;
-    font-size: 0.85em;
-    line-height: 1.5;
-    color: var(--text);
-  }
-  pre .k{ color: #569cd6; }       /* mots-clés */
-  pre .t{ color: #4ec9b0; }       /* types / classes */
-  pre .f{ color: var(--yellow); } /* fonctions */
-  pre .s{ color: var(--orange); } /* chaînes */
-  pre .n{ color: #b5cea8; }       /* nombres */
-  pre .c{ color: var(--green); font-style: italic; } /* commentaires */
+/* ---- Blocs de code ---- */
+pre{
+  background: #1e1e1e;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  margin: 8px 0 14px;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.85em;
+  line-height: 1.5;
+  color: var(--text);
+}
+pre .k{ color: #569cd6; }       /* mots-clés */
+pre .t{ color: #4ec9b0; }       /* types / classes */
+pre .f{ color: var(--yellow); } /* fonctions */
+pre .s{ color: var(--orange); } /* chaînes */
+pre .n{ color: #b5cea8; }       /* nombres */
+pre .c{ color: var(--green); font-style: italic; } /* commentaires */
 
-  .duo{
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 16px;
-    margin: 18px 0;
-    width: 100%;
-    max-width: 100%;
-  }
-  .duo > div, .duo > *{
-    min-width: 0;
-    max-width: 100%;
-  }
-  @media (max-width: 800px){
-    .duo{ grid-template-columns: 1fr !important; }
-  }
-  .lang{
-    display:inline-block;
-    font-family:'Trebuchet MS', sans-serif;
-    font-size:0.75em;
-    font-weight:bold;
-    letter-spacing:1.5px;
-    padding:3px 12px;
-    border-radius:4px;
-    color:#1e1e1e;
-  }
-  .lang.java{ background:#e8a33d; }
-  .lang.py{ background:#5fa3d9; }
-  .lang.c{ background:#a0a0a0; }
+.duo{
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  margin: 18px 0;
+  width: 100%;
+  max-width: 100%;
+}
+.duo > div, .duo > *{
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 800px){
+  .duo{ grid-template-columns: 1fr !important; }
+}
+.lang{
+  display:inline-block;
+  font-family:'Trebuchet MS', sans-serif;
+  font-size:0.75em;
+  font-weight:bold;
+  letter-spacing:1.5px;
+  padding:3px 12px;
+  border-radius:4px;
+  color:#1e1e1e;
+}
+.lang.java{ background:#e8a33d; }
+.lang.py{ background:#5fa3d9; }
+.lang.c{ background:#a0a0a0; }
 
-  .tag{
-    display:inline-block;
-    font-family:'Trebuchet MS', sans-serif;
-    font-size:0.75em;
-    font-weight:bold;
-    padding:2px 10px;
-    border-radius:20px;
-    margin-left:8px;
-  }
-  .tag.b{ background:rgba(79,193,255,0.2); color:var(--blue); border:1px solid var(--blue); }
-  .tag.p{ background:rgba(197,134,192,0.2); color:var(--purple); border:1px solid var(--purple); }
-  .tag.o{ background:rgba(206,145,120,0.2); color:var(--orange); border:1px solid var(--orange); }
-  .tag.g{ background:rgba(106,153,85,0.2); color:var(--green); border:1px solid var(--green); }
+.tag{
+  display:inline-block;
+  font-family:'Trebuchet MS', sans-serif;
+  font-size:0.75em;
+  font-weight:bold;
+  padding:2px 10px;
+  border-radius:20px;
+  margin-left:8px;
+}
+.tag.b{ background:rgba(79,193,255,0.2); color:var(--blue); border:1px solid var(--blue); }
+.tag.p{ background:rgba(197,134,192,0.2); color:var(--purple); border:1px solid var(--purple); }
+.tag.o{ background:rgba(206,145,120,0.2); color:var(--orange); border:1px solid var(--orange); }
+.tag.g{ background:rgba(106,153,85,0.2); color:var(--green); border:1px solid var(--green); }
 
-  .figure{
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px;
-    margin: 22px 0;
-    text-align:center;
-  }
-  .figure svg{ max-width:100%; height:auto; }
-  .figure .caption{
-    font-family:'Trebuchet MS', sans-serif;
-    font-size:0.85em;
-    color: var(--text-dim);
-    margin-top:8px;
-    font-style: italic;
-  }
+.figure{
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  margin: 22px 0;
+  text-align:center;
+}
+.figure svg{ max-width:100%; height:auto; }
+.figure .caption{
+  font-family:'Trebuchet MS', sans-serif;
+  font-size:0.85em;
+  color: var(--text-dim);
+  margin-top:8px;
+  font-style: italic;
+}
 
-  .quiz-item{
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 16px 20px;
-    margin: 16px 0;
-  }
-  .quiz-item .q-title{
-    font-family:'Trebuchet MS', sans-serif;
-    color: var(--orange);
-    font-weight:bold;
-    margin-bottom:10px;
-  }
-  details{
-    margin-top:10px;
-    background: rgba(106,153,85,0.06);
-    border-left:4px solid var(--green);
-    padding:8px 14px;
-    border-radius:4px;
-  }
-  details summary{ cursor:pointer; color: var(--green); font-family:'Trebuchet MS', sans-serif; font-weight:bold; }
-  details[open] summary{ margin-bottom:8px; }
+.quiz-item{
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin: 16px 0;
+}
+.quiz-item .q-title{
+  font-family:'Trebuchet MS', sans-serif;
+  color: var(--orange);
+  font-weight:bold;
+  margin-bottom:10px;
+}
+details{
+  margin-top:10px;
+  background: rgba(106,153,85,0.06);
+  border-left:4px solid var(--green);
+  padding:8px 14px;
+  border-radius:4px;
+}
+details summary{ cursor:pointer; color: var(--green); font-family:'Trebuchet MS', sans-serif; font-weight:bold; }
+details[open] summary{ margin-bottom:8px; }
 
-  .divider{ text-align:center; color: var(--text-dim); margin:40px 0; letter-spacing:6px; }
-  footer{ text-align:center; color: var(--text-dim); margin-top:60px; font-family:'Trebuchet MS', sans-serif; font-size:0.85em; }
+.divider{ text-align:center; color: var(--text-dim); margin:40px 0; letter-spacing:6px; }
+footer{ text-align:center; color: var(--text-dim); margin-top:60px; font-family:'Trebuchet MS', sans-serif; font-size:0.85em; }
 
-  /* High-visibility Syntax Highlighting for VS Code Dark Theme */
-  pre .k, .code-view .k, span.k { color: #569cd6 !important; font-weight: bold; }
-  pre .t, .code-view .t, span.t { color: #4ec9b0 !important; font-weight: 500; }
-  pre .f, .code-view .f, span.f { color: #dcdcaa !important; }
-  pre .s, .code-view .s, span.s { color: #ce9178 !important; }
-  pre .n, .code-view .n, span.n { color: #b5cea8 !important; }
-  pre .c, .code-view .c, span.c:not(.lang) { color: #6a9955 !important; font-style: italic; }
+/* High-visibility Syntax Highlighting for VS Code Dark Theme */
+pre .k, .code-view .k, span.k { color: #569cd6 !important; font-weight: bold; }
+pre .t, .code-view .t, span.t { color: #4ec9b0 !important; font-weight: 500; }
+pre .f, .code-view .f, span.f { color: #dcdcaa !important; }
+pre .s, .code-view .s, span.s { color: #ce9178 !important; }
+pre .n, .code-view .n, span.n { color: #b5cea8 !important; }
+pre .c, .code-view .c, span.c:not(.lang) { color: #6a9955 !important; font-style: italic; }
+/* Couleurs par initiale (snippets /hb /ht /hy /ho /hl /hg /hp /ha /hr), pour le code comme pour le texte.
+   Les étiquettes .tag.b / .tag.p / .tag.o / .tag.g gardent leur propre style. */
+.b:not(.tag){ color: #569cd6; }          /* bleu */
+.y:not(.tag){ color: var(--yellow); }    /* jaune */
+.o:not(.tag){ color: var(--orange); }    /* orange */
+.l:not(.tag){ color: #b5cea8; }          /* vert clair */
+.g:not(.tag){ color: var(--green); }     /* vert */
+.p:not(.tag){ color: var(--purple); }    /* violet */
+.a:not(.tag){ color: #9cdcfe; }          /* bleu clair */
+.r:not(.tag){ color: var(--red); }       /* rouge */
+
+/* Cartes façon canvas : fond teinté, bordure de couleur, titre en gras.
+   .nodes = grille de cartes ; .canvas = cartes placées librement et reliées par des flèches
+   (<svg class="canvas-links"> > <g class="link" data-from="1:right" data-to="2:left">). */
+.node{
+  --node: #8b949e;
+  position: relative;
+  box-sizing: border-box;
+  background: color-mix(in srgb, var(--node) 13%, #1b1b1d);
+  border: 1.5px solid var(--node);
+  border-radius: 12px;
+  padding: 14px 16px;
+  line-height: 1.55;
+  font-size: 0.95em;
+  color: var(--text);
+}
+.node .node-title{
+  display: block;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.12em;
+  color: #f2f2f2;
+  margin: 0 0 8px;
+}
+.node p{ margin: 6px 0; }
+.node > :last-child{ margin-bottom: 0; }
+.node.red{ --node: #ef4444; }
+.node.orange{ --node: #e0823d; }
+.node.yellow{ --node: #d4b13a; }
+.node.green{ --node: #57ab5a; }
+.node.purple{ --node: #a371f7; }
+.node.teal{ --node: #3fb9a8; }
+.node.blue{ --node: #4a8fe7; }
+.node.brown{ --node: #a08065; }
+.nodes{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 16px;
+  margin: 22px 0;
+}
+.canvas{
+  position: relative;
+  min-height: 160px;
+  margin: 22px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.canvas > .node{ position: absolute; width: 230px; }
+.canvas-links{
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.canvas-links .link{ --link: #9a9a9a; }
+.canvas-links .link-line{ fill: none; stroke: var(--link); stroke-width: 2; }
+.canvas-links .link-head{ fill: var(--link); stroke: none; }
+.canvas-links .link.red{ --link: #ef4444; }
+.canvas-links .link.orange{ --link: #e0823d; }
+.canvas-links .link.yellow{ --link: #d4b13a; }
+.canvas-links .link.green{ --link: #57ab5a; }
+.canvas-links .link.purple{ --link: #a371f7; }
+.canvas-links .link.teal{ --link: #3fb9a8; }
+.canvas-links .link.blue{ --link: #4a8fe7; }
+.canvas-links .link.brown{ --link: #a08065; }
+
+/* Touches de clavier */
+kbd{
+  display:inline-block;
+  padding:1px 6px;
+  border-radius:5px;
+  border:1px solid var(--border);
+  border-bottom-width:2px;
+  background:#252528;
+  font-family:Consolas, monospace;
+  font-size:0.85em;
+  color:var(--text);
+}
+
+/* Carte « Créé avec NOTE-APP » des nouvelles notes : bordure en dégradé qui tourne, logo qui pulse */
+.nf-credit{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin:28px 0;
+  padding:14px 18px;
+  border-radius:14px;
+  overflow:hidden;
+  isolation:isolate;
+  text-decoration:none;
+  color:var(--text-dim);
+  font-family:'Segoe UI', system-ui, sans-serif;
+  font-size:0.92em;
+  line-height:1.4;
+}
+.nf-credit::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:220%;
+  aspect-ratio:1;
+  z-index:-2;
+  background:conic-gradient(var(--blue), var(--purple), var(--orange), var(--yellow), var(--green), var(--blue));
+  transform:translate(-50%, -50%);
+  animation:nf-credit-spin 6s linear infinite;
+}
+.nf-credit::after{
+  content:"";
+  position:absolute;
+  inset:1.5px;
+  z-index:-1;
+  border-radius:12.5px;
+  background:linear-gradient(135deg, #1d1d21, #18181b);
+}
+.nf-credit-logo{
+  flex:none;
+  display:grid;
+  place-items:center;
+  width:38px;
+  height:38px;
+  border-radius:11px;
+  background:linear-gradient(135deg, var(--blue), var(--purple));
+  color:#fff;
+  font-size:1.2em;
+  animation:nf-credit-pulse 2.4s ease-in-out infinite;
+}
+.nf-credit-text{ display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
+.nf-credit-text strong{ color:var(--text); font-weight:600; }
+.nf-credit-name{
+  background:linear-gradient(90deg, var(--blue), var(--purple), var(--orange), var(--blue));
+  background-size:300% 100%;
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  animation:nf-credit-shine 5s linear infinite;
+}
+.nf-credit-cta{
+  flex:none;
+  padding:6px 12px;
+  border-radius:999px;
+  background:rgba(79,193,255,0.12);
+  color:var(--blue);
+  font-weight:600;
+  white-space:nowrap;
+  transition:background .2s ease, transform .2s ease;
+}
+.nf-credit:hover .nf-credit-cta{ background:rgba(79,193,255,0.22); transform:translateX(3px); }
+@keyframes nf-credit-spin{ to{ transform:translate(-50%, -50%) rotate(360deg); } }
+@keyframes nf-credit-pulse{
+  0%, 100%{ transform:scale(1); box-shadow:0 0 0 0 rgba(79,193,255,0.35); }
+  50%{ transform:scale(1.06); box-shadow:0 0 0 8px rgba(79,193,255,0); }
+}
+@keyframes nf-credit-shine{ to{ background-position:300% 0; } }
+@media (prefers-reduced-motion: reduce){
+  .nf-credit::before, .nf-credit-logo, .nf-credit-name{ animation:none; }
+}
+@media (max-width: 560px){
+  .nf-credit-cta{ display:none; }
+}
 </style>
 </head>
 <body>
@@ -405,6 +602,32 @@
       Initialiser<br>
       Tester<br>
       Mettre à jour
+    </div>
+  </div>
+
+  <h2>Cartes et canvas</h2>
+  <div class="nodes">
+    <div class="node red">
+      <div class="node-title">Rouge</div>
+      <p>Carte façon canvas : fond teinté et bordure de la couleur.</p>
+    </div>
+    <div class="node teal">
+      <div class="node-title">Turquoise</div>
+      <p>Couleurs : red, orange, yellow, green, purple, teal, blue, brown.</p>
+    </div>
+  </div>
+
+  <div class="canvas" style="height: 220px;">
+    <svg class="canvas-links">
+      <g class="link" data-from="1:right" data-to="2:left"><path class="link-line" d="M 254 79 C 299.9 79 323.1 79 359 79"></path><path class="link-head" d="M 370 79 L 359 73.5 L 359 84.5 Z"></path></g>
+    </svg>
+    <div class="node purple" data-node="1" style="left: 24px; top: 24px; width: 230px;">
+      <div class="node-title">Cause</div>
+      <p>Tirer un point du bord vers une autre carte pour la relier.</p>
+    </div>
+    <div class="node green" data-node="2" style="left: 370px; top: 24px; width: 230px;">
+      <div class="node-title">Conséquence</div>
+      <p>La flèche suit la carte quand on la déplace.</p>
     </div>
   </div>
 

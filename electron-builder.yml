@@ -1,5 +1,6 @@
 appId: com.electron.app
 productName: note-app
+copyright: Copyright © 2026 4URE1 — https://github.com/4ure1
 directories:
   buildResources: build
 files:

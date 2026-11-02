@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="380" viewBox="0 0 960 380" role="img" aria-labelledby="t d">
+  <title id="t">Relier des cartes</title>
+  <desc id="d">Animation : dans un canvas, on tire un point du bord d'une carte vers une autre ; une flèche souple se dessine et relie les deux cartes.</desc>
+  <!-- NOTE-APP — © 2026 4URE1 — https://github.com/4ure1 -->
+  <defs>
+    <pattern id="grille" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#ffffff" stroke-opacity="0.035"/>
+    </pattern>
+    <path id="trajet1" d="M 330 118 C 420 118 430 236 520 236"/>
+    <path id="trajet2" d="M 640 210 C 700 210 690 104 744 104"/>
+  </defs>
+  <rect width="960" height="380" rx="18" fill="#121215"/>
+  <rect width="960" height="380" rx="18" fill="url(#grille)"/>
+
+  <!-- Flèches (tracées comme dans les notes : courbe de Bézier + pointe) -->
+  <g fill="none" stroke-width="2.5" stroke-linecap="round">
+    <use href="#trajet1" stroke="#9a9a9a" stroke-dasharray="260" stroke-dashoffset="260">
+      <animate attributeName="stroke-dashoffset" values="260;260;0;0;260" keyTimes="0;0.08;0.3;0.92;1" dur="8s" repeatCount="indefinite"/>
+    </use>
+    <use href="#trajet2" stroke="#d4b13a" stroke-dasharray="200" stroke-dashoffset="200">
+      <animate attributeName="stroke-dashoffset" values="200;200;0;0;200" keyTimes="0;0.45;0.66;0.92;1" dur="8s" repeatCount="indefinite"/>
+    </use>
+  </g>
+  <path d="M 520 236 L 508 229 L 508 243 Z" fill="#9a9a9a" opacity="0">
+    <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.29;0.31;0.92;1" dur="8s" repeatCount="indefinite"/>
+  </path>
+  <path d="M 744 104 L 732 97 L 732 111 Z" fill="#d4b13a" opacity="0">
+    <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.65;0.67;0.92;1" dur="8s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- Cartes -->
+  <g font-family="Segoe UI, sans-serif">
+    <g transform="translate(110 64)">
+      <rect width="220" height="108" rx="14" fill="#2a1a1c" stroke="#ef4444" stroke-width="1.5"/>
+      <text x="18" y="34" font-size="17" font-weight="700" fill="#f2f2f2">Requête SQL</text>
+      <text x="18" y="62" font-size="13" fill="#bdbdbd" font-family="Georgia, serif">SELECT … FROM …</text>
+      <text x="18" y="84" font-size="13" fill="#bdbdbd" font-family="Georgia, serif">envoyée au serveur</text>
+      <circle cx="220" cy="54" r="6" fill="#1e1e1e" stroke="#38bdf8" stroke-width="2">
+        <animate attributeName="r" values="6;8;6" dur="1.4s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+    <g transform="translate(520 182)">
+      <rect width="220" height="108" rx="14" fill="#1a2620" stroke="#57ab5a" stroke-width="1.5"/>
+      <text x="18" y="34" font-size="17" font-weight="700" fill="#f2f2f2">Plan d'exécution</text>
+      <text x="18" y="62" font-size="13" fill="#bdbdbd" font-family="Georgia, serif">l'optimiseur choisit</text>
+      <text x="18" y="84" font-size="13" fill="#bdbdbd" font-family="Georgia, serif">les index à utiliser</text>
+    </g>
+    <g transform="translate(744 50)">
+      <rect width="180" height="108" rx="14" fill="#29261a" stroke="#d4b13a" stroke-width="1.5"/>
+      <text x="18" y="34" font-size="17" font-weight="700" fill="#f2f2f2">Résultat</text>
+      <text x="18" y="62" font-size="13" fill="#bdbdbd" font-family="Georgia, serif">lignes renvoyées</text>
+      <text x="18" y="84" font-size="13" fill="#bdbdbd" font-family="Georgia, serif">au client</text>
+    </g>
+  </g>
+
+  <!-- Pointeur qui tire la flèche -->
+  <g opacity="0">
+    <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.06;0.08;0.31;0.34;1" dur="8s" repeatCount="indefinite"/>
+    <path d="M0 0 L0 18 L5 13 L9 22 L12 21 L8 12 L15 12 Z" fill="#ffffff" stroke="#121215" stroke-width="1.2">
+      <animateMotion dur="8s" repeatCount="indefinite" keyPoints="0;0;1;1" keyTimes="0;0.08;0.3;1" calcMode="linear">
+        <mpath href="#trajet1"/>
+      </animateMotion>
+    </path>
+  </g>
+
+  <text x="480" y="352" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="13" fill="#71717a">/canvas-3 : tire un point du bord d'une carte vers une autre. La flèche suit les cartes quand on les déplace.</text>
+</svg>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { Snippet } from '../types/snippets'
 import { getSnippetBodyText } from '../utils/snippetEngine'
 import { notifyApiError } from '../utils/apiError'
+import { APP_NAME, AUTHOR, AUTHOR_GITHUB, COPYRIGHT } from '../utils/credits'
 
 export interface ShortcutMapping {
   uuid: string
@@ -1097,10 +1098,57 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             padding: '12px 22px',
             borderTop: '1px solid rgba(255, 255, 255, 0.08)',
             display: 'flex',
-            justifyContent: 'flex-end',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
             backgroundColor: '#141416'
           }}
         >
+          {/* Auteur et lien GitHub (src/shared/credits.ts) */}
+          <div style={{ fontSize: '11.5px', color: '#71717a', display: 'flex', gap: '6px' }}>
+            <span>
+              {APP_NAME} · {COPYRIGHT}
+            </span>
+            <button
+              onClick={() => {
+                window.api.openExternalUrl(AUTHOR_GITHUB).catch((err: unknown) => {
+                  console.error('[Settings]', err)
+                })
+              }}
+              title={AUTHOR_GITHUB}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                color: '#7dd3fc',
+                fontSize: '11.5px',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                textUnderlineOffset: '2px'
+              }}
+            >
+              github.com/{AUTHOR.toLowerCase()}
+            </button>
+            <span>·</span>
+            <button
+              onClick={() => {
+                onClose()
+                window.dispatchEvent(new Event('nf-open-tour'))
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                color: '#7dd3fc',
+                fontSize: '11.5px',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                textUnderlineOffset: '2px'
+              }}
+            >
+              Visite guidée
+            </button>
+          </div>
           <button
             onClick={() => {
               setRecordingUuid(null)

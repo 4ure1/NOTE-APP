@@ -42,3 +42,45 @@ describe('isDefaultNotesDir', () => {
     expect(isDefaultNotesDir(path.join(home, 'Notes', 'cours'), home)).toBe(false)
   })
 })
+
+describe('dossier choisi au premier lancement', () => {
+  it('ordre : variable de test, puis dossier choisi, puis ~/Notes', async () => {
+    const { resolveNotesDir: resolve } = await import('./notesDir')
+    const chosen = path.join(os.tmpdir(), 'Mes cours')
+    expect(resolve(undefined, home, cwd, chosen)).toBe(chosen)
+    expect(resolve('./test-vault', home, cwd, chosen)).toBe(path.join(cwd, 'test-vault'))
+    expect(resolve(undefined, home, cwd, '')).toBe(path.join(home, 'Notes'))
+    // Un choix invalide (relatif, racine) est ignoré
+    expect(resolve(undefined, home, cwd, 'relatif')).toBe(path.join(home, 'Notes'))
+    expect(resolve(undefined, home, cwd, path.parse(chosen).root)).toBe(path.join(home, 'Notes'))
+  })
+
+  it('validateNotesFolder refuse la racine d’un disque, les chemins relatifs et les dossiers système', async () => {
+    const { validateNotesFolder } = await import('./notesDir')
+    expect(validateNotesFolder(path.join(os.tmpdir(), 'notes')).ok).toBe(true)
+    expect(validateNotesFolder('notes').ok).toBe(false)
+    expect(validateNotesFolder('').ok).toBe(false)
+    expect(validateNotesFolder(path.parse(os.tmpdir()).root).ok).toBe(false)
+    if (process.platform === 'win32') {
+      expect(validateNotesFolder(path.win32.join('C:\\', 'Windows', 'Notes')).ok).toBe(false)
+      expect(validateNotesFolder(path.win32.join('C:\\', 'Program Files', 'Notes')).ok).toBe(false)
+      expect(validateNotesFolder(path.win32.join('D:\\', 'Cours', 'Notes')).ok).toBe(true)
+    }
+  })
+
+  it('réglages : écrits de façon atomique, relus en ignorant le reste', async () => {
+    const fs = await import('fs')
+    const { readAppSetup, writeAppSetup } = await import('./notesDir')
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'note-app-setup-'))
+    const file = path.join(dir, 'app-setup.json')
+    expect(readAppSetup(file)).toEqual({})
+    const chosen = path.join(os.tmpdir(), 'Notes perso')
+    writeAppSetup(file, { notesDir: chosen, onboardingDone: true })
+    expect(readAppSetup(file)).toEqual({ notesDir: chosen, onboardingDone: true })
+    fs.writeFileSync(file, '{"notesDir": 3, "onboardingDone": "oui", "autre": 1}')
+    expect(readAppSetup(file)).toEqual({})
+    fs.writeFileSync(file, 'pas du json')
+    expect(readAppSetup(file)).toEqual({})
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+})
