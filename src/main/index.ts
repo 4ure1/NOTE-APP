@@ -1752,7 +1752,10 @@ ipcMain.handle('finish-app-setup', (_event, requestedDir: unknown) => {
         same(target, DEFAULT_NOTES_DIR)
       if (!allowed) {
         logSecurityRefusal('finish-app-setup', target)
-        return { success: false, error: 'Ce dossier n’a pas été choisi dans la fenêtre de sélection.' }
+        return {
+          success: false,
+          error: 'Ce dossier n’a pas été choisi dans la fenêtre de sélection.'
+        }
       }
       const check = validateNotesFolder(target)
       if (!check.ok) return { success: false, error: check.error }

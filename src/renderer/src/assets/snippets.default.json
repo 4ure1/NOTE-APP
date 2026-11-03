@@ -435,10 +435,10 @@
       "id": "duo"
     },
     {
-      "prefix": "card",
-      "id": "card",
-      "name": "Carte (choix de couleur)",
-      "description": "Une carte façon canvas : fond teinté, bordure de couleur, titre en gras",
+      "prefix": "cardf",
+      "id": "cardf",
+      "name": "Carte canvas (choix de couleur)",
+      "description": "Une carte au style canvas : fond teinté, bordure de couleur, titre en gras — /cardf-N pour plusieurs",
       "category": "Mise en page",
       "scope": "html",
       "body": [
@@ -453,22 +453,28 @@
     {
       "prefix": "cards",
       "name": "Trois cartes",
-      "description": "Trois cartes façon canvas (rouge, violet, turquoise) — /cards-N pour en choisir le nombre",
+      "description": "Grille auto-adaptative de 3 .step — /cards-N pour en choisir le nombre",
       "category": "Mise en page",
       "scope": "html",
       "body": [
-        "<div class=\"nodes\">",
-        "  <div class=\"node red\">",
-        "    <div class=\"node-title\">${1:Carte 1}</div>",
-        "    <p>${2:Contenu}</p>",
+        "<div class=\"duo\" style=\"grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));\">",
+        "  <div class=\"step orange\">",
+        "    <span class=\"label\">${1:Carte 1}</span>",
+        "    <ul style=\"margin-left:18px\">",
+        "      <li>${2:point}</li>",
+        "    </ul>",
         "  </div>",
-        "  <div class=\"node purple\">",
-        "    <div class=\"node-title\">${3:Carte 2}</div>",
-        "    <p>${4:Contenu}</p>",
+        "  <div class=\"step purple\">",
+        "    <span class=\"label\">${3:Carte 2}</span>",
+        "    <ul style=\"margin-left:18px\">",
+        "      <li>${4:point}</li>",
+        "    </ul>",
         "  </div>",
-        "  <div class=\"node teal\">",
-        "    <div class=\"node-title\">${5:Carte 3}</div>",
-        "    <p>${6:Contenu}</p>",
+        "  <div class=\"step\">",
+        "    <span class=\"label\">${5:Carte 3}</span>",
+        "    <ul style=\"margin-left:18px\">",
+        "      <li>${6:point}</li>",
+        "    </ul>",
         "  </div>",
         "</div>",
         "",
@@ -479,26 +485,26 @@
     {
       "prefix": "cards4",
       "name": "Quatre cartes colorées",
-      "description": "Quatre cartes façon canvas — /cards-N pour en choisir le nombre",
+      "description": "Grille de 4 .step colorés — /cards-N pour en choisir le nombre",
       "category": "Mise en page",
       "scope": "html",
       "body": [
-        "<div class=\"nodes\">",
-        "  <div class=\"node red\">",
-        "    <div class=\"node-title\">${1:Carte 1}</div>",
-        "    <p>${2:Contenu}</p>",
+        "<div class=\"duo\" style=\"grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));\">",
+        "  <div class=\"step\">",
+        "    <span class=\"label\">${1:Carte 1}</span>",
+        "    ${2:Contenu}",
         "  </div>",
-        "  <div class=\"node orange\">",
-        "    <div class=\"node-title\">${3:Carte 2}</div>",
-        "    <p>${4:Contenu}</p>",
+        "  <div class=\"step purple\">",
+        "    <span class=\"label\">${3:Carte 2}</span>",
+        "    ${4:Contenu}",
         "  </div>",
-        "  <div class=\"node green\">",
-        "    <div class=\"node-title\">${5:Carte 3}</div>",
-        "    <p>${6:Contenu}</p>",
+        "  <div class=\"step orange\">",
+        "    <span class=\"label\">${5:Carte 3}</span>",
+        "    ${6:Contenu}",
         "  </div>",
-        "  <div class=\"node blue\">",
-        "    <div class=\"node-title\">${7:Carte 4}</div>",
-        "    <p>${8:Contenu}</p>",
+        "  <div class=\"step green\">",
+        "    <span class=\"label\">${7:Carte 4}</span>",
+        "    ${8:Contenu}",
         "  </div>",
         "</div>",
         "",
@@ -756,6 +762,17 @@
       "id": "hr"
     },
     {
+      "prefix": "hblank",
+      "id": "hblank",
+      "name": "Texte en couleur de base",
+      "description": "Classe base : remet la couleur normale du texte autour de la sélection (dans un titre, un bloc ou un texte coloré)",
+      "category": "Code",
+      "scope": "html",
+      "body": [
+        "<span class=\"base\">${TM_SELECTED_TEXT:$1}</span>$0"
+      ]
+    },
+    {
       "prefix": "hx",
       "name": "Code en couleur au choix",
       "description": "Classe de couleur choisie dans un menu, autour de la sélection",
@@ -860,6 +877,116 @@
         "<strong class=\"${1|p,b,r,o,g,y|}\">${TM_SELECTED_TEXT:$2}</strong>$0"
       ],
       "id": "couleur"
+    },
+    {
+      "prefix": "g",
+      "id": "g",
+      "name": "Gras",
+      "description": "Texte en gras, couleur normale, autour de la sélection (/g + initiale : /gr rouge, /go orange…)",
+      "category": "Texte",
+      "scope": "html",
+      "body": [
+        "<strong>${TM_SELECTED_TEXT:$1}</strong>$0"
+      ]
+    },
+    {
+      "prefix": "gb",
+      "id": "gb",
+      "name": "Gras en bleu (b)",
+      "description": "Texte en gras, classe b (bleu), autour de la sélection",
+      "category": "Texte",
+      "scope": "html",
+      "body": [
+        "<strong class=\"b\">${TM_SELECTED_TEXT:$1}</strong>$0"
+      ]
+    },
+    {
+      "prefix": "gt",
+      "id": "gt",
+      "name": "Gras en turquoise (t)",
+      "description": "Texte en gras, classe t (turquoise), autour de la sélection",
+      "category": "Texte",
+      "scope": "html",
+      "body": [
+        "<strong class=\"t\">${TM_SELECTED_TEXT:$1}</strong>$0"
+      ]
+    },
+    {
+      "prefix": "gy",
+      "id": "gy",
+      "name": "Gras en jaune (y)",
+      "description": "Texte en gras, classe y (jaune), autour de la sélection",
+      "category": "Texte",
+      "scope": "html",
+      "body": [
+        "<strong class=\"y\">${TM_SELECTED_TEXT:$1}</strong>$0"
+      ]
+    },
+    {
+      "prefix": "go",
+      "id": "go",
+      "name": "Gras en orange (o)",
+      "description": "Texte en gras, classe o (orange), autour de la sélection",
+      "category": "Texte",
+      "scope": "html",
+      "body": [
+        "<strong class=\"o\">${TM_SELECTED_TEXT:$1}</strong>$0"
+      ]
+    },
+    {
+      "prefix": "gl",
+      "id": "gl",
+      "name": "Gras en vert clair (l)",
+      "description": "Texte en gras, classe l (vert clair), autour de la sélection",
+      "category": "Texte",
+      "scope": "html",
+      "body": [
+        "<strong class=\"l\">${TM_SELECTED_TEXT:$1}</strong>$0"
+      ]
+    },
+    {
+      "prefix": "gg",
+      "id": "gg",
+      "name": "Gras en vert (g)",
+      "description": "Texte en gras, classe g (vert), autour de la sélection",
+      "category": "Texte",
+      "scope": "html",
+      "body": [
+        "<strong class=\"g\">${TM_SELECTED_TEXT:$1}</strong>$0"
+      ]
+    },
+    {
+      "prefix": "gp",
+      "id": "gp",
+      "name": "Gras en violet (p)",
+      "description": "Texte en gras, classe p (violet), autour de la sélection",
+      "category": "Texte",
+      "scope": "html",
+      "body": [
+        "<strong class=\"p\">${TM_SELECTED_TEXT:$1}</strong>$0"
+      ]
+    },
+    {
+      "prefix": "ga",
+      "id": "ga",
+      "name": "Gras en bleu clair (a)",
+      "description": "Texte en gras, classe a (bleu clair), autour de la sélection",
+      "category": "Texte",
+      "scope": "html",
+      "body": [
+        "<strong class=\"a\">${TM_SELECTED_TEXT:$1}</strong>$0"
+      ]
+    },
+    {
+      "prefix": "gr",
+      "id": "gr",
+      "name": "Gras en rouge (r)",
+      "description": "Texte en gras, classe r (rouge), autour de la sélection",
+      "category": "Texte",
+      "scope": "html",
+      "body": [
+        "<strong class=\"r\">${TM_SELECTED_TEXT:$1}</strong>$0"
+      ]
     },
     {
       "prefix": "surligne",

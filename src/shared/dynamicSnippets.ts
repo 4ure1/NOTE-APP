@@ -1,6 +1,6 @@
 /**
  * Snippets « à nombre », générés à la volée d'après ce qui est tapé après « / » :
- * /table-3-2 (3 colonnes, 2 lignes), /cards-4 ou /card-4, /canvas-4 (cartes à relier), /etapes-5, /ul-6, /ol-6, /qcm-5,
+ * /table-3-2 (3 colonnes, 2 lignes), /cards-4 ou /card-4 (.step), /cardf-4 (cartes canvas), /canvas-4, /etapes-5, /ul-6, /ol-6, /qcm-5,
  * /colonnes-3, et /tbl-3-2 (tableau Markdown).
  *
  * - Nom complet : le snippet demandé (nombres ramenés dans les limites).
@@ -84,7 +84,30 @@ export function generateDynamicSnippets(query: string): DynamicSnippet[] {
       limits: [[1, 12]],
       scope: 'html',
       category: 'Mise en page',
-      title: (n) => plural(n[0], 'carte') + ' de couleurs différentes',
+      title: (n) => plural(n[0], 'carte') + ' .step de couleurs différentes',
+      build: ([count]) => {
+        let k = 1
+        const lines = [
+          '<div class="duo" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));">'
+        ]
+        for (let i = 0; i < count; i++) {
+          lines.push('  <div class="' + stepClass(i) + '">')
+          lines.push('    <span class="label">' + field(k++, 'Carte ' + (i + 1)) + '</span>')
+          lines.push('    ' + field(k++, 'Contenu'))
+          lines.push('  </div>')
+        }
+        return lines.concat(['</div>', '', D + '0'])
+      }
+    },
+    {
+      // Cartes au style canvas (fond teinté, bordure de couleur, titre en gras), en rangée
+      names: ['cardf'],
+      syntax: 'cardf-N (nombre de cartes)',
+      example: [3],
+      limits: [[1, 12]],
+      scope: 'html',
+      category: 'Mise en page',
+      title: (n) => plural(n[0], 'carte') + ' canvas de couleurs différentes',
       build: ([count]) => {
         let k = 1
         const lines = ['<div class="nodes">']

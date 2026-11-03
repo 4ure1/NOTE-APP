@@ -121,8 +121,9 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
   moteurs (`src/shared/notesTheme.ts`), retiré à l'export, recalculé par le renommage avec liens.
   Les anciennes notes gardent leur `<style>` copié (inoffensif).
 - Couleurs par initiale dans le thème : `.b .t .y .o .l .g .p .a .r` (bleu, turquoise, jaune, orange, vert
-  clair, vert, violet, bleu clair, rouge ; `:not(.tag)`), utilisées par `/hb /ht /hy /ho /hl /hg /hp /ha /hr`,
-  `/hx`, `/couleur`, `/h2-couleur`, `/h3-couleur`. Les classes de rôle `.k .t .f .s .n .c` restent pour
+  clair, vert, violet, bleu clair, rouge ; `:not(.tag)`), utilisées par `/hb /ht /hy /ho /hl /hg /hp /ha /hr`
+  (`<span>`), par le gras `/g` (couleur normale) et `/gb /gt /gy /go /gl /gg /gp /ga /gr` (`<strong class>`),
+  `/hx`, `/couleur`, `/h2-couleur`, `/h3-couleur`. `/hblank` (classe `.base`) remet la couleur normale du texte. Les classes de rôle `.k .t .f .s .n .c` restent pour
   les anciennes notes et Ctrl+Maj+H ; `.c` reste le vert des commentaires (jamais une couleur cyan).
 - `normalizeHtml` (`renderer/src/utils/normalizeHtml.ts`) ne fait que réindenter (Shift+Alt+F uniquement) :
   zones brutes, commentaires et doctype recopiés à l'octet près. Ne jamais l'appeler automatiquement.
@@ -160,7 +161,7 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
   `${n|…|}` en menu appliqué en direct, y compris dans un attribut (couleur). Les marqueurs ne doivent jamais
   être enregistrés : `cleanPreviewDocument` les retire. Les valeurs par défaut `${n:…}` ne peuvent pas
   contenir d'accolade (pas d'imbrication) dans aucun des trois moteurs.
-- Snippets « à nombre » (`/table-3-2`, `/cards-4`, `/etapes-5`, `/ul-6`, `/ol-6`, `/qcm-5`, `/colonnes-3`,
+- Snippets « à nombre » (`/table-3-2`, `/cards-4` (`.step`), `/cardf-4` (cartes canvas `.nodes`), `/canvas-4`, `/etapes-5`, `/ul-6`, `/ol-6`, `/qcm-5`, `/colonnes-3`,
   `/tbl-3-2` en Markdown) : générés à la saisie par `generateDynamicSnippets` (`src/shared/dynamicSnippets.ts`),
   dans les trois moteurs, jamais écrits dans les JSON. Fonction autonome (injectée par `toString()` dans
   l'iframe) : aucun import ni constante externe. Un préfixe défini par l'utilisateur gagne.
@@ -174,6 +175,12 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
   (`src/shared/canvasEditor.ts`, géométrie dans `canvasGeometry.ts`) ajoute dans l'aperçu les points de bord,
   la barre de carte et la sélection de flèche, marqués `data-injected-preview-helpers`. Les flèches ne sont
   recalculées qu'après un geste (relier, déplacer, élargir, saisie dans le canvas), jamais à l'ouverture.
+  Poignées de taille : coin bas-droit d'une carte (largeur + `min-height`), coin bas-droit du canvas (hauteur, et
+  largeur jusqu'à la pleine largeur). Cartes d'une rangée `.nodes` (flex) : poignée de taille dans `blockDrag.ts`.
+- Zoom de l'aperçu = `zoom` CSS sur le `<body>` : tout repère positionné en coordonnées d'écran (poignées, menus,
+  sélections, fantôme) va dans `<html>` (`document.documentElement`), jamais dans le `<body>` ; les mesures
+  `offsetLeft`/`offsetWidth` (pixels CSS) et la souris (pixels d'écran) se convertissent par le facteur
+  `getBoundingClientRect().width / offsetWidth`.
 - Entrée dans un `<pre>` : `insertCodeNewline` (saut de ligne dans le même `<code>`, indentation reprise ;
   `execCommand('insertText', '\n')` coupait le bloc en deux). Glisser-déposer des tableaux et blocs :
   `installBlockDrag` (`src/shared/blockDrag.ts`), poignée et repères en éléments d'interface, jamais de classe

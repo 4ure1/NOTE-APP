@@ -4,7 +4,7 @@
  * depuis les Paramètres. Sept écrans, chacun avec une illustration animée dessinée en CSS (aucune image
  * ni ressource réseau : l'app fonctionne hors ligne). Flèches ← → pour naviguer, Échap pour passer.
  */
-import { useEffect, useState, type ReactElement } from 'react'
+import { useCallback, useEffect, useState, type ReactElement } from 'react'
 import { AUTHOR, AUTHOR_GITHUB, REPOSITORY } from '../utils/credits'
 
 interface WelcomeTourProps {
@@ -388,7 +388,7 @@ export default function WelcomeTour({ onClose }: WelcomeTourProps): ReactElement
       .catch((err: unknown) => setFolderError(err instanceof Error ? err.message : String(err)))
   }
 
-  const finish = (): void => onClose(chosen || undefined)
+  const finish = useCallback((): void => onClose(chosen || undefined), [onClose, chosen])
   const step = STEPS[index]
   const last = index === STEPS.length - 1
   const Art = step.art
@@ -409,7 +409,7 @@ export default function WelcomeTour({ onClose }: WelcomeTourProps): ReactElement
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [index, onClose, chosen])
+  }, [index, finish])
 
   return (
     <div

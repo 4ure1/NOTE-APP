@@ -52,8 +52,10 @@ quelques repères pour démarrer.
 ### 3. Écrire dans l'aperçu, avec le menu « / »
 
 Tapez `/` n'importe où : le menu des blocs s'ouvre. Un nombre choisit la taille du bloc :
-`/table-3-2` (3 colonnes, 2 lignes), `/cards-4`, `/canvas-3`, `/ul-5`, `/qcm-4`… Les couleurs de texte
-se retiennent par leur initiale : `/ho` orange, `/hg` vert, `/hb` bleu, `/hr` rouge.
+`/table-3-2` (3 colonnes, 2 lignes), `/cards-4` (cartes `.step`), `/cardf-4` (cartes canvas colorées),
+`/canvas-3`, `/ul-5`, `/qcm-4`… Les couleurs de texte
+se retiennent par leur initiale : `/ho` orange, `/hg` vert, `/hb` bleu, `/hr` rouge ; en gras : `/g` (couleur
+normale), `/gr` rouge, `/go` orange, `/gb` bleu…
 
 <p align="center">
   <img src="docs/readme/ecrire.svg" alt="On tape /table-3-2, le menu des blocs s'ouvre, puis un tableau apparaît" width="100%">

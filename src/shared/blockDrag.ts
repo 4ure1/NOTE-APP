@@ -145,6 +145,17 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
   let hovered: Element | null = null
   // Poignée du groupe (grille entière) quand on survole une carte de la grille
   let grip2: HTMLElement | null = null
+  // Poignée de taille des cartes d'une rangée .nodes (coin bas-droit) et geste en cours
+  let sizeGrip: HTMLElement | null = null
+  let sizing: null | {
+    el: HTMLElement
+    startX: number
+    startY: number
+    w: number
+    h: number
+    zoom: number
+    moved: boolean
+  } = null
   let hoveredGroup: Element | null = null
 
   interface DragState {
@@ -185,6 +196,11 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
       '.nf-bd-grip.nf-on{opacity:1;pointer-events:auto;transform:scale(1);}',
       '.nf-bd-grip:hover{color:#fff;border-color:#38bdf8;transform:scale(1.08);}',
       '.nf-bd-group{color:#71717a;}',
+      '.nf-bd-size{position:absolute;z-index:6;width:14px;height:14px;border-radius:4px;box-sizing:border-box;',
+      'background:#38bdf8;border:2px solid #1e1e1e;cursor:nwse-resize;opacity:0;pointer-events:none;',
+      'transition:opacity .12s ease, transform .12s ease;}',
+      '.nf-bd-size.nf-on{opacity:1;pointer-events:auto;}',
+      '.nf-bd-size:hover{transform:scale(1.2);}',
       '.nf-bd-line{position:absolute;z-index:6;height:3px;margin-top:-1.5px;border-radius:2px;',
       'background:#38bdf8;box-shadow:0 0 0 3px rgba(56,189,248,0.18),0 0 12px rgba(56,189,248,0.5);',
       'pointer-events:none;opacity:0;',
@@ -229,6 +245,8 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
       grip = helperDiv('nf-bd-grip')
       grip.title = 'Glisser pour déplacer · clic pour sélectionner (Ctrl+clic : plusieurs)'
       grip.textContent = '⠿'
+      sizeGrip = helperDiv('nf-bd-size')
+      sizeGrip.title = 'Taille de la carte (largeur et hauteur)'
       grip2 = helperDiv('nf-bd-grip nf-bd-group')
       grip2.title = 'Glisser pour déplacer tout le groupe'
       grip2.textContent = '⠿'
@@ -236,11 +254,15 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
       source = helperDiv('nf-bd-source')
     }
     // Remis en place si le contenu du <body> a été remplacé (annulation…)
-    if (doc.body && grip.parentNode !== doc.body) {
-      doc.body.appendChild(grip)
-      doc.body.appendChild(grip2!)
-      doc.body.appendChild(line!)
-      doc.body.appendChild(source!)
+    // Rattachés à <html> et non au <body> : l'aperçu zoome le <body> (zoom CSS), ce qui décalerait
+    // tout élément placé en coordonnées d'écran
+    const root = doc.documentElement
+    if (root && grip.parentNode !== root) {
+      root.appendChild(grip)
+      root.appendChild(grip2!)
+      root.appendChild(sizeGrip!)
+      root.appendChild(line!)
+      root.appendChild(source!)
     }
   }
 
@@ -268,6 +290,17 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
     hoveredGroup = item ? groupOf(block) : null
     if (hoveredGroup && grip2) placeGrip(grip2, hoveredGroup, false)
     else if (grip2) grip2.classList.remove('nf-on')
+    // Carte d'une rangée .nodes : poignée de taille dans son coin bas-droit
+    if (sizeGrip) {
+      if (item && block.matches('.nodes > .node')) {
+        const r = pageRect(block)
+        sizeGrip.style.left = r.left + r.width - 9 + 'px'
+        sizeGrip.style.top = r.top + r.height - 9 + 'px'
+        sizeGrip.classList.add('nf-on')
+      } else {
+        sizeGrip.classList.remove('nf-on')
+      }
+    }
   }
 
   function hideGrip(): void {
@@ -275,6 +308,7 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
     hoveredGroup = null
     if (grip) grip.classList.remove('nf-on')
     if (grip2) grip2.classList.remove('nf-on')
+    if (sizeGrip) sizeGrip.classList.remove('nf-on')
   }
 
   // Pendant le glisser : rien n'est posé sur la note elle-même (une sauvegarde à ce moment
@@ -336,7 +370,7 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
     if (r.height <= 280) ghost.classList.add('nf-short')
     ghost.style.setProperty('--grab-x', d.grabX + 'px')
     ghost.style.setProperty('--grab-y', Math.min(d.grabY, 280) + 'px')
-    doc.body.appendChild(ghost)
+    doc.documentElement.appendChild(ghost)
     return ghost
   }
 
@@ -513,6 +547,19 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
   }
 
   function onPointerMove(e: PointerEvent): void {
+    if (sizing) {
+      e.preventDefault()
+      const s = sizing
+      const dx = (e.clientX - s.startX) / s.zoom
+      const dy = (e.clientY - s.startY) / s.zoom
+      if (Math.abs(dx) + Math.abs(dy) > 2) s.moved = true
+      // Taille propre à la carte : la rangée (flex) la respecte
+      s.el.style.flex = '0 0 auto'
+      s.el.style.width = Math.max(140, Math.round(s.w + dx)) + 'px'
+      s.el.style.minHeight = Math.max(60, Math.round(s.h + dy)) + 'px'
+      showGrip(s.el)
+      return
+    }
     if (drag) {
       e.preventDefault()
       const d = drag
@@ -528,7 +575,12 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
     if (!options.isEnabled()) return
     const target = e.target as Element | null
     if (!target || !target.closest) return
-    if ((grip && target === grip) || (grip2 && target === grip2)) return
+    if (
+      (grip && target === grip) ||
+      (grip2 && target === grip2) ||
+      (sizeGrip && target === sizeGrip)
+    )
+      return
     const block = draggableOf(target)
     if (block) {
       if (block !== hovered) showGrip(block)
@@ -559,7 +611,7 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
     if (!selLayer) {
       selLayer = helperDiv('nf-bd-sel-layer')
     }
-    if (doc.body && selLayer.parentNode !== doc.body) doc.body.appendChild(selLayer)
+    if (selLayer.parentNode !== doc.documentElement) doc.documentElement.appendChild(selLayer)
     while (selLayer.firstChild) selLayer.removeChild(selLayer.firstChild)
     if (!picked.length) return
     picked.forEach((b) => {
@@ -654,6 +706,24 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
       else duplicatePicked()
       return
     }
+    if (sizeGrip && e.target === sizeGrip && hovered && hovered.isConnected) {
+      e.preventDefault()
+      e.stopPropagation()
+      const el = hovered as HTMLElement
+      const r = el.getBoundingClientRect()
+      if (options.beforeChange) options.beforeChange()
+      sizing = {
+        el,
+        startX: e.clientX,
+        startY: e.clientY,
+        w: el.offsetWidth,
+        h: el.offsetHeight,
+        zoom: el.offsetWidth > 0 && r.width > 0 ? r.width / el.offsetWidth : 1,
+        moved: false
+      }
+      setLock(true)
+      return
+    }
     const block = e.target === grip ? hovered : grip2 && e.target === grip2 ? hoveredGroup : null
     if (!block) {
       // Clic ailleurs : la sélection de blocs disparaît
@@ -745,8 +815,29 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
   if (view) {
     view.addEventListener('pointermove', onPointerMove as EventListener, true)
     view.addEventListener('pointerdown', onPointerDown as EventListener, true)
-    view.addEventListener('pointerup', () => endDrag(true), true)
-    view.addEventListener('pointercancel', () => endDrag(false), true)
+    const endSizing = (): void => {
+      if (!sizing) return
+      const s = sizing
+      sizing = null
+      setLock(false)
+      if (s.moved) options.onChange()
+    }
+    view.addEventListener(
+      'pointerup',
+      () => {
+        endSizing()
+        endDrag(true)
+      },
+      true
+    )
+    view.addEventListener(
+      'pointercancel',
+      () => {
+        endSizing()
+        endDrag(false)
+      },
+      true
+    )
     view.addEventListener('blur', () => endDrag(false))
     view.addEventListener(
       'keydown',

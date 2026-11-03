@@ -601,7 +601,8 @@ export const prepareHtmlPreview = (
               var idx = parseInt(item.getAttribute('data-index'), 10);
               if (!isNaN(idx) && idx !== currentSelectedIndex) setActiveSnippet(idx, false);
             });
-            document.body.appendChild(snippetMenuEl);
+            // Sur <html> : le <body> est zoomé, un menu en position fixe y serait décalé
+            document.documentElement.appendChild(snippetMenuEl);
           }
           return snippetMenuEl;
         }
@@ -989,7 +990,7 @@ export const prepareHtmlPreview = (
           menu.id = 'nf-choice-menu';
           menu.setAttribute('data-injected-preview-helpers', 'true');
           menu.setAttribute('contenteditable', 'false');
-          document.body.appendChild(menu);
+          document.documentElement.appendChild(menu);
           choiceMenuEl = menu;
           renderChoiceMenu();
           var rect = occ.element.getBoundingClientRect();

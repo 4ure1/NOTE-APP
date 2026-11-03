@@ -26,15 +26,21 @@ describe('generateDynamicSnippets : noms complets', () => {
     expect(frag.querySelectorAll('td')).toHaveLength(6)
   })
 
-  it('/cards-4 et /card-4 : 4 cartes canvas de couleurs différentes', () => {
+  it('/cards-4 et /card-4 : 4 cartes .step de couleurs différentes (les cartes d’origine)', () => {
     for (const q of ['cards-4', 'card-4']) {
-      const frag = fragmentOf(q)
-      expect(frag.querySelector('.nodes'), q).not.toBeNull()
-      const nodes = Array.from(frag.querySelectorAll('.node')).map((el) => el.className)
-      expect(nodes, q).toEqual(['node red', 'node orange', 'node yellow', 'node green'])
-      expect(frag.querySelectorAll('.node > .node-title'), q).toHaveLength(4)
+      const steps = Array.from(fragmentOf(q).querySelectorAll('.step')).map((el) => el.className)
+      expect(steps, q).toEqual(['step', 'step purple', 'step orange', 'step green'])
+      expect(fragmentOf(q).querySelector('.duo'), q).not.toBeNull()
     }
     expect(only('card-4').prefix).toBe('card-4')
+  })
+
+  it('/cardf-4 : 4 cartes au style canvas, en rangée, de couleurs différentes', () => {
+    const frag = fragmentOf('cardf-4')
+    expect(frag.querySelector('.nodes')).not.toBeNull()
+    const nodes = Array.from(frag.querySelectorAll('.node')).map((el) => el.className)
+    expect(nodes).toEqual(['node red', 'node orange', 'node yellow', 'node green'])
+    expect(frag.querySelectorAll('.node > .node-title')).toHaveLength(4)
   })
 
   it('/canvas-5 : cartes placées, numérotées, et zone des flèches', () => {
@@ -126,8 +132,9 @@ describe('generateDynamicSnippets : débuts de nom', () => {
     expect(s.description).toContain('/table-C-L')
   })
 
-  it('un seul exemple pour /card (pas de doublon cards / card)', () => {
-    expect(generateDynamicSnippets('card').map((s) => s.prefix)).toEqual(['cards-3'])
+  it('/card propose les deux familles de cartes, sans doublon cards / card', () => {
+    expect(generateDynamicSnippets('card').map((s) => s.prefix)).toEqual(['cards-3', 'cardf-3'])
+    expect(generateDynamicSnippets('cardf').map((s) => s.prefix)).toEqual(['cardf-3'])
   })
 })
 
@@ -136,6 +143,7 @@ describe('generateDynamicSnippets : passage dans les moteurs', () => {
     'table-1-1',
     'table-10-30',
     'cards-12',
+    'cardf-12',
     'canvas-12',
     'etapes-12',
     'ul-20',

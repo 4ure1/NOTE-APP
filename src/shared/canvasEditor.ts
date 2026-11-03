@@ -289,12 +289,14 @@ export function installCanvasEditor(doc: Document, options: CanvasEditorOptions)
   let hovered: Element | null = null
   let selectedLink: Element | null = null
   let drag: null | {
-    kind: 'link' | 'move' | 'resize'
+    kind: 'link' | 'move' | 'resize' | 'canvas'
     canvas: Element
     node: Element
     side?: CanvasSide
     startX: number
     startY: number
+    // Zoom de l'aperçu au début du geste (pixels d'écran par pixel CSS)
+    zoom: number
     box: CanvasBox
     moved: boolean
   } = null
@@ -340,8 +342,12 @@ export function installCanvasEditor(doc: Document, options: CanvasEditorOptions)
       '.nf-cv-swatch:hover{transform:scale(1.15);border-color:#fff;}',
       '.nf-cv-swatch.nf-current{border-color:#38bdf8;}',
       'body[contenteditable="true"] .canvas{outline:1px dashed rgba(255,255,255,0.09);outline-offset:2px;}',
-      '.nf-cv-resize{position:absolute;right:-5px;top:50%;width:6px;height:26px;margin-top:22px;border-radius:3px;',
-      'background:rgba(56,189,248,0.7);pointer-events:auto;cursor:ew-resize;}'
+      '.nf-cv-canvas-resize{position:absolute;right:3px;bottom:3px;width:16px;height:16px;border-radius:4px;display:none;',
+      'pointer-events:auto;cursor:nwse-resize;background:linear-gradient(135deg,transparent 45%,rgba(56,189,248,0.85) 45%,',
+      'rgba(56,189,248,0.85) 55%,transparent 55%,transparent 70%,rgba(56,189,248,0.85) 70%,rgba(56,189,248,0.85) 80%,transparent 80%);}',
+      '.nf-cv-canvas-resize.nf-on{display:block;}',
+      '.nf-cv-resize{position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;border-radius:4px;cursor:nwse-resize;',
+      'background:#38bdf8;border:2px solid #1e1e1e;pointer-events:auto;box-sizing:border-box;}'
     ].join('')
     doc.head.appendChild(style)
   }
@@ -413,9 +419,14 @@ export function installCanvasEditor(doc: Document, options: CanvasEditorOptions)
       frame.appendChild(palette)
       const resize = doc.createElement('span')
       resize.className = 'nf-cv-resize'
-      resize.title = 'Largeur de la carte'
+      resize.title = 'Taille de la carte (largeur et hauteur)'
       frame.appendChild(resize)
       ui.appendChild(frame)
+      // Taille du canvas : coin bas-droit, visible au survol du canvas
+      const canvasResize = doc.createElement('span')
+      canvasResize.className = 'nf-cv-canvas-resize'
+      canvasResize.title = 'Taille du canvas'
+      ui.appendChild(canvasResize)
       // Canvas vide : bouton pour créer la première carte
       const empty = doc.createElement('button')
       empty.className = 'nf-cv-empty'
@@ -526,12 +537,21 @@ export function installCanvasEditor(doc: Document, options: CanvasEditorOptions)
     if (line) svgPath('nf-cv-sel', line.getAttribute('d') || '')
   }
 
+  // Pixels d'écran par pixel CSS dans le canvas (zoom de l'aperçu ; 1 sans zoom)
+  function zoomOf(canvas: Element): number {
+    const c = canvas as HTMLElement
+    const w = c.offsetWidth
+    const r = canvas.getBoundingClientRect().width
+    return w > 0 && r > 0 ? r / w : 1
+  }
+
   function local(canvas: Element, e: { clientX: number; clientY: number }): CanvasPoint {
     const rect = canvas.getBoundingClientRect()
     const c = canvas as HTMLElement
+    const z = zoomOf(canvas)
     return {
-      x: e.clientX - rect.left - (c.clientLeft || 0) + (c.scrollLeft || 0),
-      y: e.clientY - rect.top - (c.clientTop || 0) + (c.scrollTop || 0)
+      x: (e.clientX - rect.left) / z - (c.clientLeft || 0) + (c.scrollLeft || 0),
+      y: (e.clientY - rect.top) / z - (c.clientTop || 0) + (c.scrollTop || 0)
     }
   }
 
@@ -606,6 +626,14 @@ export function installCanvasEditor(doc: Document, options: CanvasEditorOptions)
     if (!target || !target.closest) return
     const inUi = ui && ui.contains(target)
     if (hovered && !hovered.isConnected) hideUi()
+    if (inUi && target.closest('.nf-cv-canvas-resize') && ui!.parentElement) {
+      e.preventDefault()
+      e.stopPropagation()
+      const canvas = ui!.parentElement
+      before()
+      startDrag('canvas', canvas, canvas, e)
+      return
+    }
     if (inUi && target.closest('.nf-cv-empty') && ui!.parentElement) {
       e.preventDefault()
       e.stopPropagation()
@@ -707,7 +735,7 @@ export function installCanvasEditor(doc: Document, options: CanvasEditorOptions)
   }
 
   function startDrag(
-    kind: 'link' | 'move' | 'resize',
+    kind: 'link' | 'move' | 'resize' | 'canvas',
     canvas: Element,
     node: Element,
     e: PointerEvent,
@@ -720,7 +748,16 @@ export function installCanvasEditor(doc: Document, options: CanvasEditorOptions)
       side,
       startX: e.clientX,
       startY: e.clientY,
-      box: measure(node),
+      zoom: zoomOf(canvas),
+      box:
+        kind === 'canvas'
+          ? {
+              x: 0,
+              y: 0,
+              w: (canvas as HTMLElement).offsetWidth,
+              h: (canvas as HTMLElement).offsetHeight
+            }
+          : measure(node),
       moved: false
     }
     setDragging(true)
@@ -730,8 +767,8 @@ export function installCanvasEditor(doc: Document, options: CanvasEditorOptions)
     if (drag) {
       e.preventDefault()
       const d = drag
-      const dx = e.clientX - d.startX
-      const dy = e.clientY - d.startY
+      const dx = (e.clientX - d.startX) / d.zoom
+      const dy = (e.clientY - d.startY) / d.zoom
       if (Math.abs(dx) + Math.abs(dy) > 2) d.moved = true
       const el = d.node as HTMLElement
       if (d.kind === 'move') {
@@ -741,10 +778,27 @@ export function installCanvasEditor(doc: Document, options: CanvasEditorOptions)
         growCanvas(d.canvas)
         placeFrame(d.node)
       } else if (d.kind === 'resize') {
+        // Largeur libre ; hauteur minimale (le contenu peut toujours l'agrandir)
         el.style.width = Math.max(140, Math.round(d.box.w + dx)) + 'px'
+        el.style.minHeight = Math.max(60, Math.round(d.box.h + dy)) + 'px'
         relayout(d.canvas)
         growCanvas(d.canvas)
         placeFrame(d.node)
+      } else if (d.kind === 'canvas') {
+        // Canvas : jamais plus petit que ses cartes ; pleine largeur dès qu'il atteint son conteneur
+        const c = d.canvas as HTMLElement
+        let bottom = 0
+        let right = 0
+        nodesOf(d.canvas).forEach((n) => {
+          const b = measure(n)
+          bottom = Math.max(bottom, b.y + b.h)
+          right = Math.max(right, b.x + b.w)
+        })
+        c.style.height = Math.round(Math.max(120, bottom + 24, d.box.h + dy)) + 'px'
+        const parentWidth = c.parentElement ? c.parentElement.clientWidth : Infinity
+        const width = Math.max(280, right + 24, d.box.w + dx)
+        if (width >= parentWidth - 2) c.style.removeProperty('width')
+        else c.style.width = Math.round(width) + 'px'
       } else if (d.kind === 'link' && d.side) {
         const p = local(d.canvas, e)
         const from = geo.anchor(measure(d.node), d.side)
@@ -768,6 +822,13 @@ export function installCanvasEditor(doc: Document, options: CanvasEditorOptions)
     const target = e.target as Element | null
     if (!target || !target.closest) return
     if (ui && ui.contains(target)) return
+    const overCanvas = canvasOfEvent(target)
+    if (overCanvas) {
+      if (hovered && hovered.parentElement !== overCanvas) hideUi()
+      ensureUi(overCanvas)
+    }
+    const canvasResize = ui ? ui.querySelector('.nf-cv-canvas-resize') : null
+    if (canvasResize) canvasResize.classList.toggle('nf-on', !!overCanvas)
     const node = target.closest('.canvas > .node')
     if (node) {
       if (node !== hovered) showUi(node)

@@ -302,6 +302,8 @@ pre .c, .code-view .c, span.c:not(.lang) { color: #6a9955 !important; font-style
 .p:not(.tag){ color: var(--purple); }    /* violet */
 .a:not(.tag){ color: #9cdcfe; }          /* bleu clair */
 .r:not(.tag){ color: var(--red); }       /* rouge */
+/* Couleur de base du texte (/hblank) : annule la couleur d'un titre ou d'un bloc coloré autour */
+.base{ color: var(--text); -webkit-text-fill-color: var(--text); }
 
 /* Cartes façon canvas : fond teinté, bordure de couleur, titre en gras.
    .nodes = grille de cartes ; .canvas = cartes placées librement et reliées par des flèches
@@ -336,12 +338,15 @@ pre .c, .code-view .c, span.c:not(.lang) { color: #6a9955 !important; font-style
 .node.teal{ --node: #3fb9a8; }
 .node.blue{ --node: #4a8fe7; }
 .node.brown{ --node: #a08065; }
+/* Rangée de cartes : elles se partagent la largeur ; une carte agrandie dans l'aperçu garde sa taille */
 .nodes{
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
   gap: 16px;
   margin: 22px 0;
 }
+.nodes > .node{ flex: 1 1 220px; min-width: 0; max-width: 100%; }
 .canvas{
   position: relative;
   min-height: 160px;

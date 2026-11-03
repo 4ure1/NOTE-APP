@@ -251,7 +251,8 @@ export function installTableTools(doc: Document, options: TableToolsOptions): Ta
       layer.setAttribute(HELPER, 'true')
       layer.setAttribute('contenteditable', 'false')
     }
-    if (doc.body && layer.parentNode !== doc.body) doc.body.appendChild(layer)
+    // Sur <html> : le <body> de l'aperçu est zoomé (zoom CSS), les repères y seraient décalés
+    if (layer.parentNode !== doc.documentElement) doc.documentElement.appendChild(layer)
     return layer
   }
 
@@ -400,7 +401,7 @@ export function installTableTools(doc: Document, options: TableToolsOptions): Ta
       title(m, 'Couleur de la carte')
       swatches(m, list, current, isNode ? 'Gris' : 'Bleu', (c) => setCardColor(card, c))
     }
-    doc.body.appendChild(m)
+    doc.documentElement.appendChild(m)
     // Reste dans la fenêtre
     const vw = view ? view.innerWidth : 1000
     const vh = view ? view.innerHeight : 800
