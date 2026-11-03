@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { RenameOperationPlan } from '../../../../src/shared/linkUpdater'
+import { useModalA11y } from '../utils/useModalA11y'
 
 interface LinkRenameModalProps {
   isOpen: boolean
@@ -17,6 +18,15 @@ export default function LinkRenameModal({
   onCancel
 }: LinkRenameModalProps): ReactNode {
   const [expandedFiles, setExpandedFiles] = useState<Record<string, boolean>>({})
+  // Échap = Annuler, sauf pendant l'application (le bouton Annuler est alors désactivé)
+  const dialogRef = useModalA11y(
+    isOpen && !!plan,
+    () => {
+      if (!isSubmitting) onCancel()
+    },
+    { initialFocus: 'first' }
+  )
+  const titleId = useId()
 
   if (!isOpen || !plan) return null
 
@@ -46,6 +56,11 @@ export default function LinkRenameModal({
       onClick={onCancel}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         style={{
           width: '100%',
           maxWidth: '680px',
@@ -57,7 +72,7 @@ export default function LinkRenameModal({
           flexDirection: 'column',
           boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)',
           color: '#f4f4f5',
-          fontFamily: 'Inter, system-ui, sans-serif'
+          fontFamily: 'var(--font-ui)'
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -72,7 +87,10 @@ export default function LinkRenameModal({
           }}
         >
           <div>
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>
+            <h2
+              id={titleId}
+              style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}
+            >
               {isFolder ? 'Déplacement / Renommage de dossier' : 'Renommage sécurisé de la note'}
             </h2>
             <div style={{ marginTop: '6px', fontSize: '13px', color: '#94a3b8' }}>
@@ -96,9 +114,10 @@ export default function LinkRenameModal({
               padding: '4px 8px',
               borderRadius: '4px'
             }}
-            title="Fermer"
+            title="Fermer (Échap)"
+            aria-label="Fermer"
           >
-            ×
+            <span aria-hidden="true">×</span>
           </button>
         </div>
 
@@ -168,7 +187,7 @@ export default function LinkRenameModal({
                   fontWeight: 500
                 }}
               >
-                Snapshot Time Travel auto
+                Version sauvegardée avant
               </span>
             </div>
           )}
@@ -200,7 +219,16 @@ export default function LinkRenameModal({
                     }}
                   >
                     <div
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={isExpanded}
                       onClick={() => toggleExpand(file.relativePath)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          toggleExpand(file.relativePath)
+                        }
+                      }}
                       style={{
                         padding: '10px 14px',
                         display: 'flex',
@@ -212,7 +240,7 @@ export default function LinkRenameModal({
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '11px', color: '#71717a' }}>
+                        <span aria-hidden="true" style={{ fontSize: '11px', color: '#71717a' }}>
                           {isExpanded ? '▼' : '▶'}
                         </span>
                         <span style={{ fontSize: '13px', fontWeight: 500, color: '#f4f4f5' }}>
@@ -275,8 +303,8 @@ export default function LinkRenameModal({
 
           <div style={{ fontSize: '12px', color: '#71717a', lineHeight: 1.5 }}>
             🛡️ <strong>Sécurité garantie :</strong> chaque note modifiée fait l&apos;objet d&apos;un
-            snapshot dans l&apos;historique Time Travel. Vous disposerez également d&apos;un bouton
-            immédiat pour annuler ce renommage en un clic.
+            instantané dans l&apos;historique des versions. Vous disposerez également d&apos;un
+            bouton immédiat pour annuler ce renommage en un clic.
           </div>
         </div>
 
@@ -294,6 +322,7 @@ export default function LinkRenameModal({
           <button
             onClick={onCancel}
             disabled={isSubmitting}
+            data-autofocus
             style={{
               padding: '8px 16px',
               borderRadius: '6px',

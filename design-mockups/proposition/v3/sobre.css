@@ -1,0 +1,57 @@
+/* Direction « sobre » : l'interface se fond dans le gris des notes (#252526) et de Monaco (#1e1e1e).
+   Du cahier, on garde la marge rouge comme unique accent et le serif des titres. Pas de réglure. */
+@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:ital,wght@0,400;0,700;1,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap');
+
+:root {
+  --bureau: #19191a;      /* fond de l'app, sous la page */
+  --volet: #1f1f20;       /* barre latérale, barres, panneau IA */
+  --page: #252526;        /* = body du thème des notes */
+  --code: #1e1e1e;        /* = Monaco et <pre> du thème */
+  --survol: #2a2a2c;
+  --actif: #303033;
+  --trait: #333336;       /* séparateurs */
+  --trait-fort: #3e3e42;  /* = --border du thème */
+  --texte: #e6e4df;       /* blanc cassé, chaud */
+  --texte-2: #b0afab;
+  --discret: #8f8e8a;     /* 5,3 : 1 sur --volet */
+  --marge: #e45a6b;       /* signature : élément actif, onglet courant */
+  --marge-voile: rgba(228, 90, 107, 0.12);
+  --focus: #84b4ff;
+
+  --ui: 'Atkinson Hyperlegible Next', 'Segoe UI', sans-serif;
+  --titre: 'Newsreader', Georgia, serif;
+  --mono: Consolas, 'Cascadia Code', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1440px; height: 900px; overflow: hidden; }
+body { background: var(--bureau); color: var(--texte); font-family: var(--ui); font-size: 14px; line-height: 22px; -webkit-font-smoothing: antialiased; }
+.ico { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.k { font-size: 12px; color: var(--discret); font-weight: 400; flex: none !important; }
+.focus { outline: 2px solid var(--focus); outline-offset: 1px; border-radius: 3px; }
+
+/* Barre latérale commune */
+.side { width: 260px; background: var(--volet); border-right: 1px solid var(--trait); display: flex; flex-direction: column; padding: 14px 0 10px; flex-shrink: 0; }
+.brand { display: flex; align-items: center; justify-content: space-between; padding: 0 14px 0 20px; height: 36px; }
+.brand span { font-family: var(--titre); font-style: italic; font-size: 20px; }
+.brand i { color: var(--discret); display: grid; }
+.search { margin: 8px 12px 0; display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; background: var(--bureau); border: 1px solid var(--trait-fort); border-radius: 4px; color: var(--discret); }
+.search span { flex: 1; }
+.new { margin: 8px 12px 0; display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; color: var(--texte); font-weight: 700; border-radius: 4px; }
+.new .ico { color: var(--marge); }
+.new span { flex: 1; }
+.it { position: relative; display: flex; align-items: center; gap: 9px; height: 28px; padding: 0 14px 0 20px; color: var(--texte-2); }
+.it > span:first-of-type { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.it.on { color: var(--texte); background: var(--actif); }
+.it.on::before { content: ''; position: absolute; left: 0; top: 5px; bottom: 5px; width: 3px; background: var(--marge); border-radius: 0 2px 2px 0; }
+.it small { font-size: 12px; color: var(--discret); }
+.it .acts { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: flex; gap: 2px; color: var(--texte-2); }
+.it .acts i { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 3px; }
+.grp { margin-top: 18px; }
+.grp-t { display: flex; align-items: center; justify-content: space-between; padding: 0 14px 0 20px; height: 28px; font-size: 13px; font-weight: 700; color: var(--texte); }
+.grp-t div { display: flex; gap: 2px; color: var(--discret); }
+.grp-t div i { width: 24px; height: 24px; display: grid; place-items: center; }
+.lv2 { padding-left: 42px; }
+.fmt { font-size: 11px; color: var(--discret); }
+.foot { margin-top: auto; display: flex; border-top: 1px solid var(--trait); padding-top: 8px; }
+.foot .it { flex: 1; padding: 0 12px 0 20px; }

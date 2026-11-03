@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { TreeNode } from '../types'
 import { isAccessDenied, notifyApiError } from '../utils/apiError'
+import { treeKeyAction } from '../../../shared/treeKeys'
 import {
   FolderIcon,
   FolderOpenIcon,
@@ -28,6 +29,9 @@ import {
   ColumnsIcon,
   getFileIcon
 } from './Icons'
+
+// Trait rouge de marge à gauche de la vue active (seul accent de marque de l'interface)
+const ACTIVE_MARK = 'inset 3px 0 0 var(--accent-marge)'
 
 interface SidebarProps {
   onSelectFiles: (files: string[]) => void
@@ -156,6 +160,41 @@ export default function Sidebar({
     return () => window.removeEventListener('click', handleClickOutside)
   }, [])
 
+  // Menu contextuel au clavier : focus sur la première entrée à l'ouverture ; à la fermeture, si le
+  // focus est perdu (menu retiré), il revient à la ligne de l'arbre d'où le menu est parti
+  const contextMenuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!contextMenu) return
+    const menu = contextMenuRef.current
+    menu?.querySelector<HTMLElement>('[role="menuitem"]')?.focus()
+    const itemPath = contextMenu.itemPath
+    return () => {
+      const active = document.activeElement
+      if (active && active !== document.body && !menu?.contains(active)) return
+      document
+        .querySelector<HTMLElement>(`[role="treeitem"][data-path="${CSS.escape(itemPath)}"]`)
+        ?.focus()
+    }
+  }, [contextMenu])
+
+  const handleContextMenuKeyDown = (e: React.KeyboardEvent<HTMLDivElement>): void => {
+    const items = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]'))
+    if (items.length === 0) return
+    const i = items.indexOf(document.activeElement as HTMLElement)
+    let handled = true
+    if (e.key === 'ArrowDown') items[(i + 1) % items.length].focus()
+    else if (e.key === 'ArrowUp') items[(i - 1 + items.length) % items.length].focus()
+    else if (e.key === 'Home') items[0].focus()
+    else if (e.key === 'End') items[items.length - 1].focus()
+    else if ((e.key === 'Enter' || e.key === ' ') && i >= 0) items[i].click()
+    else if (e.key === 'Escape' || e.key === 'Tab') setContextMenu(null)
+    else handled = false
+    if (handled) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+  }
+
   useEffect(() => {
     if (creatingInFolder && creationInputRef.current) {
       creationInputRef.current.focus()
@@ -267,6 +306,48 @@ export default function Sidebar({
     e.target.value = ''
   }
 
+  // Clavier dans l'arbre (motif ARIA « tree view ») ; la décision est dans src/shared/treeKeys.ts
+  const handleTreeKeyDown = (e: React.KeyboardEvent<HTMLDivElement>, node: TreeNode): void => {
+    if (e.target !== e.currentTarget) return
+    const isFolder = node.type === 'folder'
+    const isOpen = !!openFolders[node.relativePath]
+    const tree = e.currentTarget.closest('[role="tree"]')
+    const items = tree ? Array.from(tree.querySelectorAll<HTMLElement>('[role="treeitem"]')) : []
+    const slash = node.relativePath.lastIndexOf('/')
+    const parentPath = slash > 0 ? node.relativePath.substring(0, slash) : ''
+    const action = treeKeyAction(e.key, e.shiftKey, {
+      index: items.indexOf(e.currentTarget),
+      count: items.length,
+      isFolder,
+      isOpen,
+      hasChildren: !!node.children && node.children.length > 0,
+      parentIndex: parentPath ? items.findIndex((el) => el.dataset.path === parentPath) : -1
+    })
+    if (action.kind === 'none') return
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (action.kind === 'focus') {
+      items[action.index]?.focus()
+    } else if (action.kind === 'expand' || action.kind === 'collapse') {
+      setOpenFolders((prev) => ({ ...prev, [node.relativePath]: action.kind === 'expand' }))
+    } else if (action.kind === 'activate') {
+      if (isFolder) {
+        setOpenFolders((prev) => ({ ...prev, [node.relativePath]: !prev[node.relativePath] }))
+      } else {
+        if (setActiveView) setActiveView('all')
+        onSelectFiles([node.relativePath])
+      }
+    } else if (action.kind === 'menu') {
+      const rect = e.currentTarget.getBoundingClientRect()
+      setContextMenu({ x: rect.left + 24, y: rect.bottom, itemPath: node.relativePath, isFolder })
+      if (!isFolder) onSelectFiles([node.relativePath])
+    } else if (action.kind === 'rename') {
+      setEditingFile(node.relativePath)
+      setEditValue(node.name.replace(/\.(html|htm|md|markdown)$/i, ''))
+    }
+  }
+
   // Recursive tree renderer
   const renderTree = (nodes: TreeNode[], depth = 0) => {
     return nodes.map((node) => {
@@ -277,9 +358,16 @@ export default function Sidebar({
       const isFav = favorites.includes(node.relativePath)
 
       return (
-        <div key={node.id} style={{ display: 'flex', flexDirection: 'column' }}>
+        <div key={node.id} role="none" style={{ display: 'flex', flexDirection: 'column' }}>
           <div
             className="tree-row"
+            role="treeitem"
+            tabIndex={-1}
+            data-path={node.relativePath}
+            aria-level={depth + 1}
+            aria-expanded={isFolder ? isOpen : undefined}
+            aria-selected={isSelected}
+            onKeyDown={(e) => handleTreeKeyDown(e, node)}
             draggable
             onDragStart={(e) => {
               e.stopPropagation()
@@ -414,6 +502,7 @@ export default function Sidebar({
             {/* Folder chevron */}
             {isFolder ? (
               <span
+                aria-hidden="true"
                 onClick={(e) => toggleFolder(node.relativePath, e)}
                 style={{
                   display: 'inline-flex',
@@ -450,6 +539,7 @@ export default function Sidebar({
             {isEditing ? (
               <input
                 autoFocus
+                aria-label="Nouveau nom"
                 value={editValue}
                 onChange={(e) => setEditValue(e.target.value)}
                 onBlur={submitRename}
@@ -532,7 +622,7 @@ export default function Sidebar({
 
           {/* Child nodes */}
           {isFolder && isOpen && (
-            <div>
+            <div role="group">
               {/* If inline creating in this folder */}
               {creatingInFolder?.parentPath === node.relativePath && (
                 <div style={{ display: 'flex', alignItems: 'center', paddingLeft: `${14 + (depth + 1) * 14}px`, margin: '3px 8px' }}>
@@ -545,6 +635,11 @@ export default function Sidebar({
                   )}
                   <input
                     ref={creationInputRef}
+                    aria-label={
+                      creatingInFolder!.type === 'folder'
+                        ? 'Nom du nouveau dossier'
+                        : 'Nom de la nouvelle note'
+                    }
                     placeholder={
                       creatingInFolder!.type === 'folder'
                         ? 'Nom du dossier...'
@@ -796,8 +891,8 @@ export default function Sidebar({
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <PlusIcon size={15} style={{ color: 'var(--accent-color)' }} />
-              <span>New Note</span>
+              <PlusIcon size={15} style={{ color: 'var(--accent-marge)' }} />
+              <span>Nouvelle note</span>
             </span>
             <kbd>Ctrl+N</kbd>
           </button>
@@ -846,13 +941,14 @@ export default function Sidebar({
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <SearchIcon size={15} style={{ color: 'var(--text-secondary)' }} />
-              <span>Search</span>
+              <span>Rechercher</span>
             </span>
-            <kbd>Ctrl+S</kbd>
+            <kbd>Ctrl+P</kbd>
           </button>
 
           <button
             onClick={() => setActiveView && setActiveView(activeView === 'recent' ? 'all' : 'recent')}
+            aria-current={activeView === 'recent' ? 'page' : undefined}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -860,6 +956,7 @@ export default function Sidebar({
               padding: '7px 10px',
               borderRadius: '6px',
               background: activeView === 'recent' ? 'var(--element-active)' : 'transparent',
+              boxShadow: activeView === 'recent' ? ACTIVE_MARK : 'none',
               border: 'none',
               color: activeView === 'recent' ? '#fff' : 'var(--text-primary)',
               fontSize: '13px',
@@ -874,8 +971,13 @@ export default function Sidebar({
             }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ClockIcon size={15} style={{ color: activeView === 'recent' ? '#38bdf8' : 'var(--text-secondary)' }} />
-              <span>Recent</span>
+              <ClockIcon
+                size={15}
+                style={{
+                  color: activeView === 'recent' ? 'var(--accent-marge)' : 'var(--text-secondary)'
+                }}
+              />
+              <span>Récentes</span>
             </span>
             <kbd>Ctrl+R</kbd>
           </button>
@@ -885,6 +987,7 @@ export default function Sidebar({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '18px', paddingBottom: '12px', borderBottom: '1px solid var(--border-subtle)' }}>
           <button
             onClick={() => setActiveView && setActiveView('workflow')}
+            aria-current={activeView === 'workflow' ? 'page' : undefined}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -892,6 +995,7 @@ export default function Sidebar({
               padding: '6px 10px',
               borderRadius: '6px',
               background: activeView === 'workflow' ? 'var(--element-active)' : 'transparent',
+              boxShadow: activeView === 'workflow' ? ACTIVE_MARK : 'none',
               border: 'none',
               color: activeView === 'workflow' ? '#fff' : 'var(--text-secondary)',
               fontSize: '13px',
@@ -906,16 +1010,17 @@ export default function Sidebar({
             }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <KanbanIcon size={15} style={{ color: activeView === 'workflow' ? '#38bdf8' : 'inherit' }} />
-              <span>Workflow</span>
-            </span>
-            <span style={{ fontSize: '10px', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.12)', border: '1px solid rgba(56, 189, 248, 0.25)', padding: '1px 6px', borderRadius: '10px' }}>
-              Board
+              <KanbanIcon
+                size={15}
+                style={{ color: activeView === 'workflow' ? 'var(--accent-marge)' : 'inherit' }}
+              />
+              <span>Tableau</span>
             </span>
           </button>
 
           <button
             onClick={() => setActiveView && setActiveView('youtube')}
+            aria-current={activeView === 'youtube' ? 'page' : undefined}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -923,6 +1028,7 @@ export default function Sidebar({
               padding: '6px 10px',
               borderRadius: '6px',
               background: activeView === 'youtube' ? 'var(--element-active)' : 'transparent',
+              boxShadow: activeView === 'youtube' ? ACTIVE_MARK : 'none',
               border: 'none',
               color: activeView === 'youtube' ? '#fff' : 'var(--text-secondary)',
               fontSize: '13px',
@@ -940,13 +1046,11 @@ export default function Sidebar({
               <YouTubeIcon size={16} />
               <span>YouTube</span>
             </span>
-            <span style={{ fontSize: '10px', color: '#f87171', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)', padding: '1px 6px', borderRadius: '10px' }}>
-              Onglets
-            </span>
           </button>
 
           <button
             onClick={() => setActiveView && setActiveView('drafts')}
+            aria-current={activeView === 'drafts' ? 'page' : undefined}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -954,6 +1058,7 @@ export default function Sidebar({
               padding: '6px 10px',
               borderRadius: '6px',
               background: activeView === 'drafts' ? 'var(--element-active)' : 'transparent',
+              boxShadow: activeView === 'drafts' ? ACTIVE_MARK : 'none',
               border: 'none',
               color: activeView === 'drafts' ? '#fff' : 'var(--text-secondary)',
               fontSize: '13px',
@@ -969,15 +1074,36 @@ export default function Sidebar({
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <DraftsIcon size={15} />
-              <span>Drafts</span>
+              <span>Brouillons</span>
             </span>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--element-bg)', padding: '1px 6px', borderRadius: '10px' }}>
-              {draftsCount}
-            </span>
+            {draftsCount > 0 && (
+              <span
+                style={{
+                  fontSize: '11px',
+                  color: 'var(--text-muted)',
+                  background: 'var(--element-bg)',
+                  padding: '1px 6px',
+                  borderRadius: '10px'
+                }}
+              >
+                {draftsCount}
+              </span>
+            )}
           </button>
 
+          {/* <div> et non <button> : contient le bouton « Vider » ; rendu accessible au clavier */}
           <div
+            role="button"
+            tabIndex={0}
+            aria-current={activeView === 'deleted' ? 'page' : undefined}
             onClick={() => setActiveView && setActiveView('deleted')}
+            onKeyDown={(e) => {
+              if (e.target !== e.currentTarget) return
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setActiveView?.('deleted')
+              }
+            }}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -985,6 +1111,7 @@ export default function Sidebar({
               padding: '6px 10px',
               borderRadius: '6px',
               background: activeView === 'deleted' ? 'var(--element-active)' : 'transparent',
+              boxShadow: activeView === 'deleted' ? ACTIVE_MARK : 'none',
               color: activeView === 'deleted' ? '#fff' : 'var(--text-secondary)',
               fontSize: '13px',
               cursor: 'pointer',
@@ -999,7 +1126,7 @@ export default function Sidebar({
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <TrashIcon size={15} />
-              <span>Deleted</span>
+              <span>Corbeille</span>
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               {deletedCount > 0 && onEmptyTrash && (
@@ -1032,9 +1159,19 @@ export default function Sidebar({
                   Vider
                 </button>
               )}
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--element-bg)', padding: '1px 6px', borderRadius: '10px' }}>
-                {deletedCount}
-              </span>
+              {deletedCount > 0 && (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
+                    background: 'var(--element-bg)',
+                    padding: '1px 6px',
+                    borderRadius: '10px'
+                  }}
+                >
+                  {deletedCount}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -1043,7 +1180,16 @@ export default function Sidebar({
         {favorites.length > 0 && (
           <div style={{ marginBottom: '18px' }}>
             <div
+              role="button"
+              tabIndex={0}
+              aria-expanded={favouritesOpen}
               onClick={() => setFavouritesOpen(!favouritesOpen)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setFavouritesOpen(!favouritesOpen)
+                }
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1057,7 +1203,7 @@ export default function Sidebar({
                 cursor: 'pointer'
               }}
             >
-              <span>Favourites</span>
+              <span>Favoris</span>
               <span style={{ opacity: 0.7 }}>
                 {favouritesOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
               </span>
@@ -1072,9 +1218,19 @@ export default function Sidebar({
                   return (
                     <div
                       key={favPath}
+                      role="button"
+                      tabIndex={0}
+                      aria-current={isSelected ? 'true' : undefined}
                       onClick={() => {
                         if (setActiveView) setActiveView('all')
                         onSelectFiles([favPath])
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          if (setActiveView) setActiveView('all')
+                          onSelectFiles([favPath])
+                        }
                       }}
                       style={{
                         display: 'flex',
@@ -1126,18 +1282,27 @@ export default function Sidebar({
             }}
           >
             <div
+              role="button"
+              tabIndex={0}
+              aria-expanded={foldersOpen}
               onClick={() => setFoldersOpen(!foldersOpen)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setFoldersOpen(!foldersOpen)
+                }
+              }}
               style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}
             >
               <span>{foldersOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>
-              <span>My Folders</span>
+              <span>Mes notes</span>
             </div>
 
             {/* Create root file and folder buttons */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
               <button
                 onClick={(e) => handleStartCreate('', 'file', e)}
-                title="Nouveau fichier racine (ex: nom.html ou nom.md)"
+                title="Nouvelle note à la racine (.html par défaut, .md pour du Markdown)"
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -1206,6 +1371,11 @@ export default function Sidebar({
               )}
               <input
                 ref={creationInputRef}
+                aria-label={
+                  creatingInFolder.type === 'folder'
+                    ? 'Nom du nouveau dossier'
+                    : 'Nom de la nouvelle note'
+                }
                 placeholder={
                   creatingInFolder.type === 'folder'
                     ? 'Nouveau dossier...'
@@ -1235,10 +1405,28 @@ export default function Sidebar({
           {foldersOpen && (
             <div style={{ marginTop: '4px' }}>
               {treeNodes.length > 0 ? (
-                renderTree(treeNodes)
+                // Un seul arrêt de Tab pour tout l'arbre : le focus va à la note sélectionnée (ou à la
+                // première ligne), puis les flèches prennent le relais
+                <div
+                  role="tree"
+                  aria-label="Mes notes"
+                  tabIndex={0}
+                  onFocus={(e) => {
+                    if (e.target !== e.currentTarget) return
+                    if (e.currentTarget.contains(e.relatedTarget as Node | null)) return
+                    const rows = Array.from(
+                      e.currentTarget.querySelectorAll<HTMLElement>('[role="treeitem"]')
+                    )
+                    const target =
+                      rows.find((el) => el.getAttribute('aria-selected') === 'true') ?? rows[0]
+                    target?.focus()
+                  }}
+                >
+                  {renderTree(treeNodes)}
+                </div>
               ) : (
                 <div style={{ padding: '12px 14px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                  Aucune note trouvée.
+                  Aucune note pour l’instant. Créez-en une avec Ctrl+N ou importez un PDF.
                 </div>
               )}
 
@@ -1323,10 +1511,12 @@ export default function Sidebar({
           }}
         >
           <SettingsIcon size={15} />
-          <span>Settings</span>
+          <span>Paramètres</span>
         </button>
 
         <button
+          onClick={() => window.dispatchEvent(new Event('nf-open-tour'))}
+          title="Relancer la visite guidée"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -1350,13 +1540,17 @@ export default function Sidebar({
           }}
         >
           <HelpCircleIcon size={15} />
-          <span>Help & Support</span>
+          <span>Aide</span>
         </button>
       </div>
 
       {/* Context Menu for right-click on tree item */}
       {contextMenu && (
         <div
+          ref={contextMenuRef}
+          role="menu"
+          aria-label={contextMenu.isFolder ? 'Actions du dossier' : 'Actions de la note'}
+          onKeyDown={handleContextMenuKeyDown}
           style={{
             position: 'fixed',
             top: `${contextMenu.y}px`,
@@ -1374,6 +1568,8 @@ export default function Sidebar({
           {contextMenu.isFolder && (
             <>
               <div
+                role="menuitem"
+                tabIndex={-1}
                 style={{
                   padding: '6px 10px',
                   fontSize: '12.5px',
@@ -1392,6 +1588,8 @@ export default function Sidebar({
               </div>
               {onOpenNewSession && (
                 <div
+                  role="menuitem"
+                  tabIndex={-1}
                   style={{
                     padding: '6px 10px',
                     fontSize: '12.5px',
@@ -1415,6 +1613,8 @@ export default function Sidebar({
                 </div>
               )}
               <div
+                role="menuitem"
+                tabIndex={-1}
                 style={{
                   padding: '6px 10px',
                   fontSize: '12.5px',
@@ -1432,6 +1632,8 @@ export default function Sidebar({
                 Nouveau fichier
               </div>
               <div
+                role="menuitem"
+                tabIndex={-1}
                 style={{
                   padding: '6px 10px',
                   fontSize: '12.5px',
@@ -1454,6 +1656,8 @@ export default function Sidebar({
           {!contextMenu.isFolder && contextMenu.itemPath.toLowerCase().endsWith('.pdf') && (
             <>
               <div
+                role="menuitem"
+                tabIndex={-1}
                 style={{
                   padding: '6px 10px',
                   fontSize: '12.5px',
@@ -1475,6 +1679,8 @@ export default function Sidebar({
                 Ouvrir en externe
               </div>
               <div
+                role="menuitem"
+                tabIndex={-1}
                 style={{
                   padding: '6px 10px',
                   fontSize: '12.5px',
@@ -1500,6 +1706,8 @@ export default function Sidebar({
 
           {!contextMenu.isFolder && (
             <div
+              role="menuitem"
+              tabIndex={-1}
               style={{
                 padding: '6px 10px',
                 fontSize: '12.5px',
@@ -1524,6 +1732,8 @@ export default function Sidebar({
 
           {!contextMenu.isFolder && (
             <div
+              role="menuitem"
+              tabIndex={-1}
               style={{
                 padding: '6px 10px',
                 fontSize: '12.5px',
@@ -1543,6 +1753,8 @@ export default function Sidebar({
           )}
 
           <div
+            role="menuitem"
+            tabIndex={-1}
             style={{
               padding: '6px 10px',
               fontSize: '12.5px',
@@ -1562,6 +1774,8 @@ export default function Sidebar({
           </div>
 
           <div
+            role="menuitem"
+            tabIndex={-1}
             style={{
               padding: '6px 10px',
               fontSize: '12.5px',

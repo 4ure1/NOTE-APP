@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { useModalA11y } from '../utils/useModalA11y'
 import { Snippet } from '../types/snippets'
 import { getSnippetBodyText } from '../utils/snippetEngine'
 import { notifyApiError } from '../utils/apiError'
@@ -188,6 +189,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   }
 
+  // Échap ferme (sauf pendant l'enregistrement d'un raccourci : la capture de la touche l'intercepte avant)
+  const dialogRef = useModalA11y(
+    isOpen,
+    () => {
+      setRecordingUuid(null)
+      onClose()
+    },
+    { initialFocus: 'first' }
+  )
+
   if (!isOpen) return null
 
   return (
@@ -204,7 +215,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 99999,
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+        fontFamily: 'var(--font-ui)'
       }}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
@@ -214,6 +225,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       }}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-modal-title"
+        tabIndex={-1}
         style={{
           backgroundColor: '#18181b',
           border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -260,7 +276,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </svg>
             </div>
             <div>
-              <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>Paramètres & Aide</h2>
+              <h2
+                id="settings-modal-title"
+                style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}
+              >
+                Paramètres & Aide
+              </h2>
               <p style={{ margin: 0, fontSize: '12px', color: '#a1a1aa' }}>
                 Personnalisation de l'application, raccourcis et guide des snippets
               </p>
@@ -271,6 +292,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               setRecordingUuid(null)
               onClose()
             }}
+            aria-label="Fermer"
+            title="Fermer (Échap)"
             style={{
               background: 'transparent',
               border: 'none',
@@ -294,7 +317,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               e.currentTarget.style.color = '#a1a1aa'
             }}
           >
-            ✕
+            <span aria-hidden="true">✕</span>
           </button>
         </div>
 
@@ -442,6 +465,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
                     <input
                       type="text"
+                      aria-label="Filtrer les snippets"
                       value={snippetSearch}
                       onChange={(e) => setSnippetSearch(e.target.value)}
                       placeholder="Filtrer par préfixe, nom ou description..."
@@ -482,6 +506,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                     {/* Filtre de Catégorie */}
                     <select
+                      aria-label="Catégorie de snippets"
                       value={snippetCategoryFilter}
                       onChange={(e) => setSnippetCategoryFilter(e.target.value)}
                       style={{
@@ -664,6 +689,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       }}
                     >
                       <select
+                        aria-label="Action du raccourci"
                         value={s.actionId}
                         onChange={(e) => {
                           const newAction = e.target.value
@@ -742,8 +768,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             fontSize: '12px',
                             cursor: 'pointer'
                           }}
+                          aria-label="Supprimer ce raccourci"
+                          title="Supprimer ce raccourci"
                         >
-                          ✕
+                          <span aria-hidden="true">✕</span>
                         </button>
                       </div>
                     </div>
@@ -863,10 +891,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                   {/* Modèle configuré */}
                   <div style={{ marginBottom: '12px' }}>
-                    <label style={{ display: 'block', fontSize: '12px', color: '#a1a1aa', marginBottom: '4px' }}>
+                    <label
+                      htmlFor="settings-ollama-model"
+                      style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        color: '#a1a1aa',
+                        marginBottom: '4px'
+                      }}
+                    >
                       Modèle local pour l'Agent :
                     </label>
                     <input
+                      id="settings-ollama-model"
                       type="text"
                       value={ollamaModel}
                       onChange={(e) => setOllamaModel(e.target.value)}
@@ -887,11 +924,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                   {/* Clé API Web pour recherche en direct */}
                   <div style={{ marginBottom: '12px' }}>
-                    <label style={{ display: 'block', fontSize: '12px', color: '#a1a1aa', marginBottom: '4px' }}>
+                    <label
+                      htmlFor="settings-ollama-key"
+                      style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        color: '#a1a1aa',
+                        marginBottom: '4px'
+                      }}
+                    >
                       Clé API Web Ollama (optionnelle, stockée de manière sécurisée) :
                     </label>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <input
+                        id="settings-ollama-key"
                         type="password"
                         value={ollamaApiKey}
                         onChange={(e) => setOllamaApiKey(e.target.value)}

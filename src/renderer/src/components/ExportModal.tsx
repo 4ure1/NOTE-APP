@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useId, useState } from 'react'
+import { useModalA11y } from '../utils/useModalA11y'
 
 interface ExportModalProps {
   isOpen: boolean
@@ -20,6 +21,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   const [title, setTitle] = useState(noteTitle || 'Ma Note')
   const [isExporting, setIsExporting] = useState(false)
   const [exportMessage, setExportMessage] = useState<{ text: string; error?: boolean } | null>(null)
+  // Échap ne ferme pas pendant la génération (comme le bouton Annuler, désactivé)
+  const dialogRef = useModalA11y(isOpen, () => {
+    if (!isExporting) onClose()
+  })
+  const titleId = useId()
+  const docTitleId = useId()
 
   if (!isOpen) return null
 
@@ -93,6 +100,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         style={{
           width: '560px',
           backgroundColor: '#18181b',
@@ -117,11 +129,17 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '18px' }}>🚀</span>
-            <h3 style={{ margin: 0, fontSize: '15px', color: '#f4f4f5' }}>Exporter la note</h3>
+            <span aria-hidden="true" style={{ fontSize: '18px' }}>
+              🚀
+            </span>
+            <h3 id={titleId} style={{ margin: 0, fontSize: '15px', color: '#f4f4f5' }}>
+              Exporter la note
+            </h3>
           </div>
           <button
             onClick={onClose}
+            aria-label="Fermer"
+            title="Fermer (Échap)"
             style={{
               background: 'transparent',
               border: 'none',
@@ -130,7 +148,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               cursor: 'pointer'
             }}
           >
-            ✕
+            <span aria-hidden="true">✕</span>
           </button>
         </div>
 
@@ -138,10 +156,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         <div style={{ padding: '20px' }}>
           {/* Titre du document */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', color: '#a1a1aa', marginBottom: '6px' }}>
+            <label
+              htmlFor={docTitleId}
+              style={{ display: 'block', fontSize: '12px', color: '#a1a1aa', marginBottom: '6px' }}
+            >
               Titre du document exporté :
             </label>
             <input
+              id={docTitleId}
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -182,7 +204,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  <span style={{ fontSize: '24px' }}>{f.icon}</span>
+                  <span aria-hidden="true" style={{ fontSize: '24px' }}>
+                    {f.icon}
+                  </span>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
                       <span style={{ fontSize: '13px', fontWeight: 600, color: isSelected ? '#38bdf8' : '#e4e4e7' }}>
@@ -206,6 +230,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   </div>
                   <input
                     type="radio"
+                    name="export-format"
+                    aria-label={f.name}
                     checked={isSelected}
                     onChange={() => setSelectedFormat(f.id)}
                     style={{ accentColor: '#38bdf8' }}
@@ -218,6 +244,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           {/* Messages de statut */}
           {exportMessage && (
             <div
+              role={exportMessage.error ? 'alert' : 'status'}
               style={{
                 padding: '8px 12px',
                 borderRadius: '6px',

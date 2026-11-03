@@ -259,7 +259,7 @@ export default function EditorHeader({
               </button>
               <button
                 onClick={() => onChangeEditorMode('live')}
-                title="Mode Split (Code à gauche, rendu en direct à droite)"
+                title="Côte à côte : code à gauche, aperçu en direct à droite"
                 style={{
                   background: editorMode === 'live' ? '#27272a' : 'transparent',
                   border: 'none',
@@ -269,6 +269,7 @@ export default function EditorHeader({
                   borderRadius: '4px',
                   fontSize: '11.5px',
                   fontWeight: editorMode === 'live' ? 600 : 400,
+                  whiteSpace: 'nowrap',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '4px',
@@ -276,7 +277,7 @@ export default function EditorHeader({
                 }}
               >
                 <span style={{ fontSize: '11px', lineHeight: 1 }}>◫</span>
-                <span>Split</span>
+                <span>Côte à côte</span>
               </button>
               <button
                 onClick={() => onChangeEditorMode('preview')}
@@ -482,7 +483,7 @@ export default function EditorHeader({
           {onHighlightCode && (
             <button
               onClick={onHighlightCode}
-              title="Colorier les blocs de code (Highlight.js avec thème)"
+              title="Colorer les blocs de code"
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -509,7 +510,7 @@ export default function EditorHeader({
           {onOpenHistory && (
             <button
               onClick={onOpenHistory}
-              title="Historique des versions (Time Travel & Diffs)"
+              title="Historique des versions"
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -536,7 +537,11 @@ export default function EditorHeader({
           {onToggleTypewriterMode && (
             <button
               onClick={onToggleTypewriterMode}
-              title={isTypewriterMode ? "Désactiver le centrage machine à écrire" : "Activer le centrage machine à écrire (Typewriter)"}
+              title={
+                isTypewriterMode
+                  ? 'Désactiver le centrage machine à écrire'
+                  : 'Activer le centrage machine à écrire'
+              }
               style={{
                 background: isTypewriterMode ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
                 border: isTypewriterMode ? '1px solid rgba(56, 189, 248, 0.4)' : 'none',
@@ -563,7 +568,7 @@ export default function EditorHeader({
           {onToggleZenMode && (
             <button
               onClick={onToggleZenMode}
-              title={isZenMode ? "Quitter le Mode Zen" : "Mode Focus / Zen (Ctrl+Shift+Z)"}
+              title={isZenMode ? 'Quitter le mode zen' : 'Mode zen (Ctrl+Maj+Z)'}
               style={{
                 background: isZenMode ? 'rgba(168, 85, 247, 0.15)' : 'transparent',
                 border: isZenMode ? '1px solid rgba(168, 85, 247, 0.4)' : 'none',
@@ -611,7 +616,7 @@ export default function EditorHeader({
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(56, 189, 248, 0.1)')}
             >
               <span>🚀</span>
-              <span>Export</span>
+              <span>Exporter</span>
             </button>
           )}
 

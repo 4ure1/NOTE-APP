@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useId } from 'react'
 import { notifyApiError } from '../utils/apiError'
+import { useModalA11y } from '../utils/useModalA11y'
 
 interface HistoryItem {
   id: string
@@ -86,6 +87,15 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
   const [versionContent, setVersionContent] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
   const [isRestoring, setIsRestoring] = useState(false)
+  // Échap ne ferme pas pendant une restauration en cours
+  const dialogRef = useModalA11y(
+    isOpen,
+    () => {
+      if (!isRestoring) onClose()
+    },
+    { initialFocus: 'first' }
+  )
+  const titleId = useId()
 
   useEffect(() => {
     if (!isOpen || !currentFilePath) return
@@ -169,6 +179,11 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         style={{
           width: '920px',
           height: '640px',
@@ -194,16 +209,20 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '18px' }}>⏳</span>
+            <span aria-hidden="true" style={{ fontSize: '18px' }}>
+              ⏳
+            </span>
             <div>
-              <h3 style={{ margin: 0, fontSize: '15px', color: '#f4f4f5' }}>
-                Historique des versions (Time Travel)
+              <h3 id={titleId} style={{ margin: 0, fontSize: '15px', color: '#f4f4f5' }}>
+                Historique des versions
               </h3>
               <span style={{ fontSize: '12px', color: '#a1a1aa' }}>{currentFilePath}</span>
             </div>
           </div>
           <button
             onClick={onClose}
+            aria-label="Fermer"
+            title="Fermer (Échap)"
             style={{
               background: 'transparent',
               border: 'none',
@@ -212,7 +231,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
               cursor: 'pointer'
             }}
           >
-            ✕
+            <span aria-hidden="true">✕</span>
           </button>
         </div>
 
@@ -256,7 +275,16 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                 return (
                   <div
                     key={item.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={isSelected}
                     onClick={() => setSelectedVersionId(item.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        setSelectedVersionId(item.id)
+                      }
+                    }}
                     style={{
                       padding: '12px 14px',
                       borderBottom: '1px solid rgba(255,255,255,0.04)',

@@ -1,26 +1,35 @@
 :root {
-  /* Harmonized Dark Studio Theme */
-  --app-bg: #0b0b0e;
-  --sidebar-bg: #111116;
-  --editor-bg: #16161d;
-  --element-bg: #1a1a23;
-  --element-bg-hover: #22222e;
-  --element-active: #292938;
-  
-  --text-primary: #f4f4f7;
-  --text-secondary: #9ea3b0;
-  --text-muted: #686c7d;
-  
-  --accent-color: #6366f1;
-  --accent-color-hover: #818cf8;
+  /* Thème « sobre » : graphite de la même famille que les notes (#252526) et Monaco (#1e1e1e).
+     Un seul accent de marque, le rouge de marge (--accent-marge), réservé aux éléments actifs. */
+  --app-bg: #19191a;
+  --sidebar-bg: #1f1f20;
+  --editor-bg: #1e1e1e;
+  --page-bg: #252526;
+  --element-bg: #252526;
+  --element-bg-hover: #2a2a2c;
+  --element-active: #303033;
+
+  --text-primary: #e6e4df;
+  --text-secondary: #b0afab;
+  --text-muted: #9a9995; /* 4,7:1 sur --element-active, 5,8:1 sur --sidebar-bg (WCAG AA) */
+
+  --accent-color: #84b4ff; /* liens, focus, boutons pleins (texte #111 dessus) */
+  --accent-color-hover: #a9caff;
+  --accent-marge: #e45a6b; /* signature : élément actif, onglet courant */
   --accent-amber: #f59e0b;
   --accent-blue: #38bdf8;
   --accent-purple: #c084fc;
   --accent-rose: #f43f5e;
-  
+
   --border-color: rgba(255, 255, 255, 0.08);
   --border-subtle: rgba(255, 255, 255, 0.045);
-  
+  --border-strong: #3e3e42; /* = --border du thème des notes */
+  --border-input: rgba(255, 255, 255, 0.28); /* contour de champ, 3:1 (WCAG 1.4.11) */
+
+  --font-ui: 'Atkinson Hyperlegible Next', 'Segoe UI', system-ui, sans-serif;
+  --font-title: 'Newsreader', Georgia, serif;
+  --font-mono: Consolas, 'Cascadia Code', 'Courier New', monospace;
+
   --danger-color: #f87171;
   --danger-bg-hover: rgba(248, 113, 113, 0.12);
 
@@ -96,21 +105,7 @@ body {
   color: var(--color-text);
   background: var(--color-background);
   line-height: 1.65;
-  font-family:
-    'Söhne',
-    'Inter',
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    'Fira Sans',
-    'Droid Sans',
-    'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-ui);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -228,4 +223,32 @@ body {
 * {
   scrollbar-width: thin !important;
   scrollbar-color: rgba(255, 255, 255, 0.18) transparent !important;
+}
+
+/* Focus clavier visible partout (WCAG 2.4.7). !important l'emporte sur les `outline: 'none'` en ligne.
+   Exclus : zones d'écriture plein cadre (Monaco, éditeur Markdown) et contenus embarqués. */
+:where(a, button, input, select, textarea, summary, [role='button'], [role='treeitem'], [tabindex]):focus-visible {
+  outline: 2px solid var(--accent-color) !important;
+  outline-offset: 1px;
+}
+:where(.monaco-editor, .w-md-editor-text) :focus-visible,
+:where(iframe, webview):focus-visible {
+  outline: none !important;
+}
+
+::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+/* Mouvement réduit : le système le demande, on coupe animations et transitions */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

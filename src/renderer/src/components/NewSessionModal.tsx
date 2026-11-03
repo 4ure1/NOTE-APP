@@ -1,5 +1,6 @@
-import React, { useState, type ReactNode } from 'react'
+import React, { useId, useState, type ReactNode } from 'react'
 import { NoteTemplate, SessionSuggestion } from '../utils/sessionDetector'
+import { useModalA11y } from '../utils/useModalA11y'
 import { FolderIcon, HtmlIcon, MarkdownIcon, XIcon, CheckIcon } from './Icons'
 
 export interface NewSessionModalProps {
@@ -75,6 +76,10 @@ export default function NewSessionModal({
     }
   }
 
+  // Échap est déjà géré par handleKeyDown (sur le fond) : le hook ne fait que le focus et Tab
+  const dialogRef = useModalA11y(isOpen, onCancel, { closeOnEscape: false })
+  const fid = useId()
+
   if (!isOpen) return null
 
   const handleKeyDown = (e: React.KeyboardEvent): void => {
@@ -125,6 +130,11 @@ export default function NewSessionModal({
       onKeyDown={handleKeyDown}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`${fid}-title`}
+        tabIndex={-1}
         style={{
           width: '100%',
           maxWidth: '560px',
@@ -135,7 +145,7 @@ export default function NewSessionModal({
           flexDirection: 'column',
           boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8)',
           color: '#f8fafc',
-          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+          fontFamily: 'var(--font-ui)',
           overflow: 'hidden'
         }}
         onClick={(e) => e.stopPropagation()}
@@ -152,9 +162,14 @@ export default function NewSessionModal({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '18px' }}>🎓</span>
+            <span aria-hidden="true" style={{ fontSize: '18px' }}>
+              🎓
+            </span>
             <div>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#ffffff' }}>
+              <div
+                id={`${fid}-title`}
+                style={{ fontSize: '14px', fontWeight: 600, color: '#ffffff' }}
+              >
                 Nouvelle séance de cours
               </div>
               <div
@@ -188,6 +203,8 @@ export default function NewSessionModal({
           </div>
           <button
             onClick={onCancel}
+            aria-label="Fermer"
+            title="Fermer (Échap)"
             style={{
               background: 'transparent',
               border: 'none',
@@ -219,6 +236,7 @@ export default function NewSessionModal({
           <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '14px' }}>
             <div>
               <label
+                htmlFor={`${fid}-num`}
                 style={{
                   display: 'block',
                   fontSize: '12px',
@@ -230,6 +248,7 @@ export default function NewSessionModal({
                 Séance n°
               </label>
               <input
+                id={`${fid}-num`}
                 type="number"
                 min="1"
                 value={sessionNumber}
@@ -251,6 +270,7 @@ export default function NewSessionModal({
 
             <div>
               <label
+                htmlFor={`${fid}-tpl`}
                 style={{
                   display: 'block',
                   fontSize: '12px',
@@ -262,6 +282,7 @@ export default function NewSessionModal({
                 Modèle de note
               </label>
               <select
+                id={`${fid}-tpl`}
                 value={selectedTemplateFile}
                 onChange={(e) => handleTemplateChange(e.target.value)}
                 style={{
@@ -289,6 +310,7 @@ export default function NewSessionModal({
           {/* Ligne 2 : Nom de fichier */}
           <div>
             <label
+              htmlFor={`${fid}-file`}
               style={{
                 display: 'block',
                 fontSize: '12px',
@@ -301,6 +323,7 @@ export default function NewSessionModal({
             </label>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <input
+                id={`${fid}-file`}
                 type="text"
                 value={fileName}
                 onChange={(e) => setFileName(e.target.value)}
@@ -333,6 +356,7 @@ export default function NewSessionModal({
           {/* Ligne 3 : Titre du document */}
           <div>
             <label
+              htmlFor={`${fid}-title-input`}
               style={{
                 display: 'block',
                 fontSize: '12px',
@@ -344,6 +368,7 @@ export default function NewSessionModal({
               Titre principal (${`{NOTE_TITLE}`})
             </label>
             <input
+              id={`${fid}-title-input`}
               type="text"
               value={noteTitle}
               onChange={(e) => setNoteTitle(e.target.value)}
@@ -365,6 +390,7 @@ export default function NewSessionModal({
           {/* Ligne 4 : Tags */}
           <div>
             <label
+              htmlFor={`${fid}-tags`}
               style={{
                 display: 'block',
                 fontSize: '12px',
@@ -376,6 +402,7 @@ export default function NewSessionModal({
               Tags associés (${`{TAGS}`})
             </label>
             <input
+              id={`${fid}-tags`}
               type="text"
               value={tagsInput}
               onChange={(e) => setTagsInput(e.target.value)}

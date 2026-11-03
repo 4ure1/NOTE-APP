@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Sobre : éditeur côte à côte</title>
+<link rel="stylesheet" href="sobre.css">
+<style>
+  .app { display: flex; height: 900px; }
+  .doc { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .bar { height: 44px; flex-shrink: 0; display: flex; align-items: center; gap: 18px; padding: 0 12px 0 18px; background: var(--volet); border-bottom: 1px solid var(--trait); }
+  .crumb { color: var(--discret); display: flex; gap: 8px; white-space: nowrap; }
+  .crumb b { color: var(--texte); font-weight: 700; }
+  .grow { flex: 1; }
+  .modes { display: flex; height: 44px; gap: 18px; }
+  .modes span { display: flex; align-items: center; color: var(--texte-2); border-bottom: 2px solid transparent; padding-top: 2px; }
+  .modes span.on { color: var(--texte); border-color: var(--marge); }
+  .txt { color: var(--texte-2); display: flex; gap: 6px; align-items: center; height: 30px; padding: 0 8px; }
+  .exp { height: 30px; display: flex; align-items: center; padding: 0 12px; border-radius: 4px; background: var(--texte); color: #1c1c1d; font-weight: 700; }
+  .ib { width: 30px; height: 30px; display: grid; place-items: center; color: var(--texte-2); border-radius: 4px; }
+  .ib.on { color: var(--texte); background: var(--actif); }
+  .split { flex: 1; display: flex; min-height: 0; }
+
+  /* Monaco (inchangé : thème VS Code sombre) */
+  .monaco { width: 520px; background: var(--code); border-right: 1px solid var(--trait); font-family: var(--mono); font-size: 13px; line-height: 20px; padding-top: 10px; overflow: hidden; white-space: pre; }
+  .ln { display: block; height: 20px; }
+  .ln b { display: inline-block; width: 44px; text-align: right; padding-right: 16px; margin-right: 0; color: #6e7681; font-weight: 400; }
+  .ln.cur { background: #282828; }
+  .ln.cur b { color: #c6c6c6; }
+  .tg { color: #569cd6; } .at { color: #9cdcfe; } .st { color: #ce9178; } .tx { color: #d4d4d4; } .kw { color: #c586c0; } .fn { color: #dcdcaa; } .nm { color: #b5cea8; } .cm { color: #6a9955; } .ty { color: #4ec9b0; }
+
+  /* Aperçu : rendu du thème des notes (theme.css) */
+  .preview { flex: 1; background: var(--page); overflow: hidden; padding: 34px 40px; font-family: Georgia, Cambria, serif; color: #d4d4d4; line-height: 1.65; font-size: 15px; }
+  .preview h1 { text-align: center; font-family: 'Trebuchet MS', sans-serif; font-size: 30px; font-weight: 800; background: linear-gradient(90deg, #4fc1ff, #c586c0 45%, #ce9178); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: .5px; }
+  .preview .sub { text-align: center; font-style: italic; color: #bdbdbd; margin: 4px 0 22px; }
+  .preview h2 { font-family: 'Trebuchet MS', sans-serif; color: #4fc1ff; border-bottom: 2px solid #3e3e42; padding-bottom: 8px; margin: 22px 0 14px; font-size: 21px; }
+  .preview .step { background: #2d2d30; border-left: 6px solid #4fc1ff; border-radius: 6px; padding: 14px 18px; margin: 14px 0; }
+  .preview .label { display: block; font-family: 'Trebuchet MS', sans-serif; font-weight: bold; color: #4fc1ff; margin-bottom: 6px; font-size: 14px; }
+  .preview code { font-family: var(--mono); background: rgba(255,255,255,.07); padding: 1px 6px; border-radius: 4px; color: #dcdcaa; font-size: .92em; }
+  .preview pre { background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 6px; padding: 12px 14px; font-family: var(--mono); font-size: 13px; line-height: 1.5; color: #d4d4d4; margin: 8px 0 12px; white-space: pre; }
+
+  .status { height: 26px; flex-shrink: 0; display: flex; align-items: center; gap: 18px; padding: 0 14px; background: var(--volet); border-top: 1px solid var(--trait); color: var(--discret); font-size: 12px; }
+  .status .ok::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #7cc79a; margin-right: 6px; vertical-align: 1px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><span>NOTE-APP</span><i><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M9 4v16"/></svg></i></div>
+    <div class="search"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4-4"/></svg><span>Rechercher</span><span class="k">Ctrl P</span></div>
+    <div class="grp">
+      <div class="grp-t">Mes notes<div><i><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></i><i><svg class="ico" viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/></svg></i></div></div>
+      <div class="it"><svg class="ico" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg><span>01 - Algorithmique</span></div>
+      <div class="it" style="color:var(--texte)"><svg class="ico" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg><span>02 - Programmation Web</span></div>
+      <div class="it lv2"><span>react-hooks</span><span class="fmt">md</span></div>
+      <div class="it lv2"><span>architecture-reseaux</span></div>
+      <div class="it lv2 on"><span>tp3-sockets</span></div>
+      <div class="it"><svg class="ico" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg><span>03 - Systèmes d'exploitation</span></div>
+    </div>
+    <div class="foot"><div class="it"><span>Paramètres</span></div><div class="it"><span>Aide</span></div></div>
+  </aside>
+
+  <section class="doc">
+    <div class="bar">
+      <div class="crumb">02 - Programmation Web <span>/</span> <b>tp3-sockets</b></div>
+      <div class="grow"></div>
+      <div class="modes"><span>Code</span><span class="on">Côte à côte</span><span>Aperçu</span></div>
+      <div class="grow"></div>
+      <span class="txt"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>Historique</span>
+      <span class="exp">Exporter</span>
+      <span class="ib focus"><svg class="ico" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></span>
+      <span class="ib" title="Assistant IA"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M15 4v16"/></svg></span>
+    </div>
+
+    <div class="split">
+      <div class="monaco"><div class="ln"><b>1</b><span class="tg">&lt;h2&gt;</span><span class="tx">Créer le serveur</span><span class="tg">&lt;/h2&gt;</span></div><div class="ln"><b>2</b><span class="tg">&lt;div</span> <span class="at">class</span><span class="tx">=</span><span class="st">"step"</span><span class="tg">&gt;</span></div><div class="ln"><b>3</b>  <span class="tg">&lt;span</span> <span class="at">class</span><span class="tx">=</span><span class="st">"label"</span><span class="tg">&gt;</span><span class="tx">Étape 1 : socket()</span><span class="tg">&lt;/span&gt;</span></div><div class="ln"><b>4</b>  <span class="tg">&lt;p&gt;</span><span class="tx">On ouvre un point d'accès TCP.</span><span class="tg">&lt;/p&gt;</span></div><div class="ln"><b>5</b><span class="tg">&lt;/div&gt;</span></div><div class="ln"><b>6</b><span class="tg">&lt;pre&gt;&lt;code&gt;</span></div><div class="ln"><b>7</b><span class="ty">int</span> <span class="tx">fd</span> <span class="tx">=</span> <span class="fn">socket</span><span class="tx">(AF_INET, SOCK_STREAM,</span> <span class="nm">0</span><span class="tx">);</span></div><div class="ln cur"><b>8</b><span class="kw">if</span> <span class="tx">(fd &lt;</span> <span class="nm">0</span><span class="tx">) {</span></div><div class="ln"><b>9</b>    <span class="fn">perror</span><span class="tx">(</span><span class="st">"socket"</span><span class="tx">);</span></div><div class="ln"><b>10</b>    <span class="kw">return</span> <span class="nm">1</span><span class="tx">;</span></div><div class="ln"><b>11</b><span class="tx">}</span></div><div class="ln"><b>12</b><span class="cm">// lier l'adresse et le port</span></div><div class="ln"><b>13</b><span class="ty">struct</span> <span class="ty">sockaddr_in</span> <span class="tx">addr = {</span><span class="nm">0</span><span class="tx">};</span></div><div class="ln"><b>14</b><span class="tx">addr.sin_family = AF_INET;</span></div><div class="ln"><b>15</b><span class="tx">addr.sin_port =</span> <span class="fn">htons</span><span class="tx">(</span><span class="nm">8080</span><span class="tx">);</span></div><div class="ln"><b>16</b><span class="fn">bind</span><span class="tx">(fd, (</span><span class="ty">struct</span> <span class="ty">sockaddr</span><span class="tx">*)&amp;addr,</span> <span class="kw">sizeof</span><span class="tx">(addr));</span></div><div class="ln"><b>17</b><span class="fn">listen</span><span class="tx">(fd,</span> <span class="nm">16</span><span class="tx">);</span></div><div class="ln"><b>18</b><span class="tg">&lt;/code&gt;&lt;/pre&gt;</span></div><div class="ln"><b>19</b></div><div class="ln"><b>20</b><span class="tg">&lt;h2&gt;</span><span class="tx">Accepter un client</span><span class="tg">&lt;/h2&gt;</span></div><div class="ln"><b>21</b><span class="tg">&lt;p&gt;</span><span class="tx">accept() bloque jusqu'à la</span></div><div class="ln"><b>22</b><span class="tx">prochaine connexion entrante.</span><span class="tg">&lt;/p&gt;</span></div></div>
+
+      <div class="preview">
+        <h1>TP3 : sockets en C</h1>
+        <div class="sub">Un serveur TCP minimal, pas à pas</div>
+        <h2>Créer le serveur</h2>
+        <div class="step"><span class="label">Étape 1 : socket()</span>On ouvre un point d'accès TCP.</div>
+<pre><span class="ty">int</span> fd = <span class="fn">socket</span>(AF_INET, SOCK_STREAM, <span class="nm">0</span>);
+<span class="kw">if</span> (fd &lt; <span class="nm">0</span>) {
+    <span class="fn">perror</span>(<span class="st">"socket"</span>);
+    <span class="kw">return</span> <span class="nm">1</span>;
+}
+<span class="cm">// lier l'adresse et le port</span>
+<span class="ty">struct</span> <span class="ty">sockaddr_in</span> addr = {<span class="nm">0</span>};
+addr.sin_port = <span class="fn">htons</span>(<span class="nm">8080</span>);
+<span class="fn">bind</span>(fd, (<span class="ty">struct</span> <span class="ty">sockaddr</span>*)&amp;addr, <span class="kw">sizeof</span>(addr));
+<span class="fn">listen</span>(fd, <span class="nm">16</span>);</pre>
+        <h2>Accepter un client</h2>
+        <p><code>accept()</code> bloque jusqu'à la prochaine connexion entrante.</p>
+      </div>
+    </div>
+
+    <div class="status"><span class="ok">Enregistré</span><span>HTML</span><span>Ligne 8, colonne 14</span><span class="grow"></span><span>Zoom 100 %</span></div>
+  </section>
+</div>
+</body>
+</html>

@@ -101,7 +101,8 @@ const ACTIONS: Record<string, string> = {
   'toggle-claude': "Afficher/masquer l'assistant IA",
   'toggle-fullscreen': 'Basculer en plein écran',
   'switch-ai': "Changer d'IA (Claude, ChatGPT, Gemini)",
-  'open-recent': 'Afficher les notes récentes (Ctrl+R)'
+  'open-recent': 'Afficher les notes récentes (Ctrl+R)',
+  'open-search': 'Rechercher dans les notes (Ctrl+P)'
 }
 
 const DEFAULT_MAPPINGS: ShortcutMapping[] = [
@@ -133,7 +134,8 @@ const DEFAULT_MAPPINGS: ShortcutMapping[] = [
     altKey: false
   },
   { uuid: '7', actionId: 'switch-ai', key: 'i', ctrlKey: true, shiftKey: false, altKey: false },
-  { uuid: '8', actionId: 'open-recent', key: 'r', ctrlKey: true, shiftKey: false, altKey: false }
+  { uuid: '8', actionId: 'open-recent', key: 'r', ctrlKey: true, shiftKey: false, altKey: false },
+  { uuid: '9', actionId: 'open-search', key: 'p', ctrlKey: true, shiftKey: false, altKey: false }
 ]
 
 const AI_SPY_SCRIPT = `(function() {
@@ -2734,6 +2736,8 @@ function App() {
           })
         } else if (match.actionId === 'open-recent') {
           setActiveView((prev) => (prev === 'recent' ? 'all' : 'recent'))
+        } else if (match.actionId === 'open-search') {
+          setIsSearchOpen(true)
         }
       } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'z') {
         e.preventDefault()
@@ -3965,7 +3969,7 @@ function App() {
                     }}
                   >
                     <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                      Brouillons & Drafts
+                      Brouillons
                     </h2>
                     <button
                       onClick={() => handleCreateNote('Draft')}
@@ -4831,18 +4835,19 @@ function App() {
                 >
                   <div
                     style={{
-                      fontSize: '22px',
-                      fontWeight: 600,
-                      color: 'var(--text-primary)',
-                      letterSpacing: '-0.3px'
+                      fontFamily: 'var(--font-title)',
+                      fontStyle: 'italic',
+                      fontSize: '30px',
+                      fontWeight: 400,
+                      color: 'var(--text-primary)'
                     }}
                   >
-                    NOTE-APP Studio
+                    NOTE-APP
                   </div>
                   <div
                     style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}
                   >
-                    Gestion de notes & Markdown pour développeurs et designers
+                    Vos notes HTML et Markdown, en local.
                   </div>
                   <div
                     style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '280px' }}
@@ -4910,7 +4915,7 @@ function App() {
                           fontSize: '11px'
                         }}
                       >
-                        Ctrl+S
+                        Ctrl+P
                       </kbd>
                     </button>
                   </div>
