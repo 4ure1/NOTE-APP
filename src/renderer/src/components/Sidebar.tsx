@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { TreeNode } from '../types'
 import { isAccessDenied, notifyApiError } from '../utils/apiError'
 import { treeKeyAction } from '../../../shared/treeKeys'
+import MoveToModal from './MoveToModal'
 import {
   FolderIcon,
   FolderOpenIcon,
@@ -141,6 +142,7 @@ export default function Sidebar({
 
   // Context menu
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; itemPath: string; isFolder: boolean } | null>(null)
+  const [moveItemPath, setMoveItemPath] = useState<string | null>(null)
 
   // Drag & drop state
   const [draggingPath, setDraggingPath] = useState<string | null>(null)
@@ -1433,6 +1435,19 @@ export default function Sidebar({
         </button>
       </div>
 
+      {moveItemPath !== null && onMoveItem && (
+        <MoveToModal
+          itemPath={moveItemPath}
+          treeNodes={treeNodes}
+          onClose={() => setMoveItemPath(null)}
+          onMove={(targetFolder) => {
+            setMoveItemPath(null)
+            onMoveItem(moveItemPath, targetFolder)
+            if (targetFolder) setOpenFolders((prev) => ({ ...prev, [targetFolder]: true }))
+          }}
+        />
+      )}
+
       {/* Context Menu for right-click on tree item */}
       {contextMenu && (
         <div
@@ -1664,6 +1679,30 @@ export default function Sidebar({
           >
             Renommer
           </div>
+
+          {onMoveItem && (
+            <div
+              role="menuitem"
+              tabIndex={-1}
+              style={{
+                padding: '6px 10px',
+                fontSize: '12.5px',
+                color: 'var(--text-primary)',
+                cursor: 'pointer',
+                borderRadius: '4px'
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')
+              }
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              onClick={() => {
+                setMoveItemPath(contextMenu.itemPath)
+                setContextMenu(null)
+              }}
+            >
+              Déplacer vers…
+            </div>
+          )}
 
           <div
             role="menuitem"

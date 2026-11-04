@@ -2378,13 +2378,6 @@ export default function CodeWorkspace({
   }, [])
 
   const isFullscreen = externalFullscreen !== undefined ? externalFullscreen : internalFullscreen
-  const toggleFullscreen = () => {
-    if (externalToggleFullscreen) {
-      externalToggleFullscreen()
-    } else {
-      setInternalFullscreen((prev) => !prev)
-    }
-  }
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -2508,16 +2501,6 @@ export default function CodeWorkspace({
     }
   }, [value, currentFilePath])
 
-  // Quitter le plein écran avec Échap
-  useEffect(() => {
-    if (!isFullscreen) return
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') toggleFullscreen()
-    }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [isFullscreen])
-
   // Debounce iframe updates for smooth typing (uniquement si le preview est visible).
   // Le contenu retenu est rattaché à la note dont il vient (debouncedFileRef).
   useEffect(() => {
@@ -2565,20 +2548,17 @@ export default function CodeWorkspace({
     }
   }, [isDraggingSplit])
 
-  // Escape key handler to exit fullscreen
+  // Échap ne quitte ici que le plein écran interne, sans jamais basculer. Le plein écran externe est
+  // quitté par App (exitRenderFullscreen) : Échap y arrive par trois chemins (IPC du main, keydown,
+  // message de l'iframe) et une bascule passée après la sortie le rouvrait.
   useEffect(() => {
+    if (!isFullscreen) return
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreen) {
-        if (externalToggleFullscreen && externalFullscreen) {
-          externalToggleFullscreen()
-        } else {
-          setInternalFullscreen(false)
-        }
-      }
+      if (e.key === 'Escape') setInternalFullscreen(false)
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isFullscreen, externalToggleFullscreen, externalFullscreen])
+  }, [isFullscreen])
 
   // Listen for messages from inside the iframe (like Esc press or trigger fullscreen)
   useEffect(() => {
@@ -2610,11 +2590,8 @@ export default function CodeWorkspace({
             )
           } catch {}
         }
-        if (externalToggleFullscreen && externalFullscreen) {
-          externalToggleFullscreen()
-        } else {
-          setInternalFullscreen(false)
-        }
+        // App écoute le même message et quitte le plein écran externe (pas de bascule ici)
+        setInternalFullscreen(false)
       } else if (event.data?.type === 'HTML_ENTER_FULLSCREEN') {
         if (typeof event.data?.scrollY === 'number') {
           activePreviewScrollYRef.current = event.data.scrollY
