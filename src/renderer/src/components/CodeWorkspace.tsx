@@ -11,6 +11,7 @@ import { normalizeHtml } from '../utils/normalizeHtml'
 import { OutlineHeading } from '../utils/outlineExtractor'
 import { parsePdfHref } from '../utils/pdfLink'
 import { cleanPreviewDocument } from '../utils/previewClean'
+import { previewRefreshDelay } from '../utils/previewDelay'
 import { isUserScrollIntent } from '../utils/scrollIntent'
 import { buildSnippetFragment } from '../utils/snippetFields'
 import { generateDynamicSnippets } from '../utils/dynamicSnippets'
@@ -2364,6 +2365,8 @@ export default function CodeWorkspace({
   const lastEmittedPreviewHtmlRef = useRef<string>('')
   const lastMemoizedSrcDocRef = useRef<string>('')
   const lastPreviewMutationTimeRef = useRef<number>(0)
+  const previewPendingSinceRef = useRef<number | null>(null)
+  const wasCodeOnlyRef = useRef<boolean>(editorMode === 'edit')
   const isSyncingToMonacoRef = useRef<boolean>(false)
 
   // Références pour le Copilote IA inline
@@ -2503,14 +2506,26 @@ export default function CodeWorkspace({
 
   // Debounce iframe updates for smooth typing (uniquement si le preview est visible).
   // Le contenu retenu est rattaché à la note dont il vient (debouncedFileRef).
+  // Le délai est plafonné depuis la première frappe non affichée : une frappe continue s'affiche
+  // quand même. En revenant du mode Code seul, l'aperçu est mis à jour tout de suite.
   useEffect(() => {
-    if (editorMode === 'edit') return
+    if (editorMode === 'edit') {
+      wasCodeOnlyRef.current = true
+      return
+    }
+    const now = Date.now()
+    if (previewPendingSinceRef.current === null) previewPendingSinceRef.current = now
+    const delay = wasCodeOnlyRef.current
+      ? 0
+      : previewRefreshDelay(value.length, now - previewPendingSinceRef.current)
+    wasCodeOnlyRef.current = false
     const sourceFile = contentFilePath
     const handler = setTimeout(() => {
+      previewPendingSinceRef.current = null
       debouncedFileRef.current = sourceFile
       setDebouncedSrc(value)
       setDebouncedVersion((v) => v + 1)
-    }, 700)
+    }, delay)
     return () => clearTimeout(handler)
   }, [value, editorMode, contentFilePath])
 
@@ -3058,6 +3073,10 @@ export default function CodeWorkspace({
               }}
               onChange={(newVal) => {
                 if (isSyncingToMonacoRef.current) return
+                // Une frappe dans le code lève le gel de l'aperçu : sans ça, une modification faite
+                // juste après une saisie dans l'aperçu (ou annulée jusqu'à elle) ne s'affichait pas
+                lastPreviewMutationTimeRef.current = 0
+                lastEmittedPreviewHtmlRef.current = ''
                 const text = (newVal || '').replace(/\r\n/g, '\n')
                 localEmittedValuesRef.current.add(text)
                 if (localEmittedValuesRef.current.size > 150) {
