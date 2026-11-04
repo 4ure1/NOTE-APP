@@ -6,6 +6,7 @@
  * pointeur avec un ressort, une ligne glisse vers l'endroit où le bloc sera
  * posé (avant ou après le bloc visé, à n'importe quel niveau de contenu), et le bloc est déplacé au
  * lâcher. Le code reste lisible : le bloc reprend l'indentation de sa nouvelle place.
+ * Une carte lâchée sur le côté d'une autre carte se place à côté d'elle : la rangée est créée au besoin.
  *
  * L'interface (poignée, ligne) est marquée data-injected-preview-helpers (retirée par
  * cleanPreviewDocument). La note n'est modifiée qu'au lâcher (onChange).
@@ -24,6 +25,8 @@ export interface BlockDragOptions {
 export interface BlockDrag {
   /** Déplace block avant ou après ref, avec l'indentation de ref ; false si impossible. */
   moveBlock(block: Element, ref: Element, where: 'before' | 'after'): boolean
+  /** Pose block à côté de target : rangée .duo créée autour, ou .nodes pour deux cartes .node. */
+  placeBeside(block: Element, target: Element, where: 'before' | 'after'): boolean
   /** Élément déplaçable qui contient el : une carte d'une grille (.duo, .nodes), sinon le bloc. */
   draggableOf(el: Element | null): Element | null
   /** Bloc qui contient la grille d'une carte (pour déplacer tout le groupe), ou null. */
@@ -54,6 +57,7 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
   // Cartes ou colonnes d'une grille : déplaçables une par une (le groupe garde sa propre poignée)
   const GRID = '.duo, .nodes'
   const ITEM = '.duo > *, .nodes > *'
+  const CARD = '.step, .note, .result, .node'
 
   function itemOf(el: Element | null): Element | null {
     if (!el || !el.closest || isHelper(el)) return null
@@ -138,6 +142,39 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
     return true
   }
 
+  /** Pose block à côté de target dans une nouvelle rangée, lisible dans le code. */
+  function placeBeside(block: Element, target: Element, where: 'before' | 'after'): boolean {
+    if (block === target || block.contains(target) || target.contains(block)) return false
+    const parent = target.parentNode
+    if (!parent) return false
+    const NL = String.fromCharCode(10)
+    const indent = indentOf(target) || ''
+    const prevBlank = block.previousSibling
+    if (isBlank(prevBlank) && block.parentNode) block.parentNode.removeChild(prevBlank!)
+    block.parentNode && block.parentNode.removeChild(block)
+    const grid = doc.createElement('div')
+    grid.className = block.matches('.node') && target.matches('.node') ? 'nodes' : 'duo'
+    parent.insertBefore(grid, target)
+    const first = where === 'before' ? block : target
+    const second = where === 'before' ? target : block
+    grid.appendChild(doc.createTextNode(NL + indent + '  '))
+    grid.appendChild(first)
+    grid.appendChild(doc.createTextNode(NL + indent + '  '))
+    grid.appendChild(second)
+    grid.appendChild(doc.createTextNode(NL + indent))
+    return true
+  }
+
+  /** Une rangée .duo vidée de ses cartes disparaît ; sa dernière carte reprend toute la largeur. */
+  function dissolveGrid(grid: Element | null): void {
+    if (!grid || !grid.parentNode || !grid.matches('.duo')) return
+    const items = Array.from(grid.children).filter((c) => !isHelper(c))
+    if (items.length === 0) removeWithSpace(grid)
+    else if (items.length === 1 && items[0].matches(CARD)) {
+      grid.parentNode.replaceChild(items[0], grid)
+    }
+  }
+
   // ---------- Interface (jamais enregistrée) ----------
   let grip: HTMLElement | null = null
   let line: HTMLElement | null = null
@@ -164,6 +201,8 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
     where: 'before' | 'after'
     // Sens de la ligne de dépôt : entre deux cartes d'une grille (x) ou entre deux blocs (y)
     axis: 'x' | 'y'
+    // Dépôt sur le côté d'une carte hors grille : une rangée sera créée autour des deux
+    side: boolean
     started: boolean
     // Ctrl / Maj au moment de saisir la poignée : un simple clic ajoute le bloc à la sélection
     additive: boolean
@@ -285,8 +324,9 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
     ensureUi()
     hovered = block
     const item = isItem(block)
-    // Carte d'une grille : sa poignée dans son coin (la marge à gauche appartient à la carte voisine)
-    placeGrip(grip!, block, item && !!block.previousElementSibling)
+    // Carte d'une grille : sa poignée dans son coin, atteignable sans quitter la carte (à gauche, on
+    // survolerait la carte voisine ou le fond de la grille)
+    placeGrip(grip!, block, item)
     hoveredGroup = item ? groupOf(block) : null
     if (hoveredGroup && grip2) placeGrip(grip2, hoveredGroup, false)
     else if (grip2) grip2.classList.remove('nf-on')
@@ -390,7 +430,7 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
     clientX: number,
     clientY: number,
     block: Element
-  ): { target: Element; where: 'before' | 'after'; axis: 'x' | 'y' } | null {
+  ): { target: Element; where: 'before' | 'after'; axis: 'x' | 'y'; side?: boolean } | null {
     // Carte d'une grille : posée avant / après une autre carte, selon la moitié horizontale
     if (isItem(block)) {
       const under = doc.elementFromPoint(clientX, clientY)
@@ -426,6 +466,29 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
           target: other,
           where: clientX < r.left + r.width / 2 ? 'before' : 'after',
           axis: 'x'
+        }
+      }
+    }
+    // Carte lâchée sur le côté d'une carte : à côté d'elle. Le quart gauche ou droit, hors du haut et du
+    // bas de la carte visée, qui gardent le dépôt avant / après
+    if (block.matches(CARD)) {
+      const under = doc.elementFromPoint(clientX, clientY)
+      const card = under ? draggableOf(under) : null
+      if (card && card !== block && !block.contains(card) && card.matches(CARD)) {
+        const r = card.getBoundingClientRect()
+        if (isItem(card)) {
+          return {
+            target: card,
+            where: clientX < r.left + r.width / 2 ? 'before' : 'after',
+            axis: 'x'
+          }
+        }
+        const middle = clientY > r.top + r.height * 0.2 && clientY < r.bottom - r.height * 0.2
+        if (middle && clientX < r.left + r.width * 0.25) {
+          return { target: card, where: 'before', axis: 'x', side: true }
+        }
+        if (middle && clientX > r.right - r.width * 0.25) {
+          return { target: card, where: 'after', axis: 'x', side: true }
         }
       }
     }
@@ -499,11 +562,13 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
     // Poser le bloc à sa propre place ne change rien : pas de ligne
     const same =
       found &&
+      !found.side &&
       ((found.where === 'after' && found.target.nextElementSibling === d.block) ||
         (found.where === 'before' && found.target.previousElementSibling === d.block))
     d.target = found && !same ? found.target : null
     d.where = found ? found.where : 'after'
     d.axis = found ? found.axis : 'y'
+    d.side = !!(found && found.side)
     showLine(d.target, d.where, d.axis)
   }
 
@@ -583,6 +648,8 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
       return
     const block = draggableOf(target)
     if (block) {
+      // Fond de la grille entre une carte et les poignées : la carte reste la cible
+      if (hovered && block === hoveredGroup) return
       if (block !== hovered) showGrip(block)
       return
     }
@@ -742,6 +809,7 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
       target: null,
       where: 'after',
       axis: 'y',
+      side: false,
       started: false,
       additive: e.ctrlKey || e.metaKey || e.shiftKey,
       startX: e.clientX,
@@ -801,8 +869,12 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
       let ref: Element = target!
       let where = d.where
       let moved = false
+      let beside = d.side
       blocks.forEach((b) => {
-        if (moveBlock(b, ref, where)) moved = true
+        const oldGrid = isItem(b) ? b.parentElement : null
+        if (beside ? placeBeside(b, ref, where) : moveBlock(b, ref, where)) moved = true
+        beside = false
+        if (oldGrid !== b.parentElement) dissolveGrid(oldGrid)
         ref = b
         where = 'after'
       })
@@ -886,6 +958,7 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
 
   return {
     moveBlock,
+    placeBeside,
     draggableOf,
     groupOf,
     select: (blocks: Element[]) => setPicked(blocks.slice()),

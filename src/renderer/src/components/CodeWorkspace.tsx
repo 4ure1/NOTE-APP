@@ -12,7 +12,7 @@ import { OutlineHeading } from '../utils/outlineExtractor'
 import { parsePdfHref } from '../utils/pdfLink'
 import { cleanPreviewDocument } from '../utils/previewClean'
 import { previewRefreshDelay } from '../utils/previewDelay'
-import { isUserScrollIntent } from '../utils/scrollIntent'
+import { isCodePointerActive, isUserScrollIntent } from '../utils/scrollIntent'
 import { buildSnippetFragment } from '../utils/snippetFields'
 import { generateDynamicSnippets } from '../utils/dynamicSnippets'
 import { createPreviewEditing } from '../utils/previewEditing'
@@ -795,13 +795,15 @@ export const prepareHtmlPreview = (
         var choiceIndex = 0;
         // Suivi et surlignage de la balise de couleur en cours d'édition
         var activeColoredEl = null;
-        var COLOR_CLASSES = ['b', 't', 'y', 'o', 'l', 'g', 'p', 'a', 'r', 'k', 'f', 's', 'n', 'c', 'keyword', 'kw'];
+        var COLOR_CLASSES = ['b', 't', 'y', 'o', 'l', 'g', 'p', 'a', 'r', 'base', 'k', 'f', 's', 'n', 'c', 'keyword', 'kw'];
+        // Éléments en ligne qui portent une couleur ou une mise en forme (/h…, /g…, /couleur, /hblank)
+        var INLINE_FORMAT_NAMES = ['SPAN', 'MARK', 'CODE', 'FONT', 'STRONG', 'EM', 'B', 'I'];
 
         function findColoredAncestor(node) {
           if (!node || node === document.body) return null;
           var el = node.nodeType === 1 ? node : node.parentElement;
           while (el && el !== document.body) {
-            if (el.nodeName === 'SPAN' || el.nodeName === 'MARK' || el.nodeName === 'CODE' || el.nodeName === 'FONT') {
+            if (INLINE_FORMAT_NAMES.indexOf(el.nodeName) !== -1) {
               if (el.closest && el.closest('pre')) return null;
               if (!el.hasAttribute('data-nf-field') && !el.classList.contains('tag')) {
                 for (var i = 0; i < COLOR_CLASSES.length; i++) {
@@ -1071,7 +1073,7 @@ export const prepareHtmlPreview = (
             p.innerHTML = '<br>';
             parent.replaceChild(p, marker);
             r.setStart(p, 0);
-          } else if (prev && (prev.nodeName === 'SPAN' || prev.nodeName === 'MARK' || prev.nodeName === 'CODE')) {
+          } else if (prev && INLINE_FORMAT_NAMES.indexOf(prev.nodeName) !== -1) {
             var next = marker.nextSibling;
             var targetNode = null;
             if (next && next.nodeType === 3) {
@@ -1094,6 +1096,26 @@ export const prepareHtmlPreview = (
           }
           r.collapse(true);
           setCaret(r);
+        }
+
+        // Le snippet en cours finit-il juste après un élément en ligne (couleur, gras) ?
+        function sessionEndsAfterInline() {
+          var marker = snippetSession && snippetSession.finalMarker;
+          var prev = marker && marker.previousElementSibling;
+          return !!prev && INLINE_FORMAT_NAMES.indexOf(prev.nodeName) !== -1;
+        }
+
+        function caretAtEndOfActiveField() {
+          var s = snippetSession;
+          var sel = window.getSelection();
+          if (!s || !s.groups[s.current] || !sel || !sel.rangeCount || !sel.isCollapsed) return false;
+          var occ = s.groups[s.current].occurrences[0];
+          if (occ.kind !== 'text' || !occ.element.contains(sel.anchorNode)) return false;
+          var range = sel.getRangeAt(0);
+          var rest = document.createRange();
+          rest.setStart(range.endContainer, range.endOffset);
+          rest.setEnd(occ.element, occ.element.childNodes.length);
+          return rest.toString().split(ZERO_WIDTH).join('') === '';
         }
 
         function endSnippetSession(goToFinal) {
@@ -1238,7 +1260,16 @@ export const prepareHtmlPreview = (
             if (e.key === 'Escape') {
               e.preventDefault();
               e.stopPropagation();
-              endSnippetSession(false);
+              endSnippetSession(sessionEndsAfterInline());
+              return;
+            }
+            // Flèche droite au bout d'un champ de couleur : sortir comme avec Tab (sinon le champ se
+            // termine mais le curseur reste dans la couleur)
+            if (e.key === 'ArrowRight' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey &&
+                sessionEndsAfterInline() && caretAtEndOfActiveField()) {
+              e.preventDefault();
+              e.stopPropagation();
+              moveField(1);
               return;
             }
           }
@@ -1944,7 +1975,7 @@ export const prepareHtmlPreview = (
             if (snippetSession) {
               e.preventDefault();
               e.stopPropagation();
-              endSnippetSession(false);
+              endSnippetSession(sessionEndsAfterInline());
               return;
             }
             e.preventDefault();
@@ -2460,6 +2491,9 @@ export default function CodeWorkspace({
   const isScrollingFromPreviewRef = useRef(false)
   const previewScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isScrollingFromCodeRef = useRef(false)
+  // Geste de souris dans Monaco (sélection) : voir isCodePointerActive
+  const codePointerPressedRef = useRef(false)
+  const lastCodePointerAtRef = useRef(0)
   const codeScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Synchronisation du contenu Monaco lors des changements de fichier ou mises à jour externes
@@ -2498,11 +2532,22 @@ export default function CodeWorkspace({
       }
 
       // Vraie mise à jour externe (ex: revert, import externe)
-      const pos = editorRef.current.getPosition()
+      const selection = editorRef.current.getSelection()
       editorRef.current.setValue(value)
-      if (pos) editorRef.current.setPosition(pos)
+      if (selection) editorRef.current.setSelection(selection)
     }
   }, [value, currentFilePath])
+
+  // Fin d'un geste de souris commencé dans Monaco, même relâché hors de l'éditeur
+  useEffect(() => {
+    const handleMouseUp = (): void => {
+      if (!codePointerPressedRef.current) return
+      codePointerPressedRef.current = false
+      lastCodePointerAtRef.current = Date.now()
+    }
+    window.addEventListener('mouseup', handleMouseUp)
+    return () => window.removeEventListener('mouseup', handleMouseUp)
+  }, [])
 
   // Debounce iframe updates for smooth typing (uniquement si le preview est visible).
   // Le contenu retenu est rattaché à la note dont il vient (debouncedFileRef).
@@ -2650,6 +2695,15 @@ export default function CodeWorkspace({
         if (editorModeRef.current !== 'live') return
         if (isScrollingFromCodeRef.current) return
         if (!editorRef.current) return
+        if (
+          isCodePointerActive(
+            Date.now(),
+            codePointerPressedRef.current,
+            lastCodePointerAtRef.current
+          )
+        ) {
+          return
+        }
 
         isScrollingFromPreviewRef.current = true
         if (previewScrollTimeoutRef.current) clearTimeout(previewScrollTimeoutRef.current)
@@ -2695,6 +2749,8 @@ export default function CodeWorkspace({
             const model = editorRef.current.getModel()
             if (model) {
               isSyncingToMonacoRef.current = true
+              // Le texte entier est remplacé : sans ça, le curseur de Monaco partait à la fin
+              const selection = editorRef.current.getSelection()
               try {
                 editorRef.current.executeEdits('preview-live-sync', [
                   {
@@ -2703,6 +2759,7 @@ export default function CodeWorkspace({
                     forceMoveMarkers: true
                   }
                 ])
+                if (selection) editorRef.current.setSelection(selection)
               } finally {
                 setTimeout(() => {
                   isSyncingToMonacoRef.current = false
@@ -3001,6 +3058,11 @@ export default function CodeWorkspace({
                       '*'
                     )
                   }
+                })
+
+                editor.onMouseDown(() => {
+                  codePointerPressedRef.current = true
+                  lastCodePointerAtRef.current = Date.now()
                 })
 
                 // Clic souris dans le code : synchroniser immédiatement l'élément visuel correspondant

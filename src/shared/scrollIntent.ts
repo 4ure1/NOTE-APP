@@ -14,3 +14,20 @@ export function isUserScrollIntent(now: number, lastGestureAt: number, windowMs?
   const elapsed = now - lastGestureAt
   return elapsed >= 0 && elapsed <= limit
 }
+
+/**
+ * Sens inverse : pendant un geste de souris dans Monaco (et juste après), le défilement de l'aperçu
+ * ne doit pas faire bouger l'éditeur. Sinon le texte glisse sous la souris et la sélection en cours
+ * se pose sur une autre ligne.
+ */
+export function isCodePointerActive(
+  now: number,
+  isPressed: boolean,
+  lastPointerAt: number,
+  windowMs: number = 600
+): boolean {
+  if (isPressed) return true
+  if (!(lastPointerAt > 0)) return false
+  const elapsed = now - lastPointerAt
+  return elapsed >= 0 && elapsed <= windowMs
+}

@@ -64,6 +64,48 @@ describe('installBlockDrag', () => {
     expect(drag.moveBlock(table, document.querySelector('p')!, 'after')).toBe(false)
   })
 
+  it('pose une carte à côté d’une autre dans une rangée .duo lisible', () => {
+    container().innerHTML = '\n  <div class="step">A</div>\n  <div class="step">B</div>\n'
+    const [a, b] = Array.from(document.querySelectorAll('.step'))
+    expect(drag.placeBeside(b, a, 'after')).toBe(true)
+    expect(container().innerHTML).toBe(
+      '\n  <div class="duo">\n    <div class="step">A</div>\n    <div class="step">B</div>\n  </div>\n'
+    )
+  })
+
+  it('respecte le côté choisi', () => {
+    container().innerHTML = '\n  <div class="step">A</div>\n  <div class="step">B</div>\n'
+    const [a, b] = Array.from(document.querySelectorAll('.step'))
+    drag.placeBeside(b, a, 'before')
+    expect(Array.from(document.querySelector('.duo')!.children).map((c) => c.textContent)).toEqual([
+      'B',
+      'A'
+    ])
+  })
+
+  it('crée une rangée .nodes pour deux cartes .node', () => {
+    container().innerHTML = '<div class="node">A</div><div class="node">B</div>'
+    const [a, b] = Array.from(document.querySelectorAll('.node'))
+    drag.placeBeside(b, a, 'after')
+    expect(document.querySelector('.nodes')).not.toBeNull()
+    expect(document.querySelector('.duo')).toBeNull()
+  })
+
+  it('refuse de poser une carte à côté d’elle-même ou de son contenu', () => {
+    const step = document.querySelector('.step')!
+    expect(drag.placeBeside(step, step, 'after')).toBe(false)
+    expect(drag.placeBeside(step, step.querySelector('p')!, 'after')).toBe(false)
+  })
+
+  it('une carte de grille se saisit depuis la grille', () => {
+    container().innerHTML =
+      '<div class="duo"><div class="step"><p>A</p></div><div class="step">B</div></div>'
+    expect(drag.draggableOf(document.querySelector('.step p'))).toBe(
+      document.querySelector('.step')
+    )
+    expect(drag.draggableOf(document.querySelector('.duo'))).toBe(document.querySelector('.duo'))
+  })
+
   it('reste autonome une fois sérialisé', () => {
     const rebuilt = new Function(
       `return (${installBlockDrag.toString()})`
