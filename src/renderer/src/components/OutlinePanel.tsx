@@ -95,9 +95,11 @@ export default function OutlinePanel({
             paddingLeft: `${Math.max(6, depth * 14 + 6)}px`,
             borderRadius: '6px',
             cursor: 'pointer',
-            backgroundColor: isActive ? 'rgba(56, 189, 248, 0.12)' : 'transparent',
-            borderLeft: isActive ? '2px solid #38bdf8' : '2px solid transparent',
-            color: isActive ? '#38bdf8' : 'var(--text-secondary, #cbd5e1)',
+            backgroundColor: isActive
+              ? 'color-mix(in srgb, var(--accent-color) 12%, transparent)'
+              : 'transparent',
+            borderLeft: isActive ? '2px solid var(--accent-color)' : '2px solid transparent',
+            color: isActive ? 'var(--accent-color)' : 'var(--text-secondary, var(--text-primary))',
             fontSize: node.level === 1 ? '12.5px' : '12px',
             fontWeight: node.level === 1 ? 600 : node.level === 2 ? 500 : 400,
             gap: '6px',
@@ -115,7 +117,7 @@ export default function OutlinePanel({
           onMouseLeave={(e) => {
             if (!isActive) {
               e.currentTarget.style.backgroundColor = 'transparent'
-              e.currentTarget.style.color = 'var(--text-secondary, #cbd5e1)'
+              e.currentTarget.style.color = 'var(--text-secondary, var(--text-primary))'
             }
           }}
         >
@@ -199,8 +201,8 @@ export default function OutlinePanel({
         width: isFloating ? '280px' : '260px',
         height: '100%',
         backgroundColor: '#0d0e11',
-        borderLeft: position === 'right' ? '1px solid rgba(255, 255, 255, 0.08)' : 'none',
-        borderRight: position === 'left' ? '1px solid rgba(255, 255, 255, 0.08)' : 'none',
+        borderLeft: position === 'right' ? '1px solid var(--border-color)' : 'none',
+        borderRight: position === 'left' ? '1px solid var(--border-color)' : 'none',
         display: 'flex',
         flexDirection: 'column',
         flexShrink: 0,
@@ -217,8 +219,8 @@ export default function OutlinePanel({
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '10px 12px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.07)',
-          backgroundColor: '#090a0d',
+          borderBottom: '1px solid var(--border-color)',
+          backgroundColor: 'var(--surface-sunken)',
           minHeight: '40px',
           boxSizing: 'border-box',
           gap: '8px'
@@ -226,7 +228,12 @@ export default function OutlinePanel({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
           <span
-            style={{ fontSize: '12px', fontWeight: 600, color: '#f8fafc', whiteSpace: 'nowrap' }}
+            style={{
+              fontSize: '12px',
+              fontWeight: 600,
+              color: 'var(--text-strong)',
+              whiteSpace: 'nowrap'
+            }}
           >
             Plan
           </span>
@@ -236,9 +243,9 @@ export default function OutlinePanel({
               fontWeight: 600,
               padding: '1px 5px',
               borderRadius: '10px',
-              backgroundColor: 'rgba(56, 189, 248, 0.15)',
-              color: '#38bdf8',
-              border: '1px solid rgba(56, 189, 248, 0.3)'
+              backgroundColor: 'color-mix(in srgb, var(--accent-color) 15%, transparent)',
+              color: 'var(--accent-color)',
+              border: '1px solid color-mix(in srgb, var(--accent-color) 30%, transparent)'
             }}
           >
             {headings.length}
@@ -254,7 +261,7 @@ export default function OutlinePanel({
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: 'var(--text-secondary, #94a3b8)',
+                color: 'var(--text-secondary)',
                 cursor: 'pointer',
                 padding: '4px 6px',
                 borderRadius: '4px',
@@ -266,11 +273,11 @@ export default function OutlinePanel({
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-                e.currentTarget.style.color = '#ffffff'
+                e.currentTarget.style.color = 'var(--text-strong)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent'
-                e.currentTarget.style.color = 'var(--text-secondary, #94a3b8)'
+                e.currentTarget.style.color = 'var(--text-secondary)'
               }}
             >
               {isAllCollapsed ? '⊞' : '⊟'}
@@ -284,7 +291,7 @@ export default function OutlinePanel({
             style={{
               background: 'transparent',
               border: 'none',
-              color: 'var(--text-secondary, #94a3b8)',
+              color: 'var(--text-secondary)',
               cursor: 'pointer',
               padding: '4px 6px',
               borderRadius: '4px',
@@ -296,11 +303,11 @@ export default function OutlinePanel({
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-              e.currentTarget.style.color = '#ffffff'
+              e.currentTarget.style.color = 'var(--text-strong)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent'
-              e.currentTarget.style.color = 'var(--text-secondary, #94a3b8)'
+              e.currentTarget.style.color = 'var(--text-secondary)'
             }}
           >
             {position === 'right' ? '◧' : '◨'}
@@ -313,7 +320,7 @@ export default function OutlinePanel({
             style={{
               background: 'transparent',
               border: 'none',
-              color: 'var(--text-secondary, #94a3b8)',
+              color: 'var(--text-secondary)',
               cursor: 'pointer',
               padding: '4px 5px',
               borderRadius: '4px',
@@ -324,11 +331,11 @@ export default function OutlinePanel({
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-              e.currentTarget.style.color = '#ffffff'
+              e.currentTarget.style.color = 'var(--text-strong)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent'
-              e.currentTarget.style.color = 'var(--text-secondary, #94a3b8)'
+              e.currentTarget.style.color = 'var(--text-secondary)'
             }}
           >
             <XIcon size={13} />
@@ -353,7 +360,7 @@ export default function OutlinePanel({
             style={{
               padding: '32px 14px',
               textAlign: 'center',
-              color: '#64748b',
+              color: 'var(--text-muted)',
               fontSize: '12px',
               display: 'flex',
               flexDirection: 'column',

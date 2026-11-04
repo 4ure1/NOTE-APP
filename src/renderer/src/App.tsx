@@ -61,6 +61,7 @@ import {
 import UnreadableNotePanel from './components/UnreadableNotePanel'
 import ExternalChangeBar, { ExternalChangeReason } from './components/ExternalChangeBar'
 import { copyNoteName } from './utils/copyNoteName'
+import { formatRelativeDate } from './utils/relativeDate'
 import getCaretCoordinates from 'textarea-caret'
 import { describeApiError, isAccessDenied, notifyApiError, ensureSuccess } from './utils/apiError'
 
@@ -3511,6 +3512,23 @@ function App() {
     }
   }, [snippets])
 
+  // Écran d'accueil : les 5 notes modifiées le plus récemment (un seul parcours de l'arbre)
+  const recentNotes = useMemo(() => {
+    const mtimes = new Map<string, number>()
+    const walk = (nodes: TreeNode[]): void => {
+      for (const node of nodes) {
+        if (node.type === 'folder') walk(node.children ?? [])
+        else mtimes.set(node.relativePath, node.mtime ?? 0)
+      }
+    }
+    walk(treeNodes)
+    return files
+      .filter((f) => f !== '__claude_code__')
+      .map((file) => ({ file, mtime: mtimes.get(file) ?? 0 }))
+      .sort((a, b) => b.mtime - a.mtime)
+      .slice(0, 5)
+  }, [files, treeNodes])
+
   // Préparation mémoïsée du HTML plein écran pour éviter tout rechargement d'iframe pendant le défilement et la frappe
   const fullscreenHtmlSrcDoc = useMemo(() => {
     // Contenu de la note ouverte pas encore chargé (ou encore celui de la note précédente) : écran neutre
@@ -3639,8 +3657,6 @@ function App() {
           onOpenSettings={() => setIsSettingsOpen(true)}
           onOpenSearch={() => setIsSearchOpen(true)}
           onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          activeAI={activeAI}
-          onSelectAI={handleSelectAI}
           width={sidebarWidth}
         />
       </div>
@@ -3775,7 +3791,7 @@ function App() {
                     flex: 1,
                     padding: '40px',
                     backgroundColor: 'var(--app-bg)',
-                    color: '#fff',
+                    color: 'var(--text-strong)',
                     overflowY: 'auto'
                   }}
                 >
@@ -3808,21 +3824,25 @@ function App() {
                           gap: '6px',
                           padding: '6px 12px',
                           borderRadius: '6px',
-                          backgroundColor: 'rgba(239, 68, 68, 0.12)',
-                          color: '#f87171',
-                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          backgroundColor:
+                            'color-mix(in srgb, var(--danger-strong) 12%, transparent)',
+                          color: 'var(--danger-color)',
+                          border:
+                            '1px solid color-mix(in srgb, var(--danger-strong) 30%, transparent)',
                           fontWeight: 600,
                           fontSize: '12px',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease'
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.22)'
-                          e.currentTarget.style.color = '#ffffff'
+                          e.currentTarget.style.backgroundColor =
+                            'color-mix(in srgb, var(--danger-strong) 22%, transparent)'
+                          e.currentTarget.style.color = 'var(--text-strong)'
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.12)'
-                          e.currentTarget.style.color = '#f87171'
+                          e.currentTarget.style.backgroundColor =
+                            'color-mix(in srgb, var(--danger-strong) 12%, transparent)'
+                          e.currentTarget.style.color = 'var(--danger-color)'
                         }}
                       >
                         <TrashIcon size={13} />
@@ -3869,7 +3889,7 @@ function App() {
                               style={{
                                 fontSize: '14px',
                                 fontWeight: 500,
-                                color: '#fff',
+                                color: 'var(--text-strong)',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap'
@@ -3918,7 +3938,7 @@ function App() {
                               padding: '6px 8px',
                               borderRadius: '6px',
                               backgroundColor: 'transparent',
-                              color: '#a1a1aa',
+                              color: 'var(--text-secondary)',
                               border: '1px solid var(--border-color)',
                               cursor: 'pointer',
                               display: 'flex',
@@ -3927,13 +3947,15 @@ function App() {
                               transition: 'all 0.15s ease'
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.15)'
-                              e.currentTarget.style.color = '#f87171'
-                              e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)'
+                              e.currentTarget.style.backgroundColor =
+                                'color-mix(in srgb, var(--danger-strong) 15%, transparent)'
+                              e.currentTarget.style.color = 'var(--danger-color)'
+                              e.currentTarget.style.borderColor =
+                                'color-mix(in srgb, var(--danger-strong) 30%, transparent)'
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.backgroundColor = 'transparent'
-                              e.currentTarget.style.color = '#a1a1aa'
+                              e.currentTarget.style.color = 'var(--text-secondary)'
                               e.currentTarget.style.borderColor = 'var(--border-color)'
                             }}
                           >
@@ -3955,7 +3977,7 @@ function App() {
                     flex: 1,
                     padding: '40px',
                     backgroundColor: 'var(--app-bg)',
-                    color: '#fff',
+                    color: 'var(--text-strong)',
                     overflowY: 'auto'
                   }}
                 >
@@ -4033,7 +4055,13 @@ function App() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           {getFileIcon(file, 16)}
                           <div>
-                            <div style={{ fontSize: '14px', fontWeight: 500, color: '#fff' }}>
+                            <div
+                              style={{
+                                fontSize: '14px',
+                                fontWeight: 500,
+                                color: 'var(--text-strong)'
+                              }}
+                            >
                               {file
                                 .split('/')
                                 .pop()
@@ -4086,7 +4114,7 @@ function App() {
                     flex: 1,
                     padding: '40px',
                     backgroundColor: 'var(--app-bg)',
-                    color: '#fff',
+                    color: 'var(--text-strong)',
                     overflowY: 'auto'
                   }}
                 >
@@ -4117,9 +4145,11 @@ function App() {
                             fontWeight: 600,
                             padding: '2px 8px',
                             borderRadius: '12px',
-                            backgroundColor: 'rgba(56, 189, 248, 0.15)',
-                            color: '#38bdf8',
-                            border: '1px solid rgba(56, 189, 248, 0.3)'
+                            backgroundColor:
+                              'color-mix(in srgb, var(--accent-color) 15%, transparent)',
+                            color: 'var(--accent-color)',
+                            border:
+                              '1px solid color-mix(in srgb, var(--accent-color) 30%, transparent)'
                           }}
                         >
                           Ctrl+R
@@ -4201,7 +4231,7 @@ function App() {
                                     style={{
                                       fontSize: '14px',
                                       fontWeight: 600,
-                                      color: '#fff',
+                                      color: 'var(--text-strong)',
                                       overflow: 'hidden',
                                       textOverflow: 'ellipsis',
                                       whiteSpace: 'nowrap'
@@ -4219,9 +4249,11 @@ function App() {
                                         fontWeight: 700,
                                         padding: '1px 5px',
                                         borderRadius: '6px',
-                                        backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                                        color: '#f87171',
-                                        border: '1px solid rgba(239, 68, 68, 0.3)'
+                                        backgroundColor:
+                                          'color-mix(in srgb, var(--danger-strong) 15%, transparent)',
+                                        color: 'var(--danger-color)',
+                                        border:
+                                          '1px solid color-mix(in srgb, var(--danger-strong) 30%, transparent)'
                                       }}
                                     >
                                       PDF
@@ -4354,7 +4386,7 @@ function App() {
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundColor = 'var(--danger-color)'
-                        e.currentTarget.style.color = '#fff'
+                        e.currentTarget.style.color = 'var(--text-strong)'
                         e.currentTarget.style.boxShadow = '0 0 10px rgba(255, 85, 85, 0.4)'
                       }}
                       onMouseLeave={(e) => {
@@ -4417,9 +4449,10 @@ function App() {
                       {snippetError && (
                         <div
                           style={{
-                            background: 'rgba(239, 68, 68, 0.15)',
-                            borderBottom: '1px solid rgba(239, 68, 68, 0.3)',
-                            color: '#fca5a5',
+                            background: 'color-mix(in srgb, var(--danger-strong) 15%, transparent)',
+                            borderBottom:
+                              '1px solid color-mix(in srgb, var(--danger-strong) 30%, transparent)',
+                            color: 'var(--danger-color)',
                             padding: '6px 16px',
                             fontSize: '12px',
                             display: 'flex',
@@ -4434,7 +4467,7 @@ function App() {
                             style={{
                               background: 'transparent',
                               border: 'none',
-                              color: '#fca5a5',
+                              color: 'var(--danger-color)',
                               cursor: 'pointer',
                               fontSize: '13px',
                               padding: '0 6px'
@@ -4494,7 +4527,6 @@ function App() {
                               handleUpdateWorkflowStatus(currentFile, status)
                             }
                             noteContent={fileContent}
-                            onOpenSettings={() => setIsSettingsOpen(true)}
                             onDeleteNote={() => handleDeleteNotes([currentFile])}
                             onOpenInBrowser={
                               isHtml && window.api?.openInBrowser
@@ -4824,100 +4856,211 @@ function App() {
                 <div
                   style={{
                     flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    backgroundColor: 'var(--app-bg)',
-                    color: 'var(--text-secondary)',
-                    gap: '16px'
+                    position: 'relative',
+                    overflowY: 'auto',
+                    backgroundColor: 'var(--page-bg)',
+                    color: 'var(--text-secondary)'
                   }}
                 >
+                  {/* Marge rouge du cahier : seul ornement de l'accueil */}
+                  <div
+                    aria-hidden="true"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      bottom: 0,
+                      left: '120px',
+                      width: '2px',
+                      background: 'var(--accent-marge)',
+                      opacity: 0.85
+                    }}
+                  />
                   <div
                     style={{
-                      fontFamily: 'var(--font-title)',
-                      fontStyle: 'italic',
-                      fontSize: '30px',
-                      fontWeight: 400,
-                      color: 'var(--text-primary)'
+                      maxWidth: '760px',
+                      margin: '0 0 0 152px',
+                      padding: '72px 32px 48px 0'
                     }}
                   >
-                    NOTE-APP
-                  </div>
-                  <div
-                    style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}
-                  >
-                    Vos notes HTML et Markdown, en local.
-                  </div>
-                  <div
-                    style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '280px' }}
-                  >
-                    <button
-                      onClick={() => handleCreateNote()}
+                    <h1
                       style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '9px 14px',
-                        backgroundColor: 'var(--element-bg)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '6px',
+                        fontFamily: 'var(--font-title)',
+                        fontWeight: 400,
+                        fontSize: '38px',
+                        lineHeight: 1.25,
                         color: 'var(--text-primary)',
-                        cursor: 'pointer',
-                        fontSize: '13px',
-                        transition: 'background-color 0.15s'
+                        margin: 0
                       }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = 'var(--element-bg)')
-                      }
                     >
-                      <span>Nouvelle note</span>
-                      <kbd
+                      {(() => {
+                        const label = new Date().toLocaleDateString('fr-FR', {
+                          weekday: 'long',
+                          day: 'numeric',
+                          month: 'long'
+                        })
+                        return label.charAt(0).toUpperCase() + label.slice(1)
+                      })()}
+                    </h1>
+                    <p
+                      style={{
+                        margin: '6px 0 0',
+                        fontSize: '14px',
+                        color: 'var(--text-secondary)'
+                      }}
+                    >
+                      {recentNotes.length > 0
+                        ? 'Reprenez là où vous vous êtes arrêté.'
+                        : 'Aucune note pour l’instant : créez la première ou importez un PDF.'}
+                    </p>
+
+                    {recentNotes.length > 0 && (
+                      <ul
+                        aria-label="Notes récentes"
                         style={{
-                          fontFamily: 'monospace',
-                          color: 'var(--text-muted)',
-                          fontSize: '11px'
+                          listStyle: 'none',
+                          margin: '36px 0 0',
+                          padding: 0,
+                          borderTop: '1px solid var(--border-strong)'
                         }}
                       >
-                        Ctrl+N
-                      </kbd>
-                    </button>
-                    <button
-                      onClick={() => setIsSearchOpen(true)}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '9px 14px',
-                        backgroundColor: 'var(--element-bg)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '6px',
-                        color: 'var(--text-primary)',
-                        cursor: 'pointer',
-                        fontSize: '13px',
-                        transition: 'background-color 0.15s'
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = 'var(--element-bg)')
-                      }
+                        {recentNotes.map(({ file, mtime }) => {
+                          const slash = file.lastIndexOf('/')
+                          const fileName = file.slice(slash + 1)
+                          const dot = fileName.lastIndexOf('.')
+                          const title = dot > 0 ? fileName.slice(0, dot) : fileName
+                          const ext = dot > 0 ? fileName.slice(dot + 1).toLowerCase() : ''
+                          const folder = slash > 0 ? file.slice(0, slash) : 'Racine'
+                          return (
+                            <li
+                              key={file}
+                              style={{
+                                position: 'relative',
+                                borderBottom: '1px solid var(--border-color)'
+                              }}
+                            >
+                              {/* Date écrite dans la marge, comme dans un cahier */}
+                              <span
+                                style={{
+                                  position: 'absolute',
+                                  right: 'calc(100% + 48px)',
+                                  top: '20px',
+                                  fontSize: '13px',
+                                  color: 'var(--text-muted)',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                {formatRelativeDate(mtime)}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  setActiveView('all')
+                                  setSelectedFiles([file])
+                                }}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'baseline',
+                                  gap: '14px',
+                                  width: '100%',
+                                  padding: '14px 8px',
+                                  background: 'transparent',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  textAlign: 'left',
+                                  color: 'var(--text-primary)'
+                                }}
+                                onMouseEnter={(e) =>
+                                  (e.currentTarget.style.backgroundColor =
+                                    'rgba(255, 255, 255, 0.035)')
+                                }
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.backgroundColor = 'transparent')
+                                }
+                              >
+                                <span
+                                  style={{
+                                    fontFamily: 'var(--font-title)',
+                                    fontSize: '21px',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    maxWidth: '60%'
+                                  }}
+                                >
+                                  {title}
+                                </span>
+                                <span
+                                  style={{
+                                    flex: 1,
+                                    fontSize: '13px',
+                                    color: 'var(--text-muted)',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis'
+                                  }}
+                                >
+                                  {folder}
+                                </span>
+                                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                  {ext}
+                                </span>
+                              </button>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+
+                    <div
+                      style={{ display: 'flex', gap: '10px', marginTop: '32px', flexWrap: 'wrap' }}
                     >
-                      <span>Rechercher</span>
-                      <kbd
+                      <button
+                        onClick={() => handleCreateNote()}
                         style={{
-                          fontFamily: 'monospace',
-                          color: 'var(--text-muted)',
-                          fontSize: '11px'
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '8px 14px',
+                          borderRadius: '4px',
+                          border: '1px solid transparent',
+                          backgroundColor: 'var(--text-primary)',
+                          color: '#1c1c1d',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
                         }}
                       >
-                        Ctrl+P
-                      </kbd>
-                    </button>
+                        Nouvelle note
+                        <kbd style={{ color: '#5a5955', borderColor: 'rgba(0, 0, 0, 0.2)' }}>
+                          Ctrl+N
+                        </kbd>
+                      </button>
+                      <button
+                        onClick={() => setIsSearchOpen(true)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '8px 14px',
+                          borderRadius: '4px',
+                          border: '1px solid var(--border-strong)',
+                          backgroundColor: 'transparent',
+                          color: 'var(--text-primary)',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.backgroundColor = 'transparent')
+                        }
+                      >
+                        Rechercher
+                        <kbd>Ctrl+P</kbd>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -5048,6 +5191,8 @@ function App() {
               >
                 {/* Gauche: Switcher IA interactif (bascule instantanée 0ms) */}
                 <div
+                  role="tablist"
+                  aria-label="Assistant IA"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -5062,6 +5207,8 @@ function App() {
                     return (
                       <button
                         key={ai}
+                        role="tab"
+                        aria-selected={isActive}
                         onClick={() => handleSelectAI(ai)}
                         title={`Basculer vers ${ai === 'agent' ? 'Agent IA Autonome' : ai.charAt(0).toUpperCase() + ai.slice(1)} (Ctrl+I)`}
                         style={{
@@ -5074,14 +5221,16 @@ function App() {
                           border: 'none',
                           backgroundColor: isActive
                             ? ai === 'agent'
-                              ? 'rgba(16, 185, 129, 0.22)'
+                              ? 'color-mix(in srgb, var(--success-strong) 22%, transparent)'
                               : 'rgba(255, 255, 255, 0.12)'
                             : 'transparent',
                           color: isActive
                             ? ai === 'agent'
-                              ? '#34d399'
-                              : '#ffffff'
+                              ? 'var(--success-strong)'
+                              : 'var(--text-strong)'
                             : 'var(--text-muted)',
+                          // Onglet courant souligné du rouge de marge, comme les modes de l'éditeur
+                          boxShadow: isActive ? 'inset 0 -2px 0 var(--accent-marge)' : 'none',
                           cursor: 'pointer',
                           fontSize: '11px',
                           fontWeight: isActive ? 600 : 400,
@@ -5097,7 +5246,7 @@ function App() {
                         {ai === 'chatgpt' && (
                           <ChatGPTIcon
                             size={12}
-                            style={{ color: isActive ? '#ffffff' : 'currentColor' }}
+                            style={{ color: isActive ? 'var(--text-strong)' : 'currentColor' }}
                           />
                         )}
                         {ai === 'gemini' && (
@@ -5107,7 +5256,11 @@ function App() {
                           />
                         )}
                         <span>
-                          {ai === 'agent' ? '⚡ Agent' : ai.charAt(0).toUpperCase() + ai.slice(1)}
+                          {ai === 'agent'
+                            ? 'Agent'
+                            : ai === 'chatgpt'
+                              ? 'ChatGPT'
+                              : ai.charAt(0).toUpperCase() + ai.slice(1)}
                         </span>
                       </button>
                     )
@@ -5118,7 +5271,7 @@ function App() {
                         width: '6px',
                         height: '6px',
                         borderRadius: '50%',
-                        backgroundColor: '#4ade80',
+                        backgroundColor: 'var(--success-color)',
                         boxShadow: '0 0 6px rgba(74, 222, 128, 0.5)',
                         marginLeft: '4px',
                         marginRight: '2px'
@@ -5134,7 +5287,7 @@ function App() {
                     style={{
                       fontSize: '11px',
                       fontWeight: 500,
-                      color: '#4ade80',
+                      color: 'var(--success-color)',
                       backgroundColor: 'rgba(74, 222, 128, 0.1)',
                       border: '1px solid rgba(74, 222, 128, 0.25)',
                       borderRadius: '10px',
@@ -5159,7 +5312,7 @@ function App() {
                       backgroundColor: 'transparent',
                       border: '1px solid transparent',
                       borderRadius: '5px',
-                      color: '#a1a1aa',
+                      color: 'var(--text-secondary)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -5169,11 +5322,11 @@ function App() {
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-                      e.currentTarget.style.color = '#ffffff'
+                      e.currentTarget.style.color = 'var(--text-strong)'
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = 'transparent'
-                      e.currentTarget.style.color = '#a1a1aa'
+                      e.currentTarget.style.color = 'var(--text-secondary)'
                     }}
                   >
                     <OfflineHtmlIcon size={14} />
@@ -5190,7 +5343,7 @@ function App() {
                       backgroundColor: 'transparent',
                       border: '1px solid transparent',
                       borderRadius: '5px',
-                      color: '#a1a1aa',
+                      color: 'var(--text-secondary)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -5200,11 +5353,11 @@ function App() {
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-                      e.currentTarget.style.color = '#ffffff'
+                      e.currentTarget.style.color = 'var(--text-strong)'
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = 'transparent'
-                      e.currentTarget.style.color = '#a1a1aa'
+                      e.currentTarget.style.color = 'var(--text-secondary)'
                     }}
                   >
                     <DownloadIcon size={14} />
@@ -5220,7 +5373,7 @@ function App() {
                       backgroundColor: 'transparent',
                       border: '1px solid transparent',
                       borderRadius: '5px',
-                      color: '#a1a1aa',
+                      color: 'var(--text-secondary)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -5229,11 +5382,11 @@ function App() {
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-                      e.currentTarget.style.color = '#ffffff'
+                      e.currentTarget.style.color = 'var(--text-strong)'
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = 'transparent'
-                      e.currentTarget.style.color = '#a1a1aa'
+                      e.currentTarget.style.color = 'var(--text-secondary)'
                     }}
                   >
                     <MessageSquareIcon size={14} />
@@ -5265,7 +5418,7 @@ function App() {
                       backgroundColor: 'transparent',
                       border: '1px solid transparent',
                       borderRadius: '5px',
-                      color: '#a1a1aa',
+                      color: 'var(--text-secondary)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -5274,11 +5427,11 @@ function App() {
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-                      e.currentTarget.style.color = '#ffffff'
+                      e.currentTarget.style.color = 'var(--text-strong)'
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = 'transparent'
-                      e.currentTarget.style.color = '#a1a1aa'
+                      e.currentTarget.style.color = 'var(--text-secondary)'
                     }}
                   >
                     <ArrowLeftIcon size={13} />
@@ -5310,7 +5463,7 @@ function App() {
                       backgroundColor: 'transparent',
                       border: '1px solid transparent',
                       borderRadius: '5px',
-                      color: '#a1a1aa',
+                      color: 'var(--text-secondary)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -5319,11 +5472,11 @@ function App() {
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-                      e.currentTarget.style.color = '#ffffff'
+                      e.currentTarget.style.color = 'var(--text-strong)'
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = 'transparent'
-                      e.currentTarget.style.color = '#a1a1aa'
+                      e.currentTarget.style.color = 'var(--text-secondary)'
                     }}
                   >
                     <ArrowRightIcon size={13} />
@@ -5346,7 +5499,7 @@ function App() {
                       backgroundColor: 'transparent',
                       border: '1px solid transparent',
                       borderRadius: '5px',
-                      color: '#a1a1aa',
+                      color: 'var(--text-secondary)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -5355,11 +5508,11 @@ function App() {
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-                      e.currentTarget.style.color = '#ffffff'
+                      e.currentTarget.style.color = 'var(--text-strong)'
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = 'transparent'
-                      e.currentTarget.style.color = '#a1a1aa'
+                      e.currentTarget.style.color = 'var(--text-secondary)'
                     }}
                   >
                     <RotateCwIcon size={13} />
@@ -5388,7 +5541,7 @@ function App() {
                       backgroundColor: 'transparent',
                       border: '1px solid transparent',
                       borderRadius: '5px',
-                      color: '#a1a1aa',
+                      color: 'var(--text-secondary)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -5397,11 +5550,11 @@ function App() {
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-                      e.currentTarget.style.color = '#ffffff'
+                      e.currentTarget.style.color = 'var(--text-strong)'
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = 'transparent'
-                      e.currentTarget.style.color = '#a1a1aa'
+                      e.currentTarget.style.color = 'var(--text-secondary)'
                     }}
                   >
                     <HomeIcon size={13} />
@@ -5442,7 +5595,7 @@ function App() {
                         activeAI === 'claude'
                           ? '#e88d71'
                           : activeAI === 'chatgpt'
-                            ? '#ffffff'
+                            ? 'var(--text-strong)'
                             : '#60a5fa',
                       fontSize: '11.5px',
                       fontWeight: 500,
@@ -5671,7 +5824,7 @@ function App() {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.72)',
+            backgroundColor: 'var(--overlay-bg)',
             backdropFilter: 'blur(8px)',
             display: 'flex',
             justifyContent: 'center',
@@ -5682,8 +5835,8 @@ function App() {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              backgroundColor: '#18181b',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              backgroundColor: 'var(--surface-raised)',
+              border: '1px solid var(--border-color)',
               borderRadius: '16px',
               width: '460px',
               maxWidth: '92vw',
@@ -5691,7 +5844,7 @@ function App() {
               flexDirection: 'column',
               boxShadow:
                 '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.06)',
-              color: '#ffffff',
+              color: 'var(--text-strong)',
               padding: '24px 28px'
             }}
           >
@@ -5704,8 +5857,8 @@ function App() {
                   width: '42px',
                   height: '42px',
                   borderRadius: '10px',
-                  backgroundColor: 'rgba(239, 68, 68, 0.12)',
-                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  backgroundColor: 'color-mix(in srgb, var(--danger-strong) 12%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--danger-strong) 25%, transparent)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -5728,7 +5881,14 @@ function App() {
                   <line x1="14" y1="11" x2="14" y2="17" />
                 </svg>
               </div>
-              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 600, color: '#ffffff' }}>
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: '17px',
+                  fontWeight: 600,
+                  color: 'var(--text-strong)'
+                }}
+              >
                 {notesToDelete.length > 1
                   ? `Supprimer les ${notesToDelete.length} notes ?`
                   : `Supprimer « ${
@@ -5745,7 +5905,7 @@ function App() {
               style={{
                 margin: '0 0 24px 0',
                 fontSize: '13.5px',
-                color: '#9ca3af',
+                color: 'var(--text-secondary)',
                 lineHeight: '1.6'
               }}
             >
@@ -5765,9 +5925,9 @@ function App() {
               <button
                 onClick={() => setNotesToDelete([])}
                 style={{
-                  backgroundColor: '#27272a',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  color: '#e4e4e7',
+                  backgroundColor: 'var(--surface-input)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-primary)',
                   borderRadius: '8px',
                   padding: '8px 18px',
                   fontSize: '13px',
@@ -5776,8 +5936,12 @@ function App() {
                   outline: 'none',
                   transition: 'background-color 0.15s'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3f3f46')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#27272a')}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = 'var(--border-strong)')
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = 'var(--surface-input)')
+                }
               >
                 Annuler
               </button>
@@ -5785,8 +5949,8 @@ function App() {
                 autoFocus
                 onClick={confirmDeleteNotes}
                 style={{
-                  backgroundColor: '#dc2626',
-                  color: '#ffffff',
+                  backgroundColor: 'var(--danger-strong)',
+                  color: 'var(--text-strong)',
                   border: 'none',
                   borderRadius: '8px',
                   padding: '8px 18px',
@@ -5796,8 +5960,12 @@ function App() {
                   outline: 'none',
                   transition: 'background-color 0.15s'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#ef4444')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#dc2626')}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = 'var(--danger-strong)')
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = 'var(--danger-strong)')
+                }
               >
                 {notesToDelete.length > 1
                   ? 'Supprimer les notes'
@@ -5819,7 +5987,7 @@ function App() {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.72)',
+            backgroundColor: 'var(--overlay-bg)',
             backdropFilter: 'blur(8px)',
             display: 'flex',
             alignItems: 'center',
@@ -5829,8 +5997,8 @@ function App() {
         >
           <div
             style={{
-              backgroundColor: '#18181b',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              backgroundColor: 'var(--surface-raised)',
+              border: '1px solid var(--border-color)',
               borderRadius: '16px',
               width: '480px',
               maxWidth: '92vw',
@@ -5840,7 +6008,7 @@ function App() {
               display: 'flex',
               flexDirection: 'column',
               gap: '18px',
-              color: '#ffffff'
+              color: 'var(--text-strong)'
             }}
           >
             {/* Header: Amber Claude Badge + Title */}
@@ -5850,12 +6018,12 @@ function App() {
                   width: '40px',
                   height: '40px',
                   borderRadius: '10px',
-                  backgroundColor: 'rgba(245, 158, 11, 0.12)',
-                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                  backgroundColor: 'color-mix(in srgb, var(--accent-amber) 12%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--accent-amber) 25%, transparent)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#f59e0b',
+                  color: 'var(--accent-amber)',
                   flexShrink: 0
                 }}
               >
@@ -5863,7 +6031,14 @@ function App() {
                   <path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z" />
                 </svg>
               </div>
-              <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 600, color: '#ffffff' }}>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: '17px',
+                  fontWeight: 600,
+                  color: 'var(--text-strong)'
+                }}
+              >
                 Sauvegarder le code depuis Claude
               </h2>
             </div>
@@ -5874,16 +6049,16 @@ function App() {
                 backgroundColor: '#121316',
                 padding: '12px 14px',
                 borderRadius: '10px',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
+                border: '1px solid var(--border-color)',
                 fontSize: '12.5px',
-                color: '#a1a1aa',
+                color: 'var(--text-secondary)',
                 maxHeight: '120px',
                 overflowY: 'auto'
               }}
             >
               <div
                 style={{
-                  color: '#f59e0b',
+                  color: 'var(--accent-amber)',
                   marginBottom: '6px',
                   fontWeight: 600,
                   fontSize: '11px',
@@ -5897,7 +6072,7 @@ function App() {
                   margin: 0,
                   whiteSpace: 'pre-wrap',
                   fontFamily: 'monospace',
-                  color: '#e4e4e7'
+                  color: 'var(--text-primary)'
                 }}
               >
                 {codeToSave.code.length > 200
@@ -5915,14 +6090,14 @@ function App() {
                   gap: '10px',
                   cursor: 'pointer',
                   fontSize: '13.5px',
-                  color: '#e4e4e7'
+                  color: 'var(--text-primary)'
                 }}
               >
                 <input
                   type="radio"
                   checked={saveActionType === 'new'}
                   onChange={() => setSaveActionType('new')}
-                  style={{ accentColor: '#38bdf8' }}
+                  style={{ accentColor: 'var(--accent-color)' }}
                 />
                 Créer une nouvelle note
               </label>
@@ -5935,9 +6110,9 @@ function App() {
                   autoFocus
                   style={{
                     marginLeft: '26px',
-                    background: '#202125',
-                    color: '#ffffff',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    background: 'var(--surface-control)',
+                    color: 'var(--text-strong)',
+                    border: '1px solid var(--border-strong)',
                     padding: '8px 12px',
                     borderRadius: '8px',
                     outline: 'none',
@@ -5955,14 +6130,14 @@ function App() {
                   gap: '10px',
                   cursor: 'pointer',
                   fontSize: '13.5px',
-                  color: '#e4e4e7'
+                  color: 'var(--text-primary)'
                 }}
               >
                 <input
                   type="radio"
                   checked={saveActionType === 'append'}
                   onChange={() => setSaveActionType('append')}
-                  style={{ accentColor: '#38bdf8' }}
+                  style={{ accentColor: 'var(--accent-color)' }}
                 />
                 Ajouter à une note existante
               </label>
@@ -5972,9 +6147,9 @@ function App() {
                   onChange={(e) => setSelectedExistingFile(e.target.value)}
                   style={{
                     marginLeft: '26px',
-                    background: '#202125',
-                    color: '#ffffff',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    background: 'var(--surface-control)',
+                    color: 'var(--text-strong)',
+                    border: '1px solid var(--border-strong)',
                     padding: '8px 12px',
                     borderRadius: '8px',
                     outline: 'none',
@@ -6002,7 +6177,7 @@ function App() {
               <hr
                 style={{
                   border: 'none',
-                  borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderTop: '1px solid var(--border-color)',
                   margin: '2px 0'
                 }}
               />
@@ -6014,14 +6189,14 @@ function App() {
                   gap: '10px',
                   cursor: 'pointer',
                   fontSize: '12.5px',
-                  color: '#9ca3af'
+                  color: 'var(--text-secondary)'
                 }}
               >
                 <input
                   type="checkbox"
                   checked={saveAsCodeBlock}
                   onChange={(e) => setSaveAsCodeBlock(e.target.checked)}
-                  style={{ accentColor: '#38bdf8' }}
+                  style={{ accentColor: 'var(--accent-color)' }}
                 />
                 Envelopper le contenu dans un bloc de code (```)
               </label>
@@ -6034,9 +6209,9 @@ function App() {
               <button
                 onClick={() => setCodeToSave(null)}
                 style={{
-                  backgroundColor: '#27272a',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  color: '#e4e4e7',
+                  backgroundColor: 'var(--surface-input)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-primary)',
                   padding: '8px 18px',
                   borderRadius: '8px',
                   fontSize: '13px',
@@ -6044,8 +6219,12 @@ function App() {
                   cursor: 'pointer',
                   transition: 'background-color 0.15s'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3f3f46')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#27272a')}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = 'var(--border-strong)')
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = 'var(--surface-input)')
+                }
               >
                 Annuler
               </button>
@@ -6057,8 +6236,8 @@ function App() {
                     files.filter((f) => f !== '__claude_code__').length === 0)
                 }
                 style={{
-                  background: '#2563eb',
-                  color: '#ffffff',
+                  background: 'var(--accent-strong)',
+                  color: 'var(--text-strong)',
                   border: 'none',
                   padding: '8px 20px',
                   borderRadius: '8px',
@@ -6074,7 +6253,9 @@ function App() {
                   transition: 'background-color 0.15s'
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3b82f6')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#2563eb')}
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = 'var(--accent-strong)')
+                }
               >
                 Sauvegarder
               </button>
@@ -6092,7 +6273,7 @@ function App() {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.72)',
+            backgroundColor: 'var(--overlay-bg)',
             backdropFilter: 'blur(8px)',
             display: 'flex',
             justifyContent: 'center',
@@ -6107,8 +6288,8 @@ function App() {
         >
           <div
             style={{
-              backgroundColor: '#18181b',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              backgroundColor: 'var(--surface-raised)',
+              border: '1px solid var(--border-color)',
               borderRadius: '16px',
               width: '560px',
               maxWidth: '92vw',
@@ -6125,7 +6306,7 @@ function App() {
                 display: 'flex',
                 alignItems: 'center',
                 padding: '14px 18px',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                borderBottom: '1px solid var(--border-color)',
                 gap: '10px'
               }}
             >
@@ -6158,16 +6339,16 @@ function App() {
                   background: 'transparent',
                   border: 'none',
                   outline: 'none',
-                  color: '#ffffff',
+                  color: 'var(--text-strong)',
                   fontSize: '14px'
                 }}
               />
               <span
                 style={{
                   fontSize: '11px',
-                  color: '#a1a1aa',
-                  backgroundColor: '#27272a',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  color: 'var(--text-secondary)',
+                  backgroundColor: 'var(--surface-input)',
+                  border: '1px solid var(--border-color)',
                   padding: '2px 8px',
                   borderRadius: '4px',
                   fontFamily: 'monospace'
@@ -6203,7 +6384,7 @@ function App() {
                         borderRadius: '8px',
                         cursor: 'pointer',
                         fontSize: '13px',
-                        color: '#f4f4f5',
+                        color: 'var(--text-strong)',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
@@ -6221,7 +6402,7 @@ function App() {
                       <span
                         style={{
                           fontSize: '11px',
-                          color: '#9ca3af',
+                          color: 'var(--text-secondary)',
                           backgroundColor: 'rgba(255, 255, 255, 0.04)',
                           padding: '2px 6px',
                           borderRadius: '4px'
@@ -6238,7 +6419,7 @@ function App() {
                   style={{
                     padding: '24px 16px',
                     textAlign: 'center',
-                    color: '#71717a',
+                    color: 'var(--text-muted)',
                     fontSize: '13px'
                   }}
                 >
@@ -6260,7 +6441,11 @@ function App() {
             right: showAIInFullscreen ? `${aiWidth}px` : 0,
             bottom: 0,
             zIndex: 100000000,
-            backgroundColor: isHtml ? '#09090b' : isPdf ? '#111114' : 'var(--app-bg)',
+            backgroundColor: isHtml
+              ? 'var(--surface-sunken)'
+              : isPdf
+                ? 'var(--surface-panel)'
+                : 'var(--app-bg)',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
@@ -6281,7 +6466,7 @@ function App() {
                 borderRadius: '8px',
                 overflow: 'hidden',
                 boxShadow: '0 20px 50px rgba(0, 0, 0, 0.85)',
-                border: '1px solid rgba(255, 255, 255, 0.12)'
+                border: '1px solid var(--border-strong)'
               }}
             >
               <OutlinePanel
@@ -6310,8 +6495,8 @@ function App() {
                 zIndex: 100000015,
                 backgroundColor: 'rgba(24, 24, 27, 0.85)',
                 backdropFilter: 'blur(8px)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                color: '#e4e4e7',
+                border: '1px solid var(--border-strong)',
+                color: 'var(--text-primary)',
                 borderRadius: '6px',
                 padding: '6px 10px',
                 fontSize: '12px',
@@ -6324,11 +6509,11 @@ function App() {
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = 'rgba(39, 39, 42, 0.95)'
-                e.currentTarget.style.color = '#38bdf8'
+                e.currentTarget.style.color = 'var(--accent-color)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'rgba(24, 24, 27, 0.85)'
-                e.currentTarget.style.color = '#e4e4e7'
+                e.currentTarget.style.color = 'var(--text-primary)'
               }}
             >
               <OutlineIcon size={14} />
@@ -6556,7 +6741,7 @@ function App() {
             bottom: '24px',
             right: '28px',
             backgroundColor: 'rgba(24, 24, 27, 0.94)',
-            color: '#f4f4f5',
+            color: 'var(--text-strong)',
             padding: '8px 18px',
             borderRadius: '24px',
             fontSize: '13px',
@@ -6567,7 +6752,7 @@ function App() {
             alignItems: 'center',
             gap: '8px',
             boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
+            border: '1px solid var(--border-strong)',
             backdropFilter: 'blur(10px)',
             transition: 'opacity 0.2s ease'
           }}
@@ -6586,7 +6771,7 @@ function App() {
             top: 14,
             right: 18,
             zIndex: 9999999,
-            backgroundColor: '#18181b',
+            backgroundColor: 'var(--surface-raised)',
             border: '1px solid rgba(168, 85, 247, 0.4)',
             color: '#c084fc',
             borderRadius: '20px',
@@ -6600,15 +6785,15 @@ function App() {
             gap: '8px',
             transition: 'all 0.15s ease'
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#27272a')}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#18181b')}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-input)')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-raised)')}
         >
           <span>🧘 Mode Zen actif</span>
           <kbd
             style={{
               fontSize: '10px',
               opacity: 0.8,
-              background: '#27272a',
+              background: 'var(--surface-input)',
               padding: '1px 5px',
               borderRadius: '4px'
             }}
@@ -6708,15 +6893,15 @@ function App() {
             bottom: '24px',
             right: '24px',
             zIndex: 10000,
-            backgroundColor: '#18181b',
-            border: '1px solid #38bdf8',
+            backgroundColor: 'var(--surface-raised)',
+            border: '1px solid var(--accent-color)',
             borderRadius: '8px',
             padding: '12px 18px',
             boxShadow: '0 8px 24px rgba(0, 0, 0, 0.6)',
             display: 'flex',
             alignItems: 'center',
             gap: '14px',
-            color: '#f4f4f5',
+            color: 'var(--text-strong)',
             fontSize: '13.5px'
           }}
         >
@@ -6724,8 +6909,8 @@ function App() {
           <button
             onClick={() => handleUndoRename(undoRenameBanner.operationId)}
             style={{
-              backgroundColor: '#0284c7',
-              color: '#ffffff',
+              backgroundColor: 'var(--accent-strong)',
+              color: 'var(--text-strong)',
               border: 'none',
               borderRadius: '5px',
               padding: '6px 14px',
@@ -6741,7 +6926,7 @@ function App() {
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#a1a1aa',
+              color: 'var(--text-secondary)',
               cursor: 'pointer',
               fontSize: '18px',
               lineHeight: 1

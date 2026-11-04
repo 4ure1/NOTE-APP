@@ -46,7 +46,7 @@ export default function LinkRenameModal({
         position: 'fixed',
         inset: 0,
         zIndex: 9999,
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        backgroundColor: 'var(--overlay-bg)',
         backdropFilter: 'blur(4px)',
         display: 'flex',
         alignItems: 'center',
@@ -65,13 +65,13 @@ export default function LinkRenameModal({
           width: '100%',
           maxWidth: '680px',
           maxHeight: '85vh',
-          backgroundColor: '#18181b',
-          border: '1px solid #3f3f46',
+          backgroundColor: 'var(--surface-raised)',
+          border: '1px solid var(--border-strong)',
           borderRadius: '12px',
           display: 'flex',
           flexDirection: 'column',
           boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)',
-          color: '#f4f4f5',
+          color: 'var(--text-strong)',
           fontFamily: 'var(--font-ui)'
         }}
         onClick={(e) => e.stopPropagation()}
@@ -80,7 +80,7 @@ export default function LinkRenameModal({
         <div
           style={{
             padding: '20px 24px',
-            borderBottom: '1px solid #27272a',
+            borderBottom: '1px solid var(--surface-input)',
             display: 'flex',
             alignItems: 'flex-start',
             justifyContent: 'space-between'
@@ -89,16 +89,16 @@ export default function LinkRenameModal({
           <div>
             <h2
               id={titleId}
-              style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}
+              style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--text-strong)' }}
             >
               {isFolder ? 'Déplacement / Renommage de dossier' : 'Renommage sécurisé de la note'}
             </h2>
-            <div style={{ marginTop: '6px', fontSize: '13px', color: '#94a3b8' }}>
-              <span style={{ color: '#ef4444', textDecoration: 'line-through' }}>
+            <div style={{ marginTop: '6px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+              <span style={{ color: 'var(--danger-strong)', textDecoration: 'line-through' }}>
                 {plan.oldPath}
               </span>
               {' ➔ '}
-              <span style={{ color: '#38bdf8', fontWeight: 500 }}>{plan.newPath}</span>
+              <span style={{ color: 'var(--accent-color)', fontWeight: 500 }}>{plan.newPath}</span>
             </div>
           </div>
           <button
@@ -107,7 +107,7 @@ export default function LinkRenameModal({
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--text-secondary)',
               cursor: 'pointer',
               fontSize: '20px',
               lineHeight: 1,
@@ -135,11 +135,11 @@ export default function LinkRenameModal({
           {plan.hasCollision ? (
             <div
               style={{
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
+                backgroundColor: 'color-mix(in srgb, var(--danger-strong) 10%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--danger-strong) 30%, transparent)',
                 borderRadius: '8px',
                 padding: '12px 16px',
-                color: '#f87171',
+                color: 'var(--danger-color)',
                 fontSize: '13.5px',
                 display: 'flex',
                 alignItems: 'center',
@@ -154,7 +154,7 @@ export default function LinkRenameModal({
           ) : (
             <div
               style={{
-                backgroundColor: '#27272a',
+                backgroundColor: 'var(--surface-input)',
                 borderRadius: '8px',
                 padding: '12px 16px',
                 display: 'flex',
@@ -163,14 +163,17 @@ export default function LinkRenameModal({
                 fontSize: '13.5px'
               }}
             >
-              <div style={{ color: '#e4e4e7' }}>
+              <div style={{ color: 'var(--text-primary)' }}>
                 {hasChanges ? (
                   <>
-                    <strong style={{ color: '#38bdf8' }}>{plan.affectedFiles.length}</strong>{' '}
+                    <strong style={{ color: 'var(--accent-color)' }}>
+                      {plan.affectedFiles.length}
+                    </strong>{' '}
                     fichier
                     {plan.affectedFiles.length > 1 ? 's' : ''} impacté
                     {plan.affectedFiles.length > 1 ? 's' : ''} (
-                    <strong style={{ color: '#38bdf8' }}>{plan.totalChanges}</strong> lien
+                    <strong style={{ color: 'var(--accent-color)' }}>{plan.totalChanges}</strong>{' '}
+                    lien
                     {plan.totalChanges > 1 ? 's' : ''} à actualiser)
                   </>
                 ) : (
@@ -180,8 +183,8 @@ export default function LinkRenameModal({
               <span
                 style={{
                   fontSize: '11.5px',
-                  backgroundColor: 'rgba(56, 189, 248, 0.15)',
-                  color: '#38bdf8',
+                  backgroundColor: 'color-mix(in srgb, var(--accent-color) 15%, transparent)',
+                  color: 'var(--accent-color)',
                   padding: '2px 8px',
                   borderRadius: '12px',
                   fontWeight: 500
@@ -200,7 +203,7 @@ export default function LinkRenameModal({
                   fontSize: '12px',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
-                  color: '#71717a'
+                  color: 'var(--text-muted)'
                 }}
               >
                 Fichiers et liens modifiés
@@ -212,9 +215,9 @@ export default function LinkRenameModal({
                   <div
                     key={file.relativePath}
                     style={{
-                      border: '1px solid #27272a',
+                      border: '1px solid var(--surface-input)',
                       borderRadius: '8px',
-                      backgroundColor: '#1f1f23',
+                      backgroundColor: 'var(--surface-raised)',
                       overflow: 'hidden'
                     }}
                   >
@@ -236,22 +239,27 @@ export default function LinkRenameModal({
                         justifyContent: 'space-between',
                         cursor: 'pointer',
                         userSelect: 'none',
-                        backgroundColor: '#232328'
+                        backgroundColor: 'var(--surface-control)'
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span aria-hidden="true" style={{ fontSize: '11px', color: '#71717a' }}>
+                        <span
+                          aria-hidden="true"
+                          style={{ fontSize: '11px', color: 'var(--text-muted)' }}
+                        >
                           {isExpanded ? '▼' : '▶'}
                         </span>
-                        <span style={{ fontSize: '13px', fontWeight: 500, color: '#f4f4f5' }}>
+                        <span
+                          style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-strong)' }}
+                        >
                           {file.relativePath}
                         </span>
                       </div>
                       <span
                         style={{
                           fontSize: '11.5px',
-                          color: '#a1a1aa',
-                          backgroundColor: '#27272a',
+                          color: 'var(--text-secondary)',
+                          backgroundColor: 'var(--surface-input)',
                           padding: '2px 8px',
                           borderRadius: '10px'
                         }}
@@ -264,7 +272,7 @@ export default function LinkRenameModal({
                       <div
                         style={{
                           padding: '10px 14px',
-                          borderTop: '1px solid #27272a',
+                          borderTop: '1px solid var(--surface-input)',
                           display: 'flex',
                           flexDirection: 'column',
                           gap: '6px',
@@ -276,19 +284,24 @@ export default function LinkRenameModal({
                           <div
                             key={idx}
                             style={{
-                              backgroundColor: '#18181b',
+                              backgroundColor: 'var(--surface-raised)',
                               borderRadius: '4px',
                               padding: '6px 10px',
-                              border: '1px solid #2a2a30',
+                              border: '1px solid var(--surface-input)',
                               display: 'flex',
                               flexDirection: 'column',
                               gap: '2px'
                             }}
                           >
-                            <div style={{ color: '#ef4444', textDecoration: 'line-through' }}>
+                            <div
+                              style={{
+                                color: 'var(--danger-strong)',
+                                textDecoration: 'line-through'
+                              }}
+                            >
                               - Ligne {change.line} : {change.original}
                             </div>
-                            <div style={{ color: '#10b981' }}>
+                            <div style={{ color: 'var(--success-strong)' }}>
                               + Ligne {change.line} : {change.replacement}
                             </div>
                           </div>
@@ -301,7 +314,7 @@ export default function LinkRenameModal({
             </div>
           )}
 
-          <div style={{ fontSize: '12px', color: '#71717a', lineHeight: 1.5 }}>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
             🛡️ <strong>Sécurité garantie :</strong> chaque note modifiée fait l&apos;objet d&apos;un
             instantané dans l&apos;historique des versions. Vous disposerez également d&apos;un
             bouton immédiat pour annuler ce renommage en un clic.
@@ -312,7 +325,7 @@ export default function LinkRenameModal({
         <div
           style={{
             padding: '16px 24px',
-            borderTop: '1px solid #27272a',
+            borderTop: '1px solid var(--surface-input)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-end',
@@ -326,8 +339,8 @@ export default function LinkRenameModal({
             style={{
               padding: '8px 16px',
               borderRadius: '6px',
-              backgroundColor: '#27272a',
-              color: '#d4d4d8',
+              backgroundColor: 'var(--surface-input)',
+              color: 'var(--text-primary)',
               border: 'none',
               cursor: isSubmitting ? 'not-allowed' : 'pointer',
               fontSize: '13px',
@@ -342,8 +355,9 @@ export default function LinkRenameModal({
             style={{
               padding: '8px 18px',
               borderRadius: '6px',
-              backgroundColor: plan.hasCollision || isSubmitting ? '#475569' : '#0284c7',
-              color: '#ffffff',
+              backgroundColor:
+                plan.hasCollision || isSubmitting ? '#475569' : 'var(--accent-strong)',
+              color: 'var(--text-strong)',
               border: 'none',
               cursor: plan.hasCollision || isSubmitting ? 'not-allowed' : 'pointer',
               fontSize: '13px',

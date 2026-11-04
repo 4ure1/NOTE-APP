@@ -175,7 +175,7 @@ export default function WorkflowView({
         flexDirection: 'column',
         height: '100%',
         backgroundColor: '#141518',
-        color: '#e4e4e7',
+        color: 'var(--text-primary)',
         overflow: 'hidden',
         userSelect: 'none'
       }}
@@ -184,8 +184,8 @@ export default function WorkflowView({
       <div
         style={{
           padding: '16px 24px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          backgroundColor: '#18181b',
+          borderBottom: '1px solid var(--border-color)',
+          backgroundColor: 'var(--surface-raised)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -199,19 +199,23 @@ export default function WorkflowView({
               width: '36px',
               height: '36px',
               borderRadius: '10px',
-              backgroundColor: 'rgba(56, 189, 248, 0.12)',
-              border: '1px solid rgba(56, 189, 248, 0.25)',
+              backgroundColor: 'color-mix(in srgb, var(--accent-color) 12%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--accent-color) 25%, transparent)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#38bdf8'
+              color: 'var(--accent-color)'
             }}
           >
             <KanbanIcon size={18} />
           </div>
           <div>
-            <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#ffffff' }}>Workflow</h1>
-            <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>
+            <h1
+              style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--text-strong)' }}
+            >
+              Workflow
+            </h1>
+            <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
               Tableau Kanban des notes et avancement des projets
             </p>
           </div>
@@ -226,18 +230,21 @@ export default function WorkflowView({
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
             style={{
-              backgroundColor: '#202125',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              backgroundColor: 'var(--surface-control)',
+              border: '1px solid var(--border-color)',
               borderRadius: '8px',
               padding: '6px 12px',
-              color: '#ffffff',
+              color: 'var(--text-strong)',
               fontSize: '13px',
               outline: 'none',
               width: '180px',
               transition: 'border-color 0.15s'
             }}
-            onFocus={(e) => (e.target.style.borderColor = 'rgba(56, 189, 248, 0.4)')}
-            onBlur={(e) => (e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)')}
+            onFocus={(e) =>
+              (e.target.style.borderColor =
+                'color-mix(in srgb, var(--accent-color) 40%, transparent)')
+            }
+            onBlur={(e) => (e.target.style.borderColor = 'var(--border-color)')}
           />
 
           {/* Folder filter */}
@@ -246,11 +253,11 @@ export default function WorkflowView({
               value={folderFilter}
               onChange={(e) => setFolderFilter(e.target.value)}
               style={{
-                backgroundColor: '#202125',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                backgroundColor: 'var(--surface-control)',
+                border: '1px solid var(--border-color)',
                 borderRadius: '8px',
                 padding: '6px 10px',
-                color: '#e4e4e7',
+                color: 'var(--text-primary)',
                 fontSize: '12.5px',
                 outline: 'none',
                 cursor: 'pointer'
@@ -270,9 +277,9 @@ export default function WorkflowView({
           <button
             onClick={() => onCreateNote()}
             style={{
-              backgroundColor: '#27272a',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              color: '#ffffff',
+              backgroundColor: 'var(--surface-input)',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-strong)',
               borderRadius: '8px',
               padding: '7px 14px',
               fontSize: '12.5px',
@@ -283,8 +290,8 @@ export default function WorkflowView({
               gap: '6px',
               transition: 'background-color 0.15s'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3f3f46')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#27272a')}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--border-strong)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-input)')}
           >
             <PlusIcon size={14} />
             <span>Nouvelle note</span>
@@ -316,8 +323,8 @@ export default function WorkflowView({
               style={{
                 width: '300px',
                 minWidth: '280px',
-                backgroundColor: isOver ? 'rgba(39, 39, 42, 0.85)' : '#18181b',
-                border: isOver ? `1px solid ${col.color}` : '1px solid rgba(255, 255, 255, 0.08)',
+                backgroundColor: isOver ? 'rgba(39, 39, 42, 0.85)' : 'var(--surface-raised)',
+                border: isOver ? `1px solid ${col.color}` : '1px solid var(--border-color)',
                 borderRadius: '14px',
                 display: 'flex',
                 flexDirection: 'column',
@@ -331,7 +338,7 @@ export default function WorkflowView({
               <div
                 style={{
                   padding: '14px 16px',
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+                  borderBottom: '1px solid var(--border-color)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between'
@@ -347,7 +354,9 @@ export default function WorkflowView({
                       boxShadow: `0 0 8px ${col.color}`
                     }}
                   />
-                  <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#f4f4f5' }}>
+                  <span
+                    style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-strong)' }}
+                  >
                     {col.label}
                   </span>
                 </div>
@@ -388,8 +397,8 @@ export default function WorkflowView({
                       onDragStart={(e) => handleDragStart(e, file)}
                       onClick={() => onOpenNote(file)}
                       style={{
-                        backgroundColor: '#202125',
-                        border: '1px solid rgba(255, 255, 255, 0.07)',
+                        backgroundColor: 'var(--surface-control)',
+                        border: '1px solid var(--border-color)',
                         borderRadius: '10px',
                         padding: '12px 14px',
                         cursor: 'grab',
@@ -404,7 +413,7 @@ export default function WorkflowView({
                         e.currentTarget.style.transform = 'translateY(-1px)'
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.07)'
+                        e.currentTarget.style.borderColor = 'var(--border-color)'
                         e.currentTarget.style.transform = 'translateY(0)'
                       }}
                     >
@@ -417,7 +426,7 @@ export default function WorkflowView({
                           style={{
                             fontSize: '13px',
                             fontWeight: 500,
-                            color: '#ffffff',
+                            color: 'var(--text-strong)',
                             lineHeight: '1.4',
                             flex: 1,
                             wordBreak: 'break-word'
@@ -435,14 +444,14 @@ export default function WorkflowView({
                           justifyContent: 'space-between',
                           marginTop: '4px',
                           paddingTop: '6px',
-                          borderTop: '1px solid rgba(255, 255, 255, 0.04)'
+                          borderTop: '1px solid var(--border-subtle)'
                         }}
                       >
                         {folderPath ? (
                           <span
                             style={{
                               fontSize: '11px',
-                              color: '#9ca3af',
+                              color: 'var(--text-secondary)',
                               backgroundColor: 'rgba(255, 255, 255, 0.04)',
                               padding: '2px 6px',
                               borderRadius: '4px',
@@ -459,7 +468,9 @@ export default function WorkflowView({
                             <span>{folderPath}</span>
                           </span>
                         ) : (
-                          <span style={{ fontSize: '11px', color: '#71717a' }}>Racine</span>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            Racine
+                          </span>
                         )}
 
                         {/* Quick directional arrows */}
@@ -474,7 +485,7 @@ export default function WorkflowView({
                               style={{
                                 backgroundColor: 'rgba(255, 255, 255, 0.06)',
                                 border: 'none',
-                                color: '#a1a1aa',
+                                color: 'var(--text-secondary)',
                                 borderRadius: '4px',
                                 width: '22px',
                                 height: '22px',
@@ -484,8 +495,12 @@ export default function WorkflowView({
                                 cursor: 'pointer',
                                 fontSize: '11px'
                               }}
-                              onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
-                              onMouseLeave={(e) => (e.currentTarget.style.color = '#a1a1aa')}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.color = 'var(--text-strong)')
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.color = 'var(--text-secondary)')
+                              }
                             >
                               ←
                             </button>
@@ -500,7 +515,7 @@ export default function WorkflowView({
                               style={{
                                 backgroundColor: 'rgba(255, 255, 255, 0.06)',
                                 border: 'none',
-                                color: '#a1a1aa',
+                                color: 'var(--text-secondary)',
                                 borderRadius: '4px',
                                 width: '22px',
                                 height: '22px',
@@ -510,8 +525,12 @@ export default function WorkflowView({
                                 cursor: 'pointer',
                                 fontSize: '11px'
                               }}
-                              onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
-                              onMouseLeave={(e) => (e.currentTarget.style.color = '#a1a1aa')}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.color = 'var(--text-strong)')
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.color = 'var(--text-secondary)')
+                              }
                             >
                               →
                             </button>
@@ -529,7 +548,7 @@ export default function WorkflowView({
                       textAlign: 'center',
                       color: '#52525b',
                       fontSize: '12px',
-                      border: '1px dashed rgba(255, 255, 255, 0.06)',
+                      border: '1px dashed var(--border-color)',
                       borderRadius: '8px',
                       marginTop: '6px'
                     }}

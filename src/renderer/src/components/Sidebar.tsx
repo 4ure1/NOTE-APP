@@ -20,10 +20,6 @@ import {
   KanbanIcon,
   HtmlIcon,
   MarkdownIcon,
-  SparklesIcon,
-  ClaudeIcon,
-  ChatGPTIcon,
-  GeminiIcon,
   PdfIcon,
   YouTubeIcon,
   ColumnsIcon,
@@ -39,9 +35,7 @@ interface SidebarProps {
   files: string[]
   fetchFiles: () => void
   treeNodes?: TreeNode[]
-  activeAI?: 'agent' | 'claude' | 'chatgpt' | 'gemini'
-  onSelectAI?: (ai: 'agent' | 'claude' | 'chatgpt' | 'gemini') => void
-  
+
   editingFile: string | null
   setEditingFile: (file: string | null) => void
   editValue: string
@@ -97,8 +91,6 @@ export default function Sidebar({
   onOpenSettings,
   onOpenSearch,
   onToggleSidebar,
-  activeAI = 'claude',
-  onSelectAI,
   width = 260,
   onMoveItem,
   onOpenNewSession
@@ -471,16 +463,20 @@ export default function Sidebar({
               borderRadius: '6px',
               cursor: 'pointer',
               fontSize: '13px',
-              color: isSelected ? '#ffffff' : isFolder ? '#d1d5db' : '#9ca3af',
+              color: isSelected
+                ? 'var(--text-strong)'
+                : isFolder
+                  ? 'var(--text-primary)'
+                  : 'var(--text-secondary)',
               backgroundColor: isFolder && dragOverFolder === node.relativePath
-                ? 'rgba(56, 189, 248, 0.15)'
+                  ? 'color-mix(in srgb, var(--accent-color) 15%, transparent)'
                 : isSelected ? 'var(--element-active)' : 'transparent',
               fontWeight: isSelected ? 500 : 400,
               boxShadow: isFolder && dragOverFolder === node.relativePath
                 ? '0 0 10px rgba(56, 189, 248, 0.3)'
                 : isSelected ? '0 1px 4px rgba(0, 0, 0, 0.25)' : 'none',
               border: isFolder && dragOverFolder === node.relativePath
-                ? '1px solid #38bdf8'
+                  ? '1px solid var(--accent-color)'
                 : '1px solid transparent',
               transition: 'background-color 0.15s, color 0.15s, border-color 0.1s',
               opacity: draggingPath === node.relativePath ? 0.35 : 1,
@@ -489,13 +485,15 @@ export default function Sidebar({
             onMouseEnter={(e) => {
               if (!isSelected) {
                 e.currentTarget.style.backgroundColor = 'var(--element-bg)'
-                e.currentTarget.style.color = '#e5e7eb'
+                e.currentTarget.style.color = 'var(--text-primary)'
               }
             }}
             onMouseLeave={(e) => {
               if (!isSelected) {
                 e.currentTarget.style.backgroundColor = 'transparent'
-                e.currentTarget.style.color = isFolder ? '#d1d5db' : '#9ca3af'
+                e.currentTarget.style.color = isFolder
+                  ? 'var(--text-primary)'
+                  : 'var(--text-secondary)'
               }
             }}
           >
@@ -519,10 +517,23 @@ export default function Sidebar({
             )}
 
             {/* Icon */}
-            <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: '7px', color: isSelected ? '#ffffff' : '#9ca3af' }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                marginRight: '7px',
+                color: isSelected ? 'var(--text-strong)' : 'var(--text-secondary)'
+              }}
+            >
               {isFolder ? (
                 node.name.toLowerCase().includes('equal') ? (
-                  <span style={{ color: '#4ade80', display: 'inline-flex', alignItems: 'center' }}>
+                  <span
+                    style={{
+                      color: 'var(--success-color)',
+                      display: 'inline-flex',
+                      alignItems: 'center'
+                    }}
+                  >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="#4ade80" stroke="#4ade80" strokeWidth="2">
                       <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
                     </svg>
@@ -552,7 +563,7 @@ export default function Sidebar({
                   flex: 1,
                   background: 'var(--element-bg-hover)',
                   border: '1px solid var(--accent-color)',
-                  color: '#fff',
+                  color: 'var(--text-strong)',
                   borderRadius: '4px',
                   padding: '1px 5px',
                   fontSize: '13px',
@@ -656,7 +667,7 @@ export default function Sidebar({
                       flex: 1,
                       background: 'var(--element-bg)',
                       border: `1px solid ${detectTemplateType(newItemName) === 'html' && newItemName ? '#e34f26' : 'var(--accent-color)'}`,
-                      color: '#fff',
+                      color: 'var(--text-strong)',
                       borderRadius: '4px',
                       padding: '2px 6px',
                       fontSize: '12px',
@@ -705,144 +716,18 @@ export default function Sidebar({
           borderBottom: '1px solid var(--border-subtle)'
         }}
       >
-        {/* Sélecteur d'IA : Agent, Claude, ChatGPT, Gemini */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-          {/* Agent IA */}
-          <button
-            onClick={() => onSelectAI?.('agent')}
-            title="Activer l'Agent IA"
-            style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '6px',
-              border: activeAI === 'agent' ? '1px solid rgba(16, 185, 129, 0.45)' : '1px solid transparent',
-              backgroundColor: activeAI === 'agent' ? 'rgba(16, 185, 129, 0.16)' : 'transparent',
-              color: activeAI === 'agent' ? '#34d399' : '#71717a',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              padding: 0,
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => {
-              if (activeAI !== 'agent') {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-                e.currentTarget.style.color = '#34d399'
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (activeAI !== 'agent') {
-                e.currentTarget.style.backgroundColor = 'transparent'
-                e.currentTarget.style.color = '#71717a'
-              }
-            }}
-          >
-            <SparklesIcon size={13} color={activeAI === 'agent' ? '#34d399' : 'currentColor'} />
-          </button>
-
-          {/* Claude */}
-          <button
-            onClick={() => onSelectAI?.('claude')}
-            title="Activer Claude"
-            style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '6px',
-              border: activeAI === 'claude' ? '1px solid rgba(217, 119, 87, 0.45)' : '1px solid transparent',
-              backgroundColor: activeAI === 'claude' ? 'rgba(217, 119, 87, 0.16)' : 'transparent',
-              color: activeAI === 'claude' ? '#D97757' : '#71717a',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              padding: 0,
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => {
-              if (activeAI !== 'claude') {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-                e.currentTarget.style.color = '#D97757'
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (activeAI !== 'claude') {
-                e.currentTarget.style.backgroundColor = 'transparent'
-                e.currentTarget.style.color = '#71717a'
-              }
-            }}
-          >
-            <ClaudeIcon size={13} />
-          </button>
-
-          {/* ChatGPT */}
-          <button
-            onClick={() => onSelectAI?.('chatgpt')}
-            title="Activer ChatGPT"
-            style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '6px',
-              border: activeAI === 'chatgpt' ? '1px solid rgba(255, 255, 255, 0.45)' : '1px solid transparent',
-              backgroundColor: activeAI === 'chatgpt' ? 'rgba(255, 255, 255, 0.16)' : 'transparent',
-              color: activeAI === 'chatgpt' ? '#ffffff' : '#71717a',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              padding: 0,
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => {
-              if (activeAI !== 'chatgpt') {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-                e.currentTarget.style.color = '#ffffff'
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (activeAI !== 'chatgpt') {
-                e.currentTarget.style.backgroundColor = 'transparent'
-                e.currentTarget.style.color = '#71717a'
-              }
-            }}
-          >
-            <ChatGPTIcon size={13} />
-          </button>
-
-          {/* Gemini */}
-          <button
-            onClick={() => onSelectAI?.('gemini')}
-            title="Activer Gemini"
-            style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '6px',
-              border: activeAI === 'gemini' ? '1px solid rgba(66, 133, 244, 0.45)' : '1px solid transparent',
-              backgroundColor: activeAI === 'gemini' ? 'rgba(66, 133, 244, 0.16)' : 'transparent',
-              color: activeAI === 'gemini' ? '#4285f4' : '#71717a',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              padding: 0,
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => {
-              if (activeAI !== 'gemini') {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-                e.currentTarget.style.color = '#4285f4'
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (activeAI !== 'gemini') {
-                e.currentTarget.style.backgroundColor = 'transparent'
-                e.currentTarget.style.color = '#71717a'
-              }
-            }}
-          >
-            <GeminiIcon size={13} />
-          </button>
-        </div>
+        {/* Nom de l'app (le choix de l'IA se fait par les onglets du panneau IA) */}
+        <span
+          style={{
+            fontFamily: 'var(--font-title)',
+            fontStyle: 'italic',
+            fontSize: '20px',
+            lineHeight: 1,
+            color: 'var(--text-primary)'
+          }}
+        >
+          NOTE-APP
+        </span>
 
         {/* Sidebar Toggle button */}
         {onToggleSidebar && (
@@ -859,7 +744,7 @@ export default function Sidebar({
               display: 'flex',
               alignItems: 'center'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-strong)')}
             onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
           >
             <SidebarToggleIcon size={16} />
@@ -870,82 +755,83 @@ export default function Sidebar({
       {/* Main scrollable navigation body */}
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '10px 6px' }}>
         
-        {/* Quick Action Buttons with Shortcuts */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '14px' }}>
+        {/* Recherche (présentée comme un champ) puis création : les deux gestes les plus fréquents */}
+        <button
+          onClick={onOpenSearch}
+          aria-label="Rechercher dans les notes (Ctrl+P)"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            width: 'calc(100% - 8px)',
+            margin: '0 4px 6px',
+            padding: '7px 10px',
+            borderRadius: '6px',
+            background: 'var(--app-bg)',
+            border: '1px solid var(--border-strong)',
+            color: 'var(--text-muted)',
+            fontSize: '13px',
+            cursor: 'text',
+            textAlign: 'left'
+          }}
+        >
+          <SearchIcon size={14} />
+          <span style={{ flex: 1 }}>Rechercher…</span>
+          <kbd>Ctrl+P</kbd>
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', margin: '0 4px 14px' }}>
           <button
             onClick={(e) => handleStartCreate('', 'file', e)}
             style={{
+              flex: 1,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '7px 10px',
+              gap: '8px',
+              padding: '7px 6px',
               borderRadius: '6px',
               background: 'transparent',
               border: 'none',
               color: 'var(--text-primary)',
               fontSize: '13px',
+              fontWeight: 600,
               cursor: 'pointer',
               transition: 'background-color 0.15s'
             }}
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg)')}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <PlusIcon size={15} style={{ color: 'var(--accent-marge)' }} />
-              <span>Nouvelle note</span>
-            </span>
+            <PlusIcon size={15} style={{ color: 'var(--accent-marge)' }} />
+            <span style={{ flex: 1, textAlign: 'left' }}>Nouvelle note</span>
             <kbd>Ctrl+N</kbd>
           </button>
-
           <button
             onClick={() => handleImportPdf('')}
+            title="Importer un PDF"
+            aria-label="Importer un PDF"
             style={{
+              width: '32px',
+              height: '32px',
+              flexShrink: 0,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '7px 10px',
+              justifyContent: 'center',
               borderRadius: '6px',
               background: 'transparent',
-              border: 'none',
-              color: 'var(--text-primary)',
-              fontSize: '13px',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-secondary)',
               cursor: 'pointer',
               transition: 'background-color 0.15s'
             }}
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg)')}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <PdfIcon size={15} />
-              <span>Importer un PDF</span>
-            </span>
+            <PdfIcon size={15} />
           </button>
+        </div>
 
-          <button
-            onClick={onOpenSearch}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '7px 10px',
-              borderRadius: '6px',
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-primary)',
-              fontSize: '13px',
-              cursor: 'pointer',
-              transition: 'background-color 0.15s'
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg)')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <SearchIcon size={15} style={{ color: 'var(--text-secondary)' }} />
-              <span>Rechercher</span>
-            </span>
-            <kbd>Ctrl+P</kbd>
-          </button>
-
+        {/* Vues : Récentes, puis Tableau, YouTube, Brouillons, Corbeille */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '2px' }}>
           <button
             onClick={() => setActiveView && setActiveView(activeView === 'recent' ? 'all' : 'recent')}
             aria-current={activeView === 'recent' ? 'page' : undefined}
@@ -958,7 +844,7 @@ export default function Sidebar({
               background: activeView === 'recent' ? 'var(--element-active)' : 'transparent',
               boxShadow: activeView === 'recent' ? ACTIVE_MARK : 'none',
               border: 'none',
-              color: activeView === 'recent' ? '#fff' : 'var(--text-primary)',
+              color: activeView === 'recent' ? 'var(--text-strong)' : 'var(--text-primary)',
               fontSize: '13px',
               cursor: 'pointer',
               transition: 'background-color 0.15s'
@@ -997,7 +883,7 @@ export default function Sidebar({
               background: activeView === 'workflow' ? 'var(--element-active)' : 'transparent',
               boxShadow: activeView === 'workflow' ? ACTIVE_MARK : 'none',
               border: 'none',
-              color: activeView === 'workflow' ? '#fff' : 'var(--text-secondary)',
+              color: activeView === 'workflow' ? 'var(--text-strong)' : 'var(--text-secondary)',
               fontSize: '13px',
               cursor: 'pointer',
               transition: 'background-color 0.15s'
@@ -1030,7 +916,7 @@ export default function Sidebar({
               background: activeView === 'youtube' ? 'var(--element-active)' : 'transparent',
               boxShadow: activeView === 'youtube' ? ACTIVE_MARK : 'none',
               border: 'none',
-              color: activeView === 'youtube' ? '#fff' : 'var(--text-secondary)',
+              color: activeView === 'youtube' ? 'var(--text-strong)' : 'var(--text-secondary)',
               fontSize: '13px',
               cursor: 'pointer',
               transition: 'background-color 0.15s'
@@ -1060,7 +946,7 @@ export default function Sidebar({
               background: activeView === 'drafts' ? 'var(--element-active)' : 'transparent',
               boxShadow: activeView === 'drafts' ? ACTIVE_MARK : 'none',
               border: 'none',
-              color: activeView === 'drafts' ? '#fff' : 'var(--text-secondary)',
+              color: activeView === 'drafts' ? 'var(--text-strong)' : 'var(--text-secondary)',
               fontSize: '13px',
               cursor: 'pointer',
               transition: 'background-color 0.15s'
@@ -1112,7 +998,7 @@ export default function Sidebar({
               borderRadius: '6px',
               background: activeView === 'deleted' ? 'var(--element-active)' : 'transparent',
               boxShadow: activeView === 'deleted' ? ACTIVE_MARK : 'none',
-              color: activeView === 'deleted' ? '#fff' : 'var(--text-secondary)',
+              color: activeView === 'deleted' ? 'var(--text-strong)' : 'var(--text-secondary)',
               fontSize: '13px',
               cursor: 'pointer',
               transition: 'background-color 0.15s'
@@ -1148,8 +1034,9 @@ export default function Sidebar({
                     transition: 'all 0.15s'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.color = '#ef4444'
-                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.15)'
+                    e.currentTarget.style.color = 'var(--danger-strong)'
+                    e.currentTarget.style.backgroundColor =
+                      'color-mix(in srgb, var(--danger-strong) 15%, transparent)'
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.color = 'var(--text-muted)'
@@ -1195,11 +1082,9 @@ export default function Sidebar({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '4px 8px',
-                fontSize: '11px',
+                fontSize: '12.5px',
                 fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.6px',
-                color: 'var(--text-muted)',
+                color: 'var(--text-secondary)',
                 cursor: 'pointer'
               }}
             >
@@ -1241,7 +1126,7 @@ export default function Sidebar({
                         borderRadius: '6px',
                         fontSize: '12.5px',
                         cursor: 'pointer',
-                        color: isSelected ? '#fff' : 'var(--text-primary)',
+                        color: isSelected ? 'var(--text-strong)' : 'var(--text-primary)',
                         backgroundColor: isSelected ? 'var(--element-active)' : 'transparent',
                         transition: 'background-color 0.15s'
                       }}
@@ -1274,11 +1159,9 @@ export default function Sidebar({
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '4px 8px',
-              fontSize: '11px',
+              fontSize: '12.5px',
               fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.6px',
-              color: 'var(--text-muted)'
+              color: 'var(--text-secondary)'
             }}
           >
             <div
@@ -1313,7 +1196,7 @@ export default function Sidebar({
                   display: 'flex',
                   alignItems: 'center'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-strong)')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
               >
                 <PlusIcon size={13} />
@@ -1332,7 +1215,7 @@ export default function Sidebar({
                   display: 'flex',
                   alignItems: 'center'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-strong)')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
               >
                 <FolderPlusIcon size={13} />
@@ -1351,7 +1234,7 @@ export default function Sidebar({
                   display: 'flex',
                   alignItems: 'center'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--danger-strong)')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
               >
                 <PdfIcon size={13} />
@@ -1392,7 +1275,7 @@ export default function Sidebar({
                   flex: 1,
                   background: 'var(--element-bg)',
                   border: `1px solid ${detectTemplateType(newItemName) === 'html' && newItemName ? '#e34f26' : 'var(--accent-color)'}`,
-                  color: '#fff',
+                  color: 'var(--text-strong)',
                   borderRadius: '4px',
                   padding: '3px 6px',
                   fontSize: '12px',
@@ -1458,13 +1341,19 @@ export default function Sidebar({
                   style={{
                     margin: '8px 10px',
                     padding: '8px',
-                    border: dragOverFolder === '' ? '1.5px dashed #38bdf8' : '1px dashed rgba(255, 255, 255, 0.15)',
-                    backgroundColor: dragOverFolder === '' ? 'rgba(56, 189, 248, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                    border:
+                      dragOverFolder === ''
+                        ? '1.5px dashed var(--accent-color)'
+                        : '1px dashed var(--border-strong)',
+                    backgroundColor:
+                      dragOverFolder === ''
+                        ? 'color-mix(in srgb, var(--accent-color) 12%, transparent)'
+                        : 'rgba(255, 255, 255, 0.02)',
                     borderRadius: '6px',
                     textAlign: 'center',
                     fontSize: '11px',
                     fontWeight: 500,
-                    color: dragOverFolder === '' ? '#38bdf8' : 'var(--text-muted)',
+                    color: dragOverFolder === '' ? 'var(--accent-color)' : 'var(--text-muted)',
                     transition: 'all 0.15s ease'
                   }}
                 >
@@ -1503,7 +1392,7 @@ export default function Sidebar({
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = 'var(--element-bg)'
-            e.currentTarget.style.color = '#fff'
+            e.currentTarget.style.color = 'var(--text-strong)'
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = 'transparent'
@@ -1532,7 +1421,7 @@ export default function Sidebar({
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = 'var(--element-bg)'
-            e.currentTarget.style.color = '#fff'
+            e.currentTarget.style.color = 'var(--text-strong)'
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = 'transparent'
@@ -1555,7 +1444,7 @@ export default function Sidebar({
             position: 'fixed',
             top: `${contextMenu.y}px`,
             left: `${contextMenu.x}px`,
-            backgroundColor: '#202020',
+            backgroundColor: 'var(--surface-control)',
             border: '1px solid var(--border-color)',
             borderRadius: '8px',
             padding: '4px',
@@ -1573,7 +1462,7 @@ export default function Sidebar({
                 style={{
                   padding: '6px 10px',
                   fontSize: '12.5px',
-                  color: '#e5e7eb',
+                  color: 'var(--text-primary)',
                   cursor: 'pointer',
                   borderRadius: '4px'
                 }}
@@ -1593,7 +1482,7 @@ export default function Sidebar({
                   style={{
                     padding: '6px 10px',
                     fontSize: '12.5px',
-                    color: '#38bdf8',
+                    color: 'var(--accent-color)',
                     cursor: 'pointer',
                     borderRadius: '4px',
                     display: 'flex',
@@ -1601,7 +1490,10 @@ export default function Sidebar({
                     gap: '6px',
                     fontWeight: 500
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(56, 189, 248, 0.15)')}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor =
+                      'color-mix(in srgb, var(--accent-color) 15%, transparent)')
+                  }
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                   onClick={() => {
                     onOpenNewSession(contextMenu.itemPath)
@@ -1618,7 +1510,7 @@ export default function Sidebar({
                 style={{
                   padding: '6px 10px',
                   fontSize: '12.5px',
-                  color: '#e5e7eb',
+                  color: 'var(--text-primary)',
                   cursor: 'pointer',
                   borderRadius: '4px'
                 }}
@@ -1637,7 +1529,7 @@ export default function Sidebar({
                 style={{
                   padding: '6px 10px',
                   fontSize: '12.5px',
-                  color: '#e5e7eb',
+                  color: 'var(--text-primary)',
                   cursor: 'pointer',
                   borderRadius: '4px'
                 }}
@@ -1661,7 +1553,7 @@ export default function Sidebar({
                 style={{
                   padding: '6px 10px',
                   fontSize: '12.5px',
-                  color: '#e5e7eb',
+                  color: 'var(--text-primary)',
                   cursor: 'pointer',
                   borderRadius: '4px'
                 }}
@@ -1684,7 +1576,7 @@ export default function Sidebar({
                 style={{
                   padding: '6px 10px',
                   fontSize: '12.5px',
-                  color: '#e5e7eb',
+                  color: 'var(--text-primary)',
                   cursor: 'pointer',
                   borderRadius: '4px'
                 }}
@@ -1711,7 +1603,7 @@ export default function Sidebar({
               style={{
                 padding: '6px 10px',
                 fontSize: '12.5px',
-                color: '#e5e7eb',
+                color: 'var(--text-primary)',
                 cursor: 'pointer',
                 borderRadius: '4px',
                 display: 'flex',
@@ -1725,7 +1617,7 @@ export default function Sidebar({
                 setContextMenu(null)
               }}
             >
-              <ColumnsIcon size={13} style={{ color: '#38bdf8' }} />
+              <ColumnsIcon size={13} style={{ color: 'var(--accent-color)' }} />
               <span>Ouvrir côte à côte</span>
             </div>
           )}
@@ -1737,7 +1629,7 @@ export default function Sidebar({
               style={{
                 padding: '6px 10px',
                 fontSize: '12.5px',
-                color: '#e5e7eb',
+                color: 'var(--text-primary)',
                 cursor: 'pointer',
                 borderRadius: '4px'
               }}
@@ -1758,7 +1650,7 @@ export default function Sidebar({
             style={{
               padding: '6px 10px',
               fontSize: '12.5px',
-              color: '#e5e7eb',
+              color: 'var(--text-primary)',
               cursor: 'pointer',
               borderRadius: '4px'
             }}

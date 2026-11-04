@@ -169,7 +169,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.65)',
+        backgroundColor: 'var(--overlay-bg)',
         backdropFilter: 'blur(4px)',
         zIndex: 99999,
         display: 'flex',
@@ -187,8 +187,8 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
         style={{
           width: '920px',
           height: '640px',
-          backgroundColor: '#18181b',
-          border: '1px solid #27272a',
+          backgroundColor: 'var(--surface-raised)',
+          border: '1px solid var(--surface-input)',
           borderRadius: '12px',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
           display: 'flex',
@@ -201,11 +201,11 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
         <div
           style={{
             padding: '16px 20px',
-            borderBottom: '1px solid #27272a',
+            borderBottom: '1px solid var(--surface-input)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            backgroundColor: '#1f1f23'
+            backgroundColor: 'var(--surface-raised)'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -213,10 +213,12 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
               ⏳
             </span>
             <div>
-              <h3 id={titleId} style={{ margin: 0, fontSize: '15px', color: '#f4f4f5' }}>
+              <h3 id={titleId} style={{ margin: 0, fontSize: '15px', color: 'var(--text-strong)' }}>
                 Historique des versions
               </h3>
-              <span style={{ fontSize: '12px', color: '#a1a1aa' }}>{currentFilePath}</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                {currentFilePath}
+              </span>
             </div>
           </div>
           <button
@@ -226,7 +228,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#a1a1aa',
+              color: 'var(--text-secondary)',
               fontSize: '18px',
               cursor: 'pointer'
             }}
@@ -241,8 +243,8 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
           <div
             style={{
               width: '280px',
-              borderRight: '1px solid #27272a',
-              backgroundColor: '#141416',
+              borderRight: '1px solid var(--surface-input)',
+              backgroundColor: 'var(--surface-panel)',
               overflowY: 'auto',
               display: 'flex',
               flexDirection: 'column'
@@ -253,20 +255,34 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                 padding: '10px 14px',
                 fontSize: '11px',
                 fontWeight: 600,
-                color: '#71717a',
+                color: 'var(--text-muted)',
                 textTransform: 'uppercase',
-                borderBottom: '1px solid rgba(255,255,255,0.05)'
+                borderBottom: '1px solid var(--border-subtle)'
               }}
             >
               Instantanés sauvegardés ({history.length})
             </div>
 
             {isLoading ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: '#71717a', fontSize: '12px' }}>
+              <div
+                style={{
+                  padding: '20px',
+                  textAlign: 'center',
+                  color: 'var(--text-muted)',
+                  fontSize: '12px'
+                }}
+              >
                 Chargement de l'historique...
               </div>
             ) : history.length === 0 ? (
-              <div style={{ padding: '24px 16px', textAlign: 'center', color: '#71717a', fontSize: '12.5px' }}>
+              <div
+                style={{
+                  padding: '24px 16px',
+                  textAlign: 'center',
+                  color: 'var(--text-muted)',
+                  fontSize: '12.5px'
+                }}
+              >
                 Aucun instantané disponible pour cette note. Continuez à taper, les versions s'enregistrent automatiquement toutes les 2 minutes !
               </div>
             ) : (
@@ -287,17 +303,35 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                     }}
                     style={{
                       padding: '12px 14px',
-                      borderBottom: '1px solid rgba(255,255,255,0.04)',
-                      backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.12)' : 'transparent',
-                      borderLeft: isSelected ? '3px solid #38bdf8' : '3px solid transparent',
+                      borderBottom: '1px solid var(--border-subtle)',
+                      backgroundColor: isSelected
+                        ? 'color-mix(in srgb, var(--accent-color) 12%, transparent)'
+                        : 'transparent',
+                      borderLeft: isSelected
+                        ? '3px solid var(--accent-color)'
+                        : '3px solid transparent',
                       cursor: 'pointer',
                       transition: 'background 0.12s'
                     }}
                   >
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: isSelected ? '#38bdf8' : '#e4e4e7', marginBottom: '4px' }}>
+                    <div
+                      style={{
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        color: isSelected ? 'var(--accent-color)' : 'var(--text-primary)',
+                        marginBottom: '4px'
+                      }}
+                    >
                       {item.dateFormatted}
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: '#71717a' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '8px',
+                        fontSize: '11px',
+                        color: 'var(--text-muted)'
+                      }}
+                    >
                       <span>{item.lineCount} lignes</span>
                       <span>•</span>
                       <span>{Math.round(item.size / 1024 * 10) / 10} Ko</span>
@@ -309,21 +343,31 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
           </div>
 
           {/* Right: Diff & Restore */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#18181b', overflow: 'hidden' }}>
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              backgroundColor: 'var(--surface-raised)',
+              overflow: 'hidden'
+            }}
+          >
             <div
               style={{
                 padding: '10px 16px',
-                borderBottom: '1px solid #27272a',
+                borderBottom: '1px solid var(--surface-input)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                backgroundColor: '#1c1c20'
+                backgroundColor: 'var(--surface-control)'
               }}
             >
-              <div style={{ fontSize: '12px', color: '#a1a1aa' }}>
-                <span style={{ color: '#4ade80' }}>+ Vert : Ajouts actuels</span>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                <span style={{ color: 'var(--success-color)' }}>+ Vert : Ajouts actuels</span>
                 <span style={{ margin: '0 8px' }}>|</span>
-                <span style={{ color: '#f87171' }}>- Rouge : Présent dans l'instantané</span>
+                <span style={{ color: 'var(--danger-color)' }}>
+                  - Rouge : Présent dans l’instantané
+                </span>
               </div>
 
               {selectedVersionId && (
@@ -331,8 +375,8 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                   onClick={handleRestoreClick}
                   disabled={isRestoring}
                   style={{
-                    backgroundColor: '#0284c7',
-                    color: '#fff',
+                    backgroundColor: 'var(--accent-strong)',
+                    color: 'var(--text-strong)',
                     border: 'none',
                     borderRadius: '6px',
                     padding: '6px 14px',
@@ -363,7 +407,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
               }}
             >
               {!selectedVersionId ? (
-                <div style={{ textAlign: 'center', color: '#71717a', marginTop: '60px' }}>
+                <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: '60px' }}>
                   Sélectionnez un instantané à gauche pour comparer les modifications
                 </div>
               ) : (

@@ -90,7 +90,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.65)',
+        backgroundColor: 'var(--overlay-bg)',
         backdropFilter: 'blur(4px)',
         zIndex: 99999,
         display: 'flex',
@@ -107,8 +107,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         tabIndex={-1}
         style={{
           width: '560px',
-          backgroundColor: '#18181b',
-          border: '1px solid #27272a',
+          backgroundColor: 'var(--surface-raised)',
+          border: '1px solid var(--surface-input)',
           borderRadius: '12px',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
           overflow: 'hidden',
@@ -121,18 +121,18 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         <div
           style={{
             padding: '16px 20px',
-            borderBottom: '1px solid #27272a',
+            borderBottom: '1px solid var(--surface-input)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            backgroundColor: '#1f1f23'
+            backgroundColor: 'var(--surface-raised)'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span aria-hidden="true" style={{ fontSize: '18px' }}>
               🚀
             </span>
-            <h3 id={titleId} style={{ margin: 0, fontSize: '15px', color: '#f4f4f5' }}>
+            <h3 id={titleId} style={{ margin: 0, fontSize: '15px', color: 'var(--text-strong)' }}>
               Exporter la note
             </h3>
           </div>
@@ -143,7 +143,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#a1a1aa',
+              color: 'var(--text-secondary)',
               fontSize: '18px',
               cursor: 'pointer'
             }}
@@ -158,7 +158,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           <div style={{ marginBottom: '16px' }}>
             <label
               htmlFor={docTitleId}
-              style={{ display: 'block', fontSize: '12px', color: '#a1a1aa', marginBottom: '6px' }}
+              style={{
+                display: 'block',
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                marginBottom: '6px'
+              }}
             >
               Titre du document exporté :
             </label>
@@ -169,11 +174,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               onChange={(e) => setTitle(e.target.value)}
               style={{
                 width: '100%',
-                backgroundColor: '#141416',
-                border: '1px solid rgba(255,255,255,0.1)',
+                backgroundColor: 'var(--surface-panel)',
+                border: '1px solid var(--border-strong)',
                 borderRadius: '6px',
                 padding: '8px 12px',
-                color: '#f4f4f5',
+                color: 'var(--text-strong)',
                 fontSize: '13px',
                 outline: 'none',
                 boxSizing: 'border-box'
@@ -182,7 +187,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           </div>
 
           {/* Choix du format */}
-          <label style={{ display: 'block', fontSize: '12px', color: '#a1a1aa', marginBottom: '8px' }}>
+          <label
+            style={{
+              display: 'block',
+              fontSize: '12px',
+              color: 'var(--text-secondary)',
+              marginBottom: '8px'
+            }}
+          >
             Format d'exportation :
           </label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
@@ -198,8 +210,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     gap: '12px',
                     padding: '12px 14px',
                     borderRadius: '8px',
-                    border: `1px solid ${isSelected ? '#38bdf8' : 'rgba(255,255,255,0.06)'}`,
-                    backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.08)' : '#141416',
+                    border: `1px solid ${isSelected ? 'var(--accent-color)' : 'var(--border-color)'}`,
+                    backgroundColor: isSelected
+                      ? 'color-mix(in srgb, var(--accent-color) 8%, transparent)'
+                      : 'var(--surface-panel)',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease'
                   }}
@@ -209,7 +223,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   </span>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 600, color: isSelected ? '#38bdf8' : '#e4e4e7' }}>
+                      <span
+                        style={{
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          color: isSelected ? 'var(--accent-color)' : 'var(--text-primary)'
+                        }}
+                      >
                         {f.name}
                       </span>
                       <span
@@ -217,14 +237,18 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                           fontSize: '10px',
                           padding: '1px 6px',
                           borderRadius: '10px',
-                          backgroundColor: isSelected ? '#0284c7' : '#27272a',
-                          color: '#fff'
+                          backgroundColor: isSelected
+                            ? 'var(--accent-strong)'
+                            : 'var(--surface-input)',
+                          color: 'var(--text-strong)'
                         }}
                       >
                         {f.badge}
                       </span>
                     </div>
-                    <div style={{ fontSize: '11.5px', color: '#71717a', lineHeight: 1.4 }}>
+                    <div
+                      style={{ fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: 1.4 }}
+                    >
                       {f.desc}
                     </div>
                   </div>
@@ -234,7 +258,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     aria-label={f.name}
                     checked={isSelected}
                     onChange={() => setSelectedFormat(f.id)}
-                    style={{ accentColor: '#38bdf8' }}
+                    style={{ accentColor: 'var(--accent-color)' }}
                   />
                 </div>
               )
@@ -250,9 +274,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 borderRadius: '6px',
                 fontSize: '12px',
                 marginBottom: '16px',
-                backgroundColor: exportMessage.error ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)',
-                color: exportMessage.error ? '#f87171' : '#4ade80',
-                border: `1px solid ${exportMessage.error ? '#ef4444' : '#22c55e'}`
+                backgroundColor: exportMessage.error
+                  ? 'color-mix(in srgb, var(--danger-strong) 15%, transparent)'
+                  : 'color-mix(in srgb, var(--success-strong) 15%, transparent)',
+                color: exportMessage.error ? 'var(--danger-color)' : 'var(--success-color)',
+                border: `1px solid ${exportMessage.error ? 'var(--danger-strong)' : 'var(--success-strong)'}`
               }}
             >
               {exportMessage.text}
@@ -265,9 +291,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               onClick={onClose}
               disabled={isExporting}
               style={{
-                backgroundColor: '#27272a',
-                color: '#d4d4d8',
-                border: '1px solid rgba(255,255,255,0.08)',
+                backgroundColor: 'var(--surface-input)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)',
                 borderRadius: '6px',
                 padding: '8px 16px',
                 fontSize: '12.5px',
@@ -280,8 +306,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               onClick={handleExport}
               disabled={isExporting}
               style={{
-                backgroundColor: '#0284c7',
-                color: '#fff',
+                backgroundColor: 'var(--accent-strong)',
+                color: 'var(--text-strong)',
                 border: 'none',
                 borderRadius: '6px',
                 padding: '8px 20px',

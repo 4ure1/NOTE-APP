@@ -589,7 +589,14 @@ export default function YouTubeWorkspace() {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 10px 0 4px', borderRight: '1px solid var(--border-color)', marginRight: '4px' }}>
           <YouTubeIcon size={18} />
-          <span style={{ fontSize: '13px', fontWeight: 700, color: '#f4f4f5', letterSpacing: '-0.2px' }}>
+          <span
+            style={{
+              fontSize: '13px',
+              fontWeight: 700,
+              color: 'var(--text-strong)',
+              letterSpacing: '-0.2px'
+            }}
+          >
             YouTube
           </span>
         </div>
@@ -610,8 +617,8 @@ export default function YouTubeWorkspace() {
                   padding: '0 10px',
                   borderRadius: '6px',
                   backgroundColor: isActive ? 'var(--element-active)' : 'transparent',
-                  border: `1px solid ${isActive ? 'rgba(239, 68, 68, 0.45)' : 'transparent'}`,
-                  color: isActive ? '#fff' : 'var(--text-secondary)',
+                  border: `1px solid ${isActive ? 'color-mix(in srgb, var(--danger-strong) 45%, transparent)' : 'transparent'}`,
+                  color: isActive ? 'var(--text-strong)' : 'var(--text-secondary)',
                   fontSize: '12px',
                   fontWeight: isActive ? 600 : 500,
                   cursor: 'pointer',
@@ -627,7 +634,15 @@ export default function YouTubeWorkspace() {
                   if (!isActive) e.currentTarget.style.backgroundColor = 'transparent'
                 }}
               >
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isActive ? '#ef4444' : '#6b7280', flexShrink: 0 }} />
+                <div
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: isActive ? 'var(--danger-strong)' : '#6b7280',
+                    flexShrink: 0
+                  }}
+                />
                 <span
                   style={{
                     overflow: 'hidden',
@@ -657,7 +672,7 @@ export default function YouTubeWorkspace() {
                     padding: 0
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.color = '#fff'
+                    e.currentTarget.style.color = 'var(--text-strong)'
                     e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)'
                   }}
                   onMouseLeave={(e) => {
@@ -691,7 +706,7 @@ export default function YouTubeWorkspace() {
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)'
-              e.currentTarget.style.color = '#fff'
+              e.currentTarget.style.color = 'var(--text-strong)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent'
@@ -732,7 +747,7 @@ export default function YouTubeWorkspace() {
               color: 'var(--text-secondary)',
               cursor: 'pointer'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-strong)')}
             onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
           >
             <ArrowLeftIcon size={14} />
@@ -753,7 +768,7 @@ export default function YouTubeWorkspace() {
               color: 'var(--text-secondary)',
               cursor: 'pointer'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-strong)')}
             onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
           >
             <ArrowRightIcon size={14} />
@@ -774,7 +789,7 @@ export default function YouTubeWorkspace() {
               color: 'var(--text-secondary)',
               cursor: 'pointer'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-strong)')}
             onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
           >
             <RefreshCwIcon size={13} />
@@ -795,7 +810,7 @@ export default function YouTubeWorkspace() {
               color: 'var(--text-secondary)',
               cursor: 'pointer'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-strong)')}
             onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
           >
             <HomeIcon size={14} />
@@ -816,7 +831,7 @@ export default function YouTubeWorkspace() {
             gap: '8px'
           }}
         >
-          <SearchIcon size={13} style={{ color: '#ef4444', flexShrink: 0 }} />
+          <SearchIcon size={13} style={{ color: 'var(--danger-strong)', flexShrink: 0 }} />
           <input
             type="text"
             value={inputUrl}
@@ -827,7 +842,7 @@ export default function YouTubeWorkspace() {
               background: 'transparent',
               border: 'none',
               outline: 'none',
-              color: '#fff',
+              color: 'var(--text-strong)',
               fontSize: '12.5px',
               fontFamily: 'inherit'
             }}
@@ -848,20 +863,33 @@ export default function YouTubeWorkspace() {
               gap: '5px',
               height: '28px',
               padding: '0 8px',
-              background: isHistoryDrawerOpen ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
-              border: `1px solid ${isHistoryDrawerOpen ? 'rgba(56, 189, 248, 0.45)' : 'var(--border-color)'}`,
+              background: isHistoryDrawerOpen
+                ? 'color-mix(in srgb, var(--accent-color) 20%, transparent)'
+                : 'transparent',
+              border: `1px solid ${isHistoryDrawerOpen ? 'color-mix(in srgb, var(--accent-color) 45%, transparent)' : 'var(--border-color)'}`,
               borderRadius: '6px',
-              color: isHistoryDrawerOpen ? '#38bdf8' : 'var(--text-secondary)',
+              color: isHistoryDrawerOpen ? 'var(--accent-color)' : 'var(--text-secondary)',
               fontSize: '11px',
               fontWeight: 500,
               cursor: 'pointer',
               transition: 'all 0.15s ease'
             }}
           >
-            <ClockIcon size={13} style={{ color: isHistoryDrawerOpen ? '#38bdf8' : 'inherit' }} />
+            <ClockIcon
+              size={13}
+              style={{ color: isHistoryDrawerOpen ? 'var(--accent-color)' : 'inherit' }}
+            />
             <span>Historique</span>
             {history.length > 0 && (
-              <span style={{ fontSize: '9.5px', padding: '1px 4px', borderRadius: '8px', backgroundColor: 'rgba(255, 255, 255, 0.1)', color: '#fff' }}>
+              <span
+                style={{
+                  fontSize: '9.5px',
+                  padding: '1px 4px',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  color: 'var(--text-strong)'
+                }}
+              >
                 {history.length}
               </span>
             )}
@@ -877,16 +905,22 @@ export default function YouTubeWorkspace() {
               gap: '4px',
               height: '28px',
               padding: '0 8px',
-              background: 'rgba(239, 68, 68, 0.12)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
+              background: 'color-mix(in srgb, var(--danger-strong) 12%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--danger-strong) 30%, transparent)',
               borderRadius: '6px',
-              color: '#f87171',
+              color: 'var(--danger-color)',
               fontSize: '11px',
               fontWeight: 500,
               cursor: 'pointer'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.25)')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.12)')}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.backgroundColor =
+                'color-mix(in srgb, var(--danger-strong) 25%, transparent)')
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.backgroundColor =
+                'color-mix(in srgb, var(--danger-strong) 12%, transparent)')
+            }
           >
             <StarIcon size={12} filled />
             <span>Raccourci</span>
@@ -904,7 +938,7 @@ export default function YouTubeWorkspace() {
               background: 'transparent',
               border: '1px solid var(--border-color)',
               borderRadius: '6px',
-              color: copied ? '#4ade80' : 'var(--text-secondary)',
+              color: copied ? 'var(--success-color)' : 'var(--text-secondary)',
               fontSize: '11px',
               cursor: 'pointer'
             }}
@@ -928,7 +962,7 @@ export default function YouTubeWorkspace() {
               color: 'var(--text-secondary)',
               cursor: 'pointer'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-strong)')}
             onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
           >
             <ExternalLinkIcon size={12} />
@@ -965,9 +999,9 @@ export default function YouTubeWorkspace() {
             gap: '4px',
             padding: '3px 8px',
             borderRadius: '12px',
-            backgroundColor: 'rgba(239, 68, 68, 0.15)',
-            border: '1px solid rgba(239, 68, 68, 0.35)',
-            color: '#f87171',
+            backgroundColor: 'color-mix(in srgb, var(--danger-strong) 15%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--danger-strong) 35%, transparent)',
+            color: 'var(--danger-color)',
             fontSize: '11px',
             fontWeight: 600,
             cursor: 'pointer',
@@ -975,12 +1009,14 @@ export default function YouTubeWorkspace() {
             transition: 'all 0.15s ease'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.3)'
-            e.currentTarget.style.color = '#fff'
+            e.currentTarget.style.backgroundColor =
+              'color-mix(in srgb, var(--danger-strong) 30%, transparent)'
+            e.currentTarget.style.color = 'var(--text-strong)'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.15)'
-            e.currentTarget.style.color = '#f87171'
+            e.currentTarget.style.backgroundColor =
+              'color-mix(in srgb, var(--danger-strong) 15%, transparent)'
+            e.currentTarget.style.color = 'var(--danger-color)'
           }}
         >
           <PlusIcon size={11} />
@@ -1010,7 +1046,7 @@ export default function YouTubeWorkspace() {
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)'
               e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'
-              e.currentTarget.style.color = '#fff'
+              e.currentTarget.style.color = 'var(--text-strong)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = 'var(--element-bg)'
@@ -1041,8 +1077,8 @@ export default function YouTubeWorkspace() {
                 transition: 'all 0.15s'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#ef4444'
-                e.currentTarget.style.color = '#fff'
+                e.currentTarget.style.backgroundColor = 'var(--danger-strong)'
+                e.currentTarget.style.color = 'var(--text-strong)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
@@ -1067,7 +1103,7 @@ export default function YouTubeWorkspace() {
             bottom: 0,
             width: '380px',
             maxWidth: '100%',
-            backgroundColor: '#131318',
+            backgroundColor: 'var(--surface-panel)',
             borderLeft: '1px solid var(--border-color)',
             zIndex: 900,
             display: 'flex',
@@ -1087,9 +1123,16 @@ export default function YouTubeWorkspace() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ClockIcon size={16} style={{ color: '#38bdf8' }} />
+              <ClockIcon size={16} style={{ color: 'var(--accent-color)' }} />
               <div>
-                <h3 style={{ fontSize: '13.5px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                <h3
+                  style={{
+                    fontSize: '13.5px',
+                    fontWeight: 600,
+                    color: 'var(--text-strong)',
+                    margin: 0
+                  }}
+                >
                   Historique YouTube
                 </h3>
                 <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
@@ -1109,9 +1152,9 @@ export default function YouTubeWorkspace() {
                     gap: '4px',
                     padding: '4px 8px',
                     borderRadius: '6px',
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    border: '1px solid rgba(239, 68, 68, 0.25)',
-                    color: '#f87171',
+                    backgroundColor: 'color-mix(in srgb, var(--danger-strong) 10%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--danger-strong) 25%, transparent)',
+                    color: 'var(--danger-color)',
                     fontSize: '11px',
                     cursor: 'pointer'
                   }}
@@ -1138,7 +1181,13 @@ export default function YouTubeWorkspace() {
           </div>
 
           {/* Recherche dans l'historique */}
-          <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-subtle)', backgroundColor: '#131318' }}>
+          <div
+            style={{
+              padding: '8px 12px',
+              borderBottom: '1px solid var(--border-subtle)',
+              backgroundColor: 'var(--surface-panel)'
+            }}
+          >
             <div
               style={{
                 display: 'flex',
@@ -1160,7 +1209,7 @@ export default function YouTubeWorkspace() {
                   background: 'transparent',
                   border: 'none',
                   outline: 'none',
-                  color: '#fff',
+                  color: 'var(--text-strong)',
                   fontSize: '12px',
                   width: '100%'
                 }}
@@ -1191,8 +1240,18 @@ export default function YouTubeWorkspace() {
                     borderBottom: '1px solid var(--border-subtle)'
                   }}
                 >
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <CalendarIcon size={13} style={{ color: '#38bdf8' }} /> {group.dateLabel}
+                  <span
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      color: 'var(--accent-color)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <CalendarIcon size={13} style={{ color: 'var(--accent-color)' }} />{' '}
+                    {group.dateLabel}
                   </span>
                   <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
                     ({group.items.length} vidéo{group.items.length > 1 ? 's' : ''})
@@ -1263,7 +1322,7 @@ export default function YouTubeWorkspace() {
                               style={{
                                 fontSize: '12px',
                                 fontWeight: 500,
-                                color: '#f4f4f5',
+                                color: 'var(--text-strong)',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap'
@@ -1350,7 +1409,7 @@ export default function YouTubeWorkspace() {
             position: 'absolute',
             inset: 0,
             zIndex: 9999,
-            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            backgroundColor: 'var(--overlay-bg)',
             backdropFilter: 'blur(4px)',
             display: 'flex',
             alignItems: 'center',
@@ -1364,8 +1423,8 @@ export default function YouTubeWorkspace() {
             style={{
               width: '420px',
               maxWidth: '95%',
-              backgroundColor: '#18181b',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
+              backgroundColor: 'var(--surface-raised)',
+              border: '1px solid var(--border-strong)',
               borderRadius: '12px',
               padding: '20px',
               boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)'
@@ -1374,7 +1433,14 @@ export default function YouTubeWorkspace() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <YouTubeIcon size={20} />
-                <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                <h3
+                  style={{
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    color: 'var(--text-strong)',
+                    margin: 0
+                  }}
+                >
                   Ajouter un raccourci YouTube
                 </h3>
               </div>
@@ -1394,7 +1460,15 @@ export default function YouTubeWorkspace() {
 
             <form onSubmit={handleSubmitNewShortcut} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#d4d4d8', marginBottom: '6px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    color: 'var(--text-primary)',
+                    marginBottom: '6px'
+                  }}
+                >
                   Nom du raccourci
                 </label>
                 <input
@@ -1409,8 +1483,8 @@ export default function YouTubeWorkspace() {
                     padding: '8px 12px',
                     borderRadius: '6px',
                     backgroundColor: 'var(--editor-bg)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#fff',
+                    border: '1px solid var(--border-strong)',
+                    color: 'var(--text-strong)',
                     fontSize: '13px',
                     outline: 'none',
                     boxSizing: 'border-box'
@@ -1419,7 +1493,15 @@ export default function YouTubeWorkspace() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#d4d4d8', marginBottom: '6px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    color: 'var(--text-primary)',
+                    marginBottom: '6px'
+                  }}
+                >
                   Lien YouTube ou recherche
                 </label>
                 <input
@@ -1432,8 +1514,8 @@ export default function YouTubeWorkspace() {
                     padding: '8px 12px',
                     borderRadius: '6px',
                     backgroundColor: 'var(--editor-bg)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#fff',
+                    border: '1px solid var(--border-strong)',
+                    color: 'var(--text-strong)',
                     fontSize: '13px',
                     outline: 'none',
                     boxSizing: 'border-box'
@@ -1454,9 +1536,9 @@ export default function YouTubeWorkspace() {
                   style={{
                     padding: '6px 10px',
                     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px dashed rgba(255, 255, 255, 0.15)',
+                    border: '1px dashed var(--border-strong)',
                     borderRadius: '6px',
-                    color: '#38bdf8',
+                    color: 'var(--accent-color)',
                     fontSize: '11.5px',
                     cursor: 'pointer',
                     textAlign: 'left',
@@ -1477,7 +1559,7 @@ export default function YouTubeWorkspace() {
                     padding: '7px 14px',
                     borderRadius: '6px',
                     backgroundColor: 'transparent',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    border: '1px solid var(--border-strong)',
                     color: 'var(--text-secondary)',
                     fontSize: '12.5px',
                     cursor: 'pointer'
@@ -1490,9 +1572,9 @@ export default function YouTubeWorkspace() {
                   style={{
                     padding: '7px 16px',
                     borderRadius: '6px',
-                    backgroundColor: '#ef4444',
+                    backgroundColor: 'var(--danger-strong)',
                     border: 'none',
-                    color: '#fff',
+                    color: 'var(--text-strong)',
                     fontWeight: 600,
                     fontSize: '12.5px',
                     cursor: 'pointer'

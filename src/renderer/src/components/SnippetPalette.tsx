@@ -86,7 +86,7 @@ export const SnippetPalette: React.FC<SnippetPaletteProps> = ({
               padding: '0 8px',
               gap: '6px',
               backgroundColor: isSelected ? '#04395e' : 'transparent',
-              color: isSelected ? '#ffffff' : '#cccccc',
+              color: isSelected ? 'var(--text-strong)' : '#cccccc',
               cursor: 'pointer'
             }}
           >
@@ -97,7 +97,7 @@ export const SnippetPalette: React.FC<SnippetPaletteProps> = ({
             <span
               style={{
                 fontWeight: 600,
-                color: isSelected ? '#ffffff' : '#e0e0e0',
+                color: isSelected ? 'var(--text-strong)' : '#e0e0e0',
                 flexShrink: 0
               }}
             >

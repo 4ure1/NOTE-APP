@@ -1,10 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import {
-  StarIcon,
-  ShareIcon,
   MoreHorizontalIcon,
   FolderIcon,
-  FileTextIcon,
   PlusIcon,
   ClaudeIcon,
   ChatGPTIcon,
@@ -13,11 +10,7 @@ import {
   EyeIcon,
   EditIcon,
   CheckIcon,
-  CopyIcon,
-  TrashIcon,
-  ExternalLinkIcon,
-  ColumnsIcon,
-  OutlineIcon,
+  ClockIcon,
   getFileIcon
 } from './Icons'
 import { WORKFLOW_COLUMNS, WorkflowStatus } from './WorkflowView'
@@ -42,7 +35,6 @@ interface EditorHeaderProps {
   workflowStatus?: WorkflowStatus
   onStatusChange?: (status: WorkflowStatus) => void
   noteContent?: string
-  onOpenSettings?: () => void
   onDeleteNote?: () => void
   onOpenInBrowser?: () => void
   isFullscreen?: boolean
@@ -81,7 +73,6 @@ export default function EditorHeader({
   workflowStatus,
   onStatusChange,
   noteContent = '',
-  onOpenSettings,
   onDeleteNote,
   onOpenInBrowser,
   onOpenSideBySide,
@@ -102,17 +93,14 @@ export default function EditorHeader({
   const [newTagInput, setNewTagInput] = useState('')
 
   // Menus & Toast state
-  const [shareMenuOpen, setShareMenuOpen] = useState(false)
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
-  const shareMenuRef = useRef<HTMLDivElement>(null)
   const moreMenuRef = useRef<HTMLDivElement>(null)
+  const moreButtonRef = useRef<HTMLButtonElement>(null)
+  const moreMenuListRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
-      if (shareMenuRef.current && !shareMenuRef.current.contains(e.target as Node)) {
-        setShareMenuOpen(false)
-      }
       if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
         setMoreMenuOpen(false)
       }
@@ -120,6 +108,32 @@ export default function EditorHeader({
     window.addEventListener('mousedown', handleOutside)
     return () => window.removeEventListener('mousedown', handleOutside)
   }, [])
+
+  // Menu « ⋯ » au clavier : focus sur la première entrée à l'ouverture
+  useEffect(() => {
+    if (moreMenuOpen) {
+      moreMenuListRef.current?.querySelector<HTMLElement>('[role^="menuitem"]')?.focus()
+    }
+  }, [moreMenuOpen])
+
+  const handleMoreMenuKeyDown = (e: React.KeyboardEvent<HTMLDivElement>): void => {
+    const items = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('[role^="menuitem"]'))
+    if (items.length === 0) return
+    const i = items.indexOf(document.activeElement as HTMLElement)
+    let handled = true
+    if (e.key === 'ArrowDown') items[(i + 1) % items.length].focus()
+    else if (e.key === 'ArrowUp') items[(i - 1 + items.length) % items.length].focus()
+    else if (e.key === 'Home') items[0].focus()
+    else if (e.key === 'End') items[items.length - 1].focus()
+    else if (e.key === 'Escape' || e.key === 'Tab') {
+      setMoreMenuOpen(false)
+      moreButtonRef.current?.focus()
+    } else handled = false
+    if (handled) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+  }
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg)
@@ -130,6 +144,86 @@ export default function EditorHeader({
   const pathParts = currentFilePath ? currentFilePath.split('/') : []
   const fileName = pathParts.pop() || 'Nouvelle note'
   const folders = pathParts
+
+  // Entrées du menu « ⋯ », par groupes ; une entrée n'apparaît que si son action existe pour ce type
+  // de note (HTML, Markdown, PDF). `checked` en fait une case à cocher (état affiché par ✓).
+  type MoreMenuEntry = {
+    label: string
+    onSelect: () => void
+    hint?: string
+    checked?: boolean
+    danger?: boolean
+  }
+  const downloadSourceFile = (): void => {
+    const blob = new Blob([noteContent || ''], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileName
+    a.click()
+    URL.revokeObjectURL(url)
+    triggerToast('Fichier téléchargé')
+  }
+  const moreMenuGroups: Array<Array<MoreMenuEntry | false | undefined>> = [
+    [
+      onToggleOutline && {
+        label: 'Plan de la note',
+        hint: 'Ctrl+Maj+O',
+        checked: isOutlineOpen,
+        onSelect: onToggleOutline
+      },
+      onOpenSideBySide && { label: 'Ouvrir un 2ᵉ panneau', onSelect: onOpenSideBySide },
+      onOpenInBrowser && { label: 'Ouvrir dans le navigateur', onSelect: onOpenInBrowser }
+    ],
+    [
+      onToggleCopilot && {
+        label: 'Copilote IA (complétion Tab)',
+        checked: isCopilotEnabled,
+        onSelect: onToggleCopilot
+      },
+      onHighlightCode && { label: 'Colorer les blocs de code', onSelect: onHighlightCode },
+      onToggleTypewriterMode && {
+        label: 'Machine à écrire',
+        checked: isTypewriterMode,
+        onSelect: onToggleTypewriterMode
+      },
+      onToggleZenMode && {
+        label: 'Mode zen',
+        hint: 'Ctrl+Maj+Z',
+        checked: isZenMode,
+        onSelect: onToggleZenMode
+      }
+    ],
+    [
+      {
+        label: isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris',
+        onSelect: onToggleFavorite
+      },
+      {
+        label: 'Copier le contenu',
+        onSelect: () => {
+          navigator.clipboard.writeText(noteContent || '')
+          triggerToast('Contenu copié')
+        }
+      },
+      {
+        label: 'Copier le chemin',
+        onSelect: () => {
+          navigator.clipboard.writeText(currentFilePath)
+          triggerToast('Chemin copié')
+        }
+      },
+      { label: 'Télécharger le fichier source', onSelect: downloadSourceFile }
+    ],
+    [onDeleteNote && { label: 'Supprimer la note', danger: true, onSelect: onDeleteNote }]
+  ]
+  const moreMenuEntries: Array<MoreMenuEntry | 'separator'> = []
+  for (const group of moreMenuGroups) {
+    const entries = group.filter((entry): entry is MoreMenuEntry => Boolean(entry))
+    if (entries.length === 0) continue
+    if (moreMenuEntries.length > 0) moreMenuEntries.push('separator')
+    moreMenuEntries.push(...entries)
+  }
 
   const handleTagSubmit = () => {
     const val = newTagInput.trim()
@@ -169,7 +263,14 @@ export default function EditorHeader({
               <React.Fragment key={idx}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}>
                   {isAgency ? (
-                    <span style={{ color: '#4ade80', fontSize: '12px', display: 'inline-flex', alignItems: 'center' }}>
+                    <span
+                      style={{
+                        color: 'var(--success-color)',
+                        fontSize: '12px',
+                        display: 'inline-flex',
+                        alignItems: 'center'
+                      }}
+                    >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="#4ade80" stroke="#4ade80" strokeWidth="2">
                         <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
                       </svg>
@@ -200,9 +301,9 @@ export default function EditorHeader({
                 position: 'absolute',
                 top: '38px',
                 right: '0',
-                backgroundColor: '#18181b',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                color: '#ffffff',
+                backgroundColor: 'var(--surface-raised)',
+                border: '1px solid var(--border-strong)',
+                color: 'var(--text-strong)',
                 padding: '6px 12px',
                 borderRadius: '8px',
                 fontSize: '12px',
@@ -216,7 +317,7 @@ export default function EditorHeader({
                 whiteSpace: 'nowrap'
               }}
             >
-              <CheckIcon size={13} style={{ color: '#4ade80' }} />
+              <CheckIcon size={13} style={{ color: 'var(--success-color)' }} />
               <span>{toastMessage}</span>
             </div>
           )}
@@ -240,9 +341,9 @@ export default function EditorHeader({
                 onClick={() => onChangeEditorMode('edit')}
                 title="Mode Code seul (moteur VS Code)"
                 style={{
-                  background: editorMode === 'edit' ? '#27272a' : 'transparent',
+                  background: editorMode === 'edit' ? 'var(--surface-input)' : 'transparent',
                   border: 'none',
-                  color: editorMode === 'edit' ? '#ffffff' : 'var(--text-secondary)',
+                  color: editorMode === 'edit' ? 'var(--text-strong)' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   padding: '3px 7px',
                   borderRadius: '4px',
@@ -261,9 +362,9 @@ export default function EditorHeader({
                 onClick={() => onChangeEditorMode('live')}
                 title="Côte à côte : code à gauche, aperçu en direct à droite"
                 style={{
-                  background: editorMode === 'live' ? '#27272a' : 'transparent',
+                  background: editorMode === 'live' ? 'var(--surface-input)' : 'transparent',
                   border: 'none',
-                  color: editorMode === 'live' ? '#ffffff' : 'var(--text-secondary)',
+                  color: editorMode === 'live' ? 'var(--text-strong)' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   padding: '3px 7px',
                   borderRadius: '4px',
@@ -283,9 +384,9 @@ export default function EditorHeader({
                 onClick={() => onChangeEditorMode('preview')}
                 title="Mode Rendu interactif plein écran"
                 style={{
-                  background: editorMode === 'preview' ? '#27272a' : 'transparent',
+                  background: editorMode === 'preview' ? 'var(--surface-input)' : 'transparent',
                   border: 'none',
-                  color: editorMode === 'preview' ? '#ffffff' : 'var(--text-secondary)',
+                  color: editorMode === 'preview' ? 'var(--text-strong)' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   padding: '3px 7px',
                   borderRadius: '4px',
@@ -332,471 +433,80 @@ export default function EditorHeader({
             </button>
           ) : null}
 
-          {/* Open in Browser (HTML files only) */}
-          {onOpenInBrowser && (
-            <button
-              onClick={onOpenInBrowser}
-              title="Ouvrir dans le navigateur"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-secondary)',
-                cursor: 'pointer',
-                padding: '6px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '28px',
-                width: '28px',
-                boxSizing: 'border-box',
-                transition: 'all 0.15s'
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-            >
-              <ExternalLinkIcon size={15} />
-            </button>
-          )}
-
-
-
-          {/* Side-by-side: ouvrir un 2e panneau */}
-          {onOpenSideBySide && (
-            <button
-              onClick={onOpenSideBySide}
-              title="Ouvrir un 2ᵉ panneau côte à côte"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-secondary)',
-                cursor: 'pointer',
-                padding: '6px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '28px',
-                width: '28px',
-                boxSizing: 'border-box',
-                transition: 'all 0.15s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--element-bg)'
-                e.currentTarget.style.color = '#38bdf8'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent'
-                e.currentTarget.style.color = 'var(--text-secondary)'
-              }}
-            >
-              <ColumnsIcon size={15} />
-            </button>
-          )}
-
-          {/* Plan du document (Outline) */}
-          {onToggleOutline && (
-            <button
-              onClick={onToggleOutline}
-              title={isOutlineOpen ? 'Masquer le plan du document (Ctrl+Shift+O)' : 'Afficher le plan du document (Ctrl+Shift+O)'}
-              style={{
-                background: isOutlineOpen ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
-                border: isOutlineOpen ? '1px solid rgba(56, 189, 248, 0.4)' : 'none',
-                color: isOutlineOpen ? '#38bdf8' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                padding: '6px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '28px',
-                width: '28px',
-                boxSizing: 'border-box',
-                transition: 'all 0.15s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = isOutlineOpen ? 'rgba(56, 189, 248, 0.25)' : 'var(--element-bg)'
-                e.currentTarget.style.color = '#38bdf8'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = isOutlineOpen ? 'rgba(56, 189, 248, 0.15)' : 'transparent'
-                e.currentTarget.style.color = isOutlineOpen ? '#38bdf8' : 'var(--text-secondary)'
-              }}
-            >
-              <OutlineIcon size={15} />
-            </button>
-          )}
-
-          {/* Favorite toggle star */}
-          <button
-            onClick={onToggleFavorite}
-            title={isFavorite ? 'Retirer des favoris' : 'Marquer comme favori'}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: isFavorite ? '#fbbf24' : 'var(--text-secondary)',
-              cursor: 'pointer',
-              padding: '6px',
-              borderRadius: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '28px',
-              width: '28px',
-              boxSizing: 'border-box',
-              transition: 'all 0.15s'
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg)')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-          >
-            <StarIcon size={15} filled={isFavorite} />
-          </button>
-
-          {/* Copilote IA (Ghostwriter Ollama) */}
-          {onToggleCopilot && (
-            <button
-              onClick={onToggleCopilot}
-              title={isCopilotEnabled ? "Copilote IA actif (complétion Tab en arrière-plan)" : "Activer le Copilote IA inline"}
-              style={{
-                background: isCopilotEnabled ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
-                border: isCopilotEnabled ? '1px solid rgba(56, 189, 248, 0.4)' : 'none',
-                color: isCopilotEnabled ? '#38bdf8' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                padding: '4px 7px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                height: '28px',
-                fontSize: '11px',
-                fontWeight: 600,
-                boxSizing: 'border-box',
-                transition: 'all 0.15s'
-              }}
-            >
-              <span>🤖</span>
-              <span>IA</span>
-            </button>
-          )}
-
-          {/* Colorier le code (spans k/t/f/s/n/c) */}
-          {onHighlightCode && (
-            <button
-              onClick={onHighlightCode}
-              title="Colorer les blocs de code"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-secondary)',
-                cursor: 'pointer',
-                padding: '6px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '28px',
-                width: '28px',
-                boxSizing: 'border-box',
-                transition: 'all 0.15s'
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-            >
-              <span style={{ fontSize: '14px' }}>🎨</span>
-            </button>
-          )}
-
-          {/* Time Travel / Historique des versions */}
+          {/* Historique des versions : action fréquente, gardée visible avec son libellé */}
           {onOpenHistory && (
             <button
               onClick={onOpenHistory}
               title="Historique des versions"
               style={{
                 background: 'transparent',
-                border: 'none',
+                border: '1px solid var(--border-color)',
                 color: 'var(--text-secondary)',
                 cursor: 'pointer',
-                padding: '6px',
+                padding: '0 10px',
                 borderRadius: '6px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
+                gap: '6px',
                 height: '28px',
-                width: '28px',
+                fontSize: '12px',
                 boxSizing: 'border-box',
-                transition: 'all 0.15s'
+                transition: 'background-color 0.15s, color 0.15s'
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)'
+                e.currentTarget.style.color = 'var(--text-strong)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent'
+                e.currentTarget.style.color = 'var(--text-secondary)'
+              }}
             >
-              <span style={{ fontSize: '14px' }}>⏳</span>
+              <ClockIcon size={13} />
+              <span>Historique</span>
             </button>
           )}
 
-          {/* Centrage Typewriter */}
-          {onToggleTypewriterMode && (
-            <button
-              onClick={onToggleTypewriterMode}
-              title={
-                isTypewriterMode
-                  ? 'Désactiver le centrage machine à écrire'
-                  : 'Activer le centrage machine à écrire'
-              }
-              style={{
-                background: isTypewriterMode ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
-                border: isTypewriterMode ? '1px solid rgba(56, 189, 248, 0.4)' : 'none',
-                color: isTypewriterMode ? '#38bdf8' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                padding: '6px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '28px',
-                width: '28px',
-                boxSizing: 'border-box',
-                transition: 'all 0.15s'
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = isTypewriterMode ? 'rgba(56, 189, 248, 0.15)' : 'transparent')}
-            >
-              <span style={{ fontSize: '13px' }}>🎯</span>
-            </button>
-          )}
-
-          {/* Mode Zen / Focus */}
-          {onToggleZenMode && (
-            <button
-              onClick={onToggleZenMode}
-              title={isZenMode ? 'Quitter le mode zen' : 'Mode zen (Ctrl+Maj+Z)'}
-              style={{
-                background: isZenMode ? 'rgba(168, 85, 247, 0.15)' : 'transparent',
-                border: isZenMode ? '1px solid rgba(168, 85, 247, 0.4)' : 'none',
-                color: isZenMode ? '#c084fc' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                padding: '6px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '28px',
-                width: '28px',
-                boxSizing: 'border-box',
-                transition: 'all 0.15s'
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = isZenMode ? 'rgba(168, 85, 247, 0.15)' : 'transparent')}
-            >
-              <span style={{ fontSize: '14px' }}>🧘</span>
-            </button>
-          )}
-
-          {/* Exporter (PDF, Word, HTML) */}
+          {/* Exporter (PDF, Word, HTML) : bouton principal de l'en-tête */}
           {onOpenExport && (
             <button
               onClick={onOpenExport}
               title="Exporter la note (PDF, Word, HTML)"
               style={{
-                background: 'rgba(56, 189, 248, 0.1)',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
-                color: '#38bdf8',
+                background: 'var(--accent-strong)',
+                border: '1px solid transparent',
+                color: '#ffffff',
                 cursor: 'pointer',
-                padding: '4px 8px',
+                padding: '0 12px',
                 borderRadius: '6px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '5px',
                 height: '28px',
-                fontSize: '11px',
+                fontSize: '12px',
                 fontWeight: 600,
                 boxSizing: 'border-box',
-                transition: 'all 0.15s'
+                transition: 'filter 0.15s'
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(56, 189, 248, 0.2)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(56, 189, 248, 0.1)')}
+              onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.12)')}
+              onMouseLeave={(e) => (e.currentTarget.style.filter = 'none')}
             >
-              <span>🚀</span>
-              <span>Exporter</span>
+              Exporter
             </button>
           )}
 
-          {/* Share / Export Menu */}
-          <div style={{ position: 'relative' }} ref={shareMenuRef}>
-            <button
-              onClick={() => {
-                setShareMenuOpen(!shareMenuOpen)
-                setMoreMenuOpen(false)
-              }}
-              title="Partager / Exporter"
-              style={{
-                background: shareMenuOpen ? 'var(--element-bg)' : 'transparent',
-                border: 'none',
-                color: shareMenuOpen ? '#ffffff' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                padding: '6px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '28px',
-                width: '28px',
-                boxSizing: 'border-box',
-                transition: 'all 0.15s'
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg)')}
-              onMouseLeave={(e) => {
-                if (!shareMenuOpen) e.currentTarget.style.backgroundColor = 'transparent'
-              }}
-            >
-              <ShareIcon size={15} />
-            </button>
-
-            {shareMenuOpen && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '34px',
-                  right: '0',
-                  width: '210px',
-                  backgroundColor: '#18181b',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: '10px',
-                  padding: '5px',
-                  boxShadow: '0 14px 35px -5px rgba(0, 0, 0, 0.75)',
-                  zIndex: 1000,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '2px'
-                }}
-              >
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(noteContent || '')
-                    triggerToast('Contenu Markdown copié !')
-                    setShareMenuOpen(false)
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px 10px',
-                    borderRadius: '6px',
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#e4e4e7',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'background-color 0.12s'
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#27272a')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                >
-                  <CopyIcon size={13} style={{ color: '#38bdf8' }} />
-                  <span>Copier le Markdown</span>
-                </button>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(currentFilePath)
-                    triggerToast('Chemin d\'accès copié !')
-                    setShareMenuOpen(false)
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px 10px',
-                    borderRadius: '6px',
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#e4e4e7',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'background-color 0.12s'
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#27272a')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                >
-                  <FileTextIcon size={13} style={{ color: '#a1a1aa' }} />
-                  <span>Copier le chemin</span>
-                </button>
-                <button
-                  onClick={() => {
-                    const blob = new Blob([noteContent || ''], { type: 'text/markdown;charset=utf-8' })
-                    const url = URL.createObjectURL(blob)
-                    const a = document.createElement('a')
-                    a.href = url
-                    a.download = fileName.endsWith('.md') ? fileName : `${fileName}.md`
-                    a.click()
-                    URL.revokeObjectURL(url)
-                    triggerToast('Fichier exporté !')
-                    setShareMenuOpen(false)
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px 10px',
-                    borderRadius: '6px',
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#e4e4e7',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'background-color 0.12s'
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#27272a')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                >
-                  <ShareIcon size={13} style={{ color: '#4ade80' }} />
-                  <span>Exporter le fichier brut</span>
-                </button>
-                {onOpenExport && (
-                  <button
-                    onClick={() => {
-                      setShareMenuOpen(false)
-                      onOpenExport()
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      background: 'rgba(56, 189, 248, 0.1)',
-                      border: 'none',
-                      color: '#38bdf8',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'background-color 0.12s'
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(56, 189, 248, 0.2)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(56, 189, 248, 0.1)')}
-                  >
-                    <span>🚀</span>
-                    <span>Exporter (PDF, Word, HTML)...</span>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* More actions Menu */}
+          {/* Menu « ⋯ » : tous les réglages et actions secondaires de la note */}
           <div style={{ position: 'relative' }} ref={moreMenuRef}>
             <button
-              onClick={() => {
-                setMoreMenuOpen(!moreMenuOpen)
-                setShareMenuOpen(false)
-              }}
+              ref={moreButtonRef}
+              onClick={() => setMoreMenuOpen(!moreMenuOpen)}
               title="Plus d'actions"
+              aria-label="Plus d'actions"
+              aria-haspopup="menu"
+              aria-expanded={moreMenuOpen}
               style={{
                 background: moreMenuOpen ? 'var(--element-bg)' : 'transparent',
                 border: 'none',
-                color: moreMenuOpen ? '#ffffff' : 'var(--text-secondary)',
+                color: moreMenuOpen ? 'var(--text-strong)' : 'var(--text-secondary)',
                 cursor: 'pointer',
                 padding: '6px',
                 borderRadius: '6px',
@@ -818,83 +528,102 @@ export default function EditorHeader({
 
             {moreMenuOpen && (
               <div
+                ref={moreMenuListRef}
+                role="menu"
+                aria-label="Actions de la note"
+                onKeyDown={handleMoreMenuKeyDown}
                 style={{
                   position: 'absolute',
                   top: '34px',
                   right: '0',
-                  width: '220px',
-                  backgroundColor: '#18181b',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: '10px',
+                  width: '264px',
+                  backgroundColor: 'var(--surface-raised)',
+                  border: '1px solid var(--border-strong)',
+                  borderRadius: '8px',
                   padding: '5px',
                   boxShadow: '0 14px 35px -5px rgba(0, 0, 0, 0.75)',
                   zIndex: 1000,
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '2px'
+                  gap: '1px'
                 }}
               >
-                {/* Stats row */}
-                <div style={{ padding: '8px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '4px' }}>
-                  <div style={{ fontSize: '11px', color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Statistiques</div>
-                  <div style={{ fontSize: '12px', color: '#e4e4e7', marginTop: '3px', display: 'flex', justifyContent: 'space-between' }}>
-                    <span>{(noteContent || '').trim() ? (noteContent || '').trim().split(/\s+/).length : 0} mots</span>
-                    <span style={{ color: '#71717a' }}>•</span>
-                    <span>{(noteContent || '').length} caractères</span>
-                  </div>
+                {/* Statistiques de la note */}
+                <div
+                  style={{
+                    padding: '6px 10px 8px',
+                    borderBottom: '1px solid var(--border-color)',
+                    marginBottom: '4px',
+                    fontSize: '12px',
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    gap: '12px'
+                  }}
+                >
+                  <span>
+                    {(noteContent || '').trim()
+                      ? (noteContent || '').trim().split(/\s+/).length
+                      : 0}{' '}
+                    mots
+                  </span>
+                  <span>{(noteContent || '').length} caractères</span>
                 </div>
 
-
-                <button
-                  onClick={() => {
-                    onToggleFavorite()
-                    setMoreMenuOpen(false)
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px 10px',
-                    borderRadius: '6px',
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#e4e4e7',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    textAlign: 'left'
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#27272a')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                >
-                  <StarIcon size={13} filled={isFavorite} style={{ color: isFavorite ? '#fbbf24' : '#a1a1aa' }} />
-                  <span>{isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}</span>
-                </button>
-
-                {onDeleteNote && (
-                  <button
-                    onClick={() => {
-                      setMoreMenuOpen(false)
-                      onDeleteNote()
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#ef4444',
-                      fontSize: '12px',
-                      cursor: 'pointer',
-                      textAlign: 'left'
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.12)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                  >
-                    <TrashIcon size={13} style={{ color: '#ef4444' }} />
-                    <span>Supprimer la note</span>
-                  </button>
+                {moreMenuEntries.map((entry, i) =>
+                  entry === 'separator' ? (
+                    <div
+                      key={`sep-${i}`}
+                      role="separator"
+                      style={{
+                        height: '1px',
+                        background: 'var(--border-color)',
+                        margin: '4px 6px'
+                      }}
+                    />
+                  ) : (
+                    <button
+                      key={entry.label}
+                      role={entry.checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
+                      aria-checked={entry.checked}
+                      tabIndex={-1}
+                      onClick={() => {
+                        setMoreMenuOpen(false)
+                        entry.onSelect()
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '7px 10px',
+                        borderRadius: '5px',
+                        background: 'transparent',
+                        border: 'none',
+                        color: entry.danger ? 'var(--danger-strong)' : 'var(--text-primary)',
+                        fontSize: '12.5px',
+                        cursor: 'pointer',
+                        textAlign: 'left'
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor = entry.danger
+                          ? 'color-mix(in srgb, var(--danger-strong) 12%, transparent)'
+                          : 'var(--surface-input)')
+                      }
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <span
+                        aria-hidden="true"
+                        style={{ width: '12px', color: 'var(--accent-marge)', fontWeight: 700 }}
+                      >
+                        {entry.checked ? '✓' : ''}
+                      </span>
+                      <span style={{ flex: 1 }}>{entry.label}</span>
+                      {entry.hint && (
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          {entry.hint}
+                        </span>
+                      )}
+                    </button>
+                  )
                 )}
               </div>
             )}
@@ -905,7 +634,11 @@ export default function EditorHeader({
             const aiData = {
               agent: { name: 'Agent IA', color: '#10b981', icon: <SparklesIcon size={15} color="#10b981" /> },
               claude: { name: 'Claude', color: '#D97757', icon: <ClaudeIcon size={15} color="#D97757" /> },
-              chatgpt: { name: 'ChatGPT', color: '#ffffff', icon: <ChatGPTIcon size={15} style={{ color: '#ffffff' }} /> },
+              chatgpt: {
+                name: 'ChatGPT',
+                color: '#ffffff',
+                icon: <ChatGPTIcon size={15} style={{ color: 'var(--text-strong)' }} />
+              },
               gemini: { name: 'Gemini', color: '#4285f4', icon: <GeminiIcon size={15} style={{ color: '#4285f4' }} /> }
             }[activeAI] || { name: 'Agent IA', color: '#10b981', icon: <SparklesIcon size={15} color="#10b981" /> }
 
@@ -919,7 +652,7 @@ export default function EditorHeader({
                   borderRadius: '6px',
                   backgroundColor: showAIWorkspace ? `${aiData.color}33` : `${aiData.color}14`,
                   border: showAIWorkspace ? `1px solid ${aiData.color}99` : `1px solid ${aiData.color}40`,
-                  color: '#ffffff',
+                  color: 'var(--text-strong)',
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -944,7 +677,9 @@ export default function EditorHeader({
                 }}
               >
                 {aiData.icon}
-                <span style={{ color: '#ffffff', letterSpacing: '0.2px' }}>{aiData.name}</span>
+                <span style={{ color: 'var(--text-strong)', letterSpacing: '0.2px' }}>
+                  {aiData.name}
+                </span>
                 {showAIWorkspace && (
                   <span
                     style={{
@@ -960,39 +695,6 @@ export default function EditorHeader({
             )
           })()}
 
-          {/* User Profile Avatar - Clickable */}
-          <div
-            onClick={onOpenSettings}
-            title="Paramètres / Profil"
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #d97706, #b45309)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '11px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
-              transition: 'transform 0.15s ease, opacity 0.15s',
-              boxSizing: 'border-box',
-              flexShrink: 0
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = '0.85'
-              e.currentTarget.style.transform = 'scale(1.05)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = '1'
-              e.currentTarget.style.transform = 'scale(1)'
-            }}
-          >
-            AU
-          </div>
         </div>
       </div>
 
@@ -1046,8 +748,8 @@ export default function EditorHeader({
                     top: '100%',
                     left: 0,
                     marginTop: '4px',
-                    backgroundColor: '#18181b',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    backgroundColor: 'var(--surface-raised)',
+                    border: '1px solid var(--border-strong)',
                     borderRadius: '8px',
                     boxShadow: '0 10px 25px rgba(0, 0, 0, 0.6)',
                     zIndex: 50,
@@ -1073,7 +775,10 @@ export default function EditorHeader({
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
-                        color: col.id === workflowStatus ? '#ffffff' : '#a1a1aa',
+                        color:
+                          col.id === workflowStatus
+                            ? 'var(--text-strong)'
+                            : 'var(--text-secondary)',
                         backgroundColor: col.id === workflowStatus ? 'rgba(255, 255, 255, 0.08)' : 'transparent'
                       }}
                       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)')}
@@ -1138,7 +843,7 @@ export default function EditorHeader({
               style={{
                 background: 'var(--element-bg)',
                 border: '1px solid var(--border-color)',
-                color: '#fff',
+                color: 'var(--text-strong)',
                 borderRadius: '6px',
                 padding: '3px 10px',
                 fontSize: '11.5px',
@@ -1153,7 +858,7 @@ export default function EditorHeader({
                 alignItems: 'center',
                 gap: '4px',
                 background: 'transparent',
-                border: '1px dashed rgba(255, 255, 255, 0.15)',
+                border: '1px dashed var(--border-strong)',
                 color: 'var(--text-muted)',
                 borderRadius: '6px',
                 padding: '3px 10px',
@@ -1167,7 +872,7 @@ export default function EditorHeader({
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.color = 'var(--text-muted)'
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'
+                e.currentTarget.style.borderColor = 'var(--border-strong)'
               }}
             >
               <PlusIcon size={11} />

@@ -521,11 +521,11 @@ export default function AutonomousAgentWorkspace({
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        backgroundColor: '#121214',
-        color: '#e4e4e7',
+        backgroundColor: 'var(--surface-panel)',
+        color: 'var(--text-primary)',
         fontSize: '13px',
         position: 'relative',
-        border: isDragging ? '2px dashed #10b981' : 'none'
+        border: isDragging ? '2px dashed var(--success-strong)' : 'none'
       }}
       onDragOver={(e) => {
         e.preventDefault()
@@ -553,8 +553,8 @@ export default function AutonomousAgentWorkspace({
       <div
         style={{
           padding: '10px 14px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          backgroundColor: '#18181b',
+          borderBottom: '1px solid var(--border-color)',
+          backgroundColor: 'var(--surface-raised)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -568,33 +568,61 @@ export default function AutonomousAgentWorkspace({
               width: '28px',
               height: '28px',
               borderRadius: '8px',
-              backgroundColor: 'rgba(16, 185, 129, 0.15)',
+              backgroundColor: 'color-mix(in srgb, var(--success-strong) 15%, transparent)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#10b981'
+              color: 'var(--success-strong)'
             }}
           >
             <SparklesIcon size={16} />
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '13px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div
+              style={{
+                fontWeight: 700,
+                fontSize: '13px',
+                color: 'var(--text-strong)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
               Agent IA Autonome
               <span
                 style={{
                   fontSize: '10px',
                   padding: '1px 6px',
                   borderRadius: '4px',
-                  backgroundColor: toolsEnabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(234, 179, 8, 0.2)',
-                  color: toolsEnabled ? '#34d399' : '#facc15',
+                  backgroundColor: toolsEnabled
+                    ? 'color-mix(in srgb, var(--success-strong) 20%, transparent)'
+                    : 'rgba(234, 179, 8, 0.2)',
+                  color: toolsEnabled ? 'var(--success-strong)' : '#facc15',
                   fontWeight: 600
                 }}
               >
                 {toolsEnabled ? 'OUTILS ACTIFS' : 'CHAT PUR'}
               </span>
             </div>
-            <div style={{ fontSize: '11px', color: '#a1a1aa', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
-              <span style={{ color: isCurrentModelInstalled ? '#34d399' : '#f59e0b', display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <div
+              style={{
+                fontSize: '11px',
+                color: 'var(--text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                flexWrap: 'wrap',
+                marginTop: '2px'
+              }}
+            >
+              <span
+                style={{
+                  color: isCurrentModelInstalled ? 'var(--success-strong)' : 'var(--accent-amber)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px'
+                }}
+              >
                 ● {agentModel} {!isCurrentModelInstalled && '(Non installé)'}
               </span>
               <span>•</span>
@@ -602,8 +630,10 @@ export default function AutonomousAgentWorkspace({
                 style={{
                   padding: '1px 6px',
                   borderRadius: '4px',
-                  backgroundColor: currentFilePath ? 'rgba(56, 189, 248, 0.12)' : 'rgba(255, 255, 255, 0.08)',
-                  color: currentFilePath ? '#38bdf8' : '#a1a1aa',
+                  backgroundColor: currentFilePath
+                    ? 'color-mix(in srgb, var(--accent-color) 12%, transparent)'
+                    : 'rgba(255, 255, 255, 0.08)',
+                  color: currentFilePath ? 'var(--accent-color)' : 'var(--text-secondary)',
                   fontSize: '10px',
                   fontWeight: 500
                 }}
@@ -615,16 +645,33 @@ export default function AutonomousAgentWorkspace({
         </div>
 
         {/* Engine Switcher */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', backgroundColor: '#121214', padding: '3px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '3px',
+            backgroundColor: 'var(--surface-panel)',
+            padding: '3px',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)'
+          }}
+        >
           <button
             onClick={() => setSelectedEngine('ollama')}
             title="Agent Local ReAct avec Outils & Contexte 16K"
             style={{
               padding: '4px 9px',
               borderRadius: '6px',
-              backgroundColor: selectedEngine === 'ollama' ? 'rgba(16, 185, 129, 0.22)' : 'transparent',
-              border: selectedEngine === 'ollama' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid transparent',
-              color: selectedEngine === 'ollama' ? '#34d399' : '#a1a1aa',
+              backgroundColor:
+                selectedEngine === 'ollama'
+                  ? 'color-mix(in srgb, var(--success-strong) 22%, transparent)'
+                  : 'transparent',
+              border:
+                selectedEngine === 'ollama'
+                  ? '1px solid color-mix(in srgb, var(--success-strong) 40%, transparent)'
+                  : '1px solid transparent',
+              color:
+                selectedEngine === 'ollama' ? 'var(--success-strong)' : 'var(--text-secondary)',
               fontSize: '11px',
               fontWeight: selectedEngine === 'ollama' ? 700 : 500,
               cursor: 'pointer',
@@ -643,7 +690,7 @@ export default function AutonomousAgentWorkspace({
               borderRadius: '6px',
               backgroundColor: selectedEngine === 'claude' ? 'rgba(217, 119, 87, 0.22)' : 'transparent',
               border: selectedEngine === 'claude' ? '1px solid rgba(217, 119, 87, 0.4)' : '1px solid transparent',
-              color: selectedEngine === 'claude' ? '#f87171' : '#a1a1aa',
+              color: selectedEngine === 'claude' ? 'var(--danger-color)' : 'var(--text-secondary)',
               fontSize: '11px',
               fontWeight: selectedEngine === 'claude' ? 700 : 500,
               cursor: 'pointer'
@@ -657,9 +704,15 @@ export default function AutonomousAgentWorkspace({
             style={{
               padding: '4px 9px',
               borderRadius: '6px',
-              backgroundColor: selectedEngine === 'chatgpt' ? 'rgba(56, 189, 248, 0.22)' : 'transparent',
-              border: selectedEngine === 'chatgpt' ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid transparent',
-              color: selectedEngine === 'chatgpt' ? '#38bdf8' : '#a1a1aa',
+              backgroundColor:
+                selectedEngine === 'chatgpt'
+                  ? 'color-mix(in srgb, var(--accent-color) 22%, transparent)'
+                  : 'transparent',
+              border:
+                selectedEngine === 'chatgpt'
+                  ? '1px solid color-mix(in srgb, var(--accent-color) 40%, transparent)'
+                  : '1px solid transparent',
+              color: selectedEngine === 'chatgpt' ? 'var(--accent-color)' : 'var(--text-secondary)',
               fontSize: '11px',
               fontWeight: selectedEngine === 'chatgpt' ? 700 : 500,
               cursor: 'pointer'
@@ -675,8 +728,8 @@ export default function AutonomousAgentWorkspace({
         <div
           style={{
             padding: '6px 14px',
-            backgroundColor: '#141416',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+            backgroundColor: 'var(--surface-panel)',
+            borderBottom: '1px solid var(--border-subtle)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -685,14 +738,14 @@ export default function AutonomousAgentWorkspace({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '11px', color: '#71717a' }}>Modèle :</span>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Modèle :</span>
             <select
               value={agentModel}
               onChange={(e) => setAgentModel(e.target.value)}
               style={{
-                backgroundColor: '#27272a',
-                color: '#ffffff',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
+                backgroundColor: 'var(--surface-input)',
+                color: 'var(--text-strong)',
+                border: '1px solid var(--border-strong)',
                 borderRadius: '6px',
                 padding: '2px 8px',
                 fontSize: '11px',
@@ -711,9 +764,15 @@ export default function AutonomousAgentWorkspace({
               onClick={() => setToolsEnabled(!toolsEnabled)}
               title={toolsEnabled ? 'Désactiver les outils (mode conversationnel seul)' : 'Activer les outils de recherche et création'}
               style={{
-                backgroundColor: toolsEnabled ? 'rgba(16, 185, 129, 0.15)' : '#27272a',
-                color: toolsEnabled ? '#34d399' : '#a1a1aa',
-                border: '1px solid ' + (toolsEnabled ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.1)'),
+                backgroundColor: toolsEnabled
+                  ? 'color-mix(in srgb, var(--success-strong) 15%, transparent)'
+                  : 'var(--surface-input)',
+                color: toolsEnabled ? 'var(--success-strong)' : 'var(--text-secondary)',
+                border:
+                  '1px solid ' +
+                  (toolsEnabled
+                    ? 'color-mix(in srgb, var(--success-strong) 30%, transparent)'
+                    : 'var(--border-strong)'),
                 borderRadius: '6px',
                 padding: '2px 8px',
                 fontSize: '11px',
@@ -730,9 +789,15 @@ export default function AutonomousAgentWorkspace({
               }}
               title="Configurer la clé API Ollama Web Search & Web Fetch"
               style={{
-                backgroundColor: ollamaApiKey ? 'rgba(56, 189, 248, 0.15)' : '#27272a',
-                color: ollamaApiKey ? '#38bdf8' : '#a1a1aa',
-                border: '1px solid ' + (ollamaApiKey ? 'rgba(56, 189, 248, 0.3)' : 'rgba(255, 255, 255, 0.1)'),
+                backgroundColor: ollamaApiKey
+                  ? 'color-mix(in srgb, var(--accent-color) 15%, transparent)'
+                  : 'var(--surface-input)',
+                color: ollamaApiKey ? 'var(--accent-color)' : 'var(--text-secondary)',
+                border:
+                  '1px solid ' +
+                  (ollamaApiKey
+                    ? 'color-mix(in srgb, var(--accent-color) 30%, transparent)'
+                    : 'var(--border-strong)'),
                 borderRadius: '6px',
                 padding: '2px 8px',
                 fontSize: '11px',
@@ -743,11 +808,13 @@ export default function AutonomousAgentWorkspace({
               }}
             >
               <span>⚙️ Clé Web</span>
-              {ollamaApiKey ? <span style={{ color: '#34d399', fontSize: '9px' }}>●</span> : null}
+              {ollamaApiKey ? (
+                <span style={{ color: 'var(--success-strong)', fontSize: '9px' }}>●</span>
+              ) : null}
             </button>
           </div>
 
-          <div style={{ fontSize: '11px', color: '#71717a' }}>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
             <span>Contexte : <strong>16 384 tokens</strong></span>
           </div>
         </div>
@@ -759,7 +826,7 @@ export default function AutonomousAgentWorkspace({
           style={{
             position: 'absolute',
             inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backgroundColor: 'var(--overlay-bg)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -770,8 +837,8 @@ export default function AutonomousAgentWorkspace({
         >
           <div
             style={{
-              backgroundColor: '#18181b',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
+              backgroundColor: 'var(--surface-raised)',
+              border: '1px solid var(--border-strong)',
               borderRadius: '12px',
               padding: '20px',
               width: '90%',
@@ -783,24 +850,52 @@ export default function AutonomousAgentWorkspace({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '16px' }}>⚙️</span>
-                <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#f4f4f5' }}>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: 'var(--text-strong)'
+                  }}
+                >
                   Réglages de l’Agent (Clé Web Ollama)
                 </h3>
               </div>
               <button
                 onClick={() => setShowSettingsModal(false)}
-                style={{ background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer', fontSize: '16px' }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '16px'
+                }}
               >
                 ✕
               </button>
             </div>
 
-            <p style={{ fontSize: '12px', color: '#a1a1aa', margin: '0 0 14px 0', lineHeight: 1.5 }}>
+            <p
+              style={{
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                margin: '0 0 14px 0',
+                lineHeight: 1.5
+              }}
+            >
               Cette clé permet à l’Agent d’exécuter les outils <code>web_search</code> et <code>web_fetch</code> via l’API officielle Ollama (<code>https://ollama.com/api/web_search</code>). Elle est stockée de manière sécurisée dans <code>.config.json</code> et n'est jamais exposée en dur.
             </p>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#d4d4d8', marginBottom: '6px' }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  marginBottom: '6px'
+                }}
+              >
                 Clé API Ollama (Bearer Token)
               </label>
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -812,10 +907,10 @@ export default function AutonomousAgentWorkspace({
                   style={{
                     flex: 1,
                     padding: '8px 10px',
-                    backgroundColor: '#27272a',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    backgroundColor: 'var(--surface-input)',
+                    border: '1px solid var(--border-strong)',
                     borderRadius: '6px',
-                    color: '#ffffff',
+                    color: 'var(--text-strong)',
                     fontSize: '12px',
                     fontFamily: 'monospace',
                     outline: 'none'
@@ -826,10 +921,10 @@ export default function AutonomousAgentWorkspace({
                   onClick={() => setShowKeySecret(!showKeySecret)}
                   style={{
                     padding: '0 10px',
-                    backgroundColor: '#27272a',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    backgroundColor: 'var(--surface-input)',
+                    border: '1px solid var(--border-strong)',
                     borderRadius: '6px',
-                    color: '#a1a1aa',
+                    color: 'var(--text-secondary)',
                     cursor: 'pointer',
                     fontSize: '11px'
                   }}
@@ -846,9 +941,9 @@ export default function AutonomousAgentWorkspace({
                 style={{
                   padding: '6px 14px',
                   backgroundColor: 'transparent',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  border: '1px solid var(--border-strong)',
                   borderRadius: '6px',
-                  color: '#d4d4d8',
+                  color: 'var(--text-primary)',
                   fontSize: '12px',
                   cursor: 'pointer'
                 }}
@@ -860,10 +955,10 @@ export default function AutonomousAgentWorkspace({
                 onClick={() => handleSaveApiKey(tempApiKey)}
                 style={{
                   padding: '6px 14px',
-                  backgroundColor: '#10b981',
+                  backgroundColor: 'var(--success-strong)',
                   border: 'none',
                   borderRadius: '6px',
-                  color: '#ffffff',
+                  color: 'var(--text-strong)',
                   fontSize: '12px',
                   fontWeight: 600,
                   cursor: 'pointer'
@@ -881,8 +976,8 @@ export default function AutonomousAgentWorkspace({
         <div
           style={{
             padding: '6px 14px',
-            backgroundColor: 'rgba(245, 158, 11, 0.12)',
-            borderBottom: '1px solid rgba(245, 158, 11, 0.25)',
+            backgroundColor: 'color-mix(in srgb, var(--accent-amber) 12%, transparent)',
+            borderBottom: '1px solid color-mix(in srgb, var(--accent-amber) 25%, transparent)',
             color: '#fbbf24',
             fontSize: '11px',
             display: 'flex',
@@ -899,7 +994,7 @@ export default function AutonomousAgentWorkspace({
               style={{
                 background: 'rgba(255, 255, 255, 0.1)',
                 border: 'none',
-                color: '#ffffff',
+                color: 'var(--text-strong)',
                 padding: '2px 6px',
                 borderRadius: '4px',
                 cursor: 'pointer',
@@ -916,11 +1011,11 @@ export default function AutonomousAgentWorkspace({
       <div
         style={{
           padding: '8px 12px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+          borderBottom: '1px solid var(--border-subtle)',
           display: 'flex',
           gap: '6px',
           overflowX: 'auto',
-          backgroundColor: '#141417'
+          backgroundColor: 'var(--surface-panel)'
         }}
       >
         <button
@@ -928,9 +1023,9 @@ export default function AutonomousAgentWorkspace({
           style={{
             padding: '4px 8px',
             borderRadius: '6px',
-            backgroundColor: 'rgba(16, 185, 129, 0.15)',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
-            color: '#34d399',
+            backgroundColor: 'color-mix(in srgb, var(--success-strong) 15%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--success-strong) 30%, transparent)',
+            color: 'var(--success-strong)',
             fontSize: '11px',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
@@ -947,9 +1042,9 @@ export default function AutonomousAgentWorkspace({
           style={{
             padding: '4px 8px',
             borderRadius: '6px',
-            backgroundColor: 'rgba(56, 189, 248, 0.12)',
-            border: '1px solid rgba(56, 189, 248, 0.25)',
-            color: '#38bdf8',
+            backgroundColor: 'color-mix(in srgb, var(--accent-color) 12%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--accent-color) 25%, transparent)',
+            color: 'var(--accent-color)',
             fontSize: '11px',
             cursor: 'pointer',
             whiteSpace: 'nowrap'
@@ -963,9 +1058,9 @@ export default function AutonomousAgentWorkspace({
           style={{
             padding: '4px 8px',
             borderRadius: '6px',
-            backgroundColor: 'rgba(16, 185, 129, 0.12)',
-            border: '1px solid rgba(16, 185, 129, 0.25)',
-            color: '#34d399',
+            backgroundColor: 'color-mix(in srgb, var(--success-strong) 12%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--success-strong) 25%, transparent)',
+            color: 'var(--success-strong)',
             fontSize: '11px',
             cursor: 'pointer',
             whiteSpace: 'nowrap'
@@ -1000,7 +1095,7 @@ export default function AutonomousAgentWorkspace({
             left: '50%',
             transform: 'translateX(-50%)',
             backgroundColor: '#1e293b',
-            border: '1px solid #38bdf8',
+            border: '1px solid var(--accent-color)',
             color: '#e2e8f0',
             padding: '8px 16px',
             borderRadius: '8px',
@@ -1028,13 +1123,13 @@ export default function AutonomousAgentWorkspace({
           >
             <div
               style={{
-                backgroundColor: m.sender === 'user' ? '#10b981' : '#1e1e24',
-                color: m.sender === 'user' ? '#ffffff' : '#e4e4e7',
+                backgroundColor: m.sender === 'user' ? 'var(--success-strong)' : '#1e1e24',
+                color: m.sender === 'user' ? 'var(--text-strong)' : 'var(--text-primary)',
                 padding: '10px 14px',
                 borderRadius: m.sender === 'user' ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
                 lineHeight: 1.5,
                 fontSize: '12.5px',
-                border: m.sender === 'user' ? 'none' : '1px solid rgba(255, 255, 255, 0.08)',
+                border: m.sender === 'user' ? 'none' : '1px solid var(--border-color)',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
                 wordBreak: 'break-word',
                 whiteSpace: 'pre-wrap'
@@ -1053,12 +1148,12 @@ export default function AutonomousAgentWorkspace({
                         padding: '3px 8px',
                         borderRadius: '6px',
                         backgroundColor: 'rgba(0, 0, 0, 0.25)',
-                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        border: '1px solid var(--border-strong)',
                         fontSize: '11px',
-                        color: '#cbd5e1'
+                        color: 'var(--text-primary)'
                       }}
                     >
-                      <PdfIcon size={12} style={{ color: '#f87171' }} />
+                      <PdfIcon size={12} style={{ color: 'var(--danger-color)' }} />
                       <span style={{ fontWeight: 600 }}>{att.name}</span>
                       {att.pageCount && <span style={{ opacity: 0.7 }}>({att.pageCount} p.)</span>}
                     </div>
@@ -1080,22 +1175,22 @@ export default function AutonomousAgentWorkspace({
                         borderRadius: '6px',
                         backgroundColor:
                           act.status === 'success'
-                            ? 'rgba(16, 185, 129, 0.12)'
+                            ? 'color-mix(in srgb, var(--success-strong) 12%, transparent)'
                             : act.status === 'error'
-                            ? 'rgba(239, 68, 68, 0.12)'
-                            : 'rgba(56, 189, 248, 0.12)',
+                              ? 'color-mix(in srgb, var(--danger-strong) 12%, transparent)'
+                              : 'color-mix(in srgb, var(--accent-color) 12%, transparent)',
                         border:
                           act.status === 'success'
-                            ? '1px solid rgba(16, 185, 129, 0.3)'
+                            ? '1px solid color-mix(in srgb, var(--success-strong) 30%, transparent)'
                             : act.status === 'error'
-                            ? '1px solid rgba(239, 68, 68, 0.3)'
-                            : '1px solid rgba(56, 189, 248, 0.3)',
+                              ? '1px solid color-mix(in srgb, var(--danger-strong) 30%, transparent)'
+                              : '1px solid color-mix(in srgb, var(--accent-color) 30%, transparent)',
                         color:
                           act.status === 'success'
                             ? '#6ee7b7'
                             : act.status === 'error'
-                            ? '#fca5a5'
-                            : '#7dd3fc',
+                              ? 'var(--danger-color)'
+                              : 'var(--accent-color)',
                         fontSize: '11.5px'
                       }}
                     >
@@ -1117,7 +1212,16 @@ export default function AutonomousAgentWorkspace({
               {m.text ? (
                 <div>{m.text}</div>
               ) : isExecuting && idx === messages.length - 1 ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#94a3b8', fontStyle: 'italic', fontSize: '12px' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    color: 'var(--text-secondary)',
+                    fontStyle: 'italic',
+                    fontSize: '12px'
+                  }}
+                >
                   <span style={{ display: 'inline-block', animation: 'spin 1.5s linear infinite' }}>⚙️</span>
                   <span>L'agent analyse ta demande et prépare les outils...</span>
                 </div>
@@ -1125,14 +1229,23 @@ export default function AutonomousAgentWorkspace({
 
               {/* Bouton d'annulation interactif si une note a été créée */}
               {m.undoAvailable && (
-                <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <div
+                  style={{
+                    marginTop: '10px',
+                    paddingTop: '8px',
+                    borderTop: '1px solid var(--border-color)',
+                    display: 'flex',
+                    gap: '8px',
+                    flexWrap: 'wrap'
+                  }}
+                >
                   <button
                     onClick={() => onOpenNote(m.undoAvailable!.path)}
                     style={{
                       padding: '4px 10px',
-                      backgroundColor: 'rgba(56, 189, 248, 0.15)',
-                      border: '1px solid rgba(56, 189, 248, 0.35)',
-                      color: '#38bdf8',
+                      backgroundColor: 'color-mix(in srgb, var(--accent-color) 15%, transparent)',
+                      border: '1px solid color-mix(in srgb, var(--accent-color) 35%, transparent)',
+                      color: 'var(--accent-color)',
                       borderRadius: '6px',
                       fontSize: '11px',
                       cursor: 'pointer',
@@ -1147,9 +1260,9 @@ export default function AutonomousAgentWorkspace({
                     onClick={handleUndo}
                     style={{
                       padding: '4px 10px',
-                      backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                      border: '1px solid rgba(239, 68, 68, 0.35)',
-                      color: '#f87171',
+                      backgroundColor: 'color-mix(in srgb, var(--danger-strong) 15%, transparent)',
+                      border: '1px solid color-mix(in srgb, var(--danger-strong) 35%, transparent)',
+                      color: 'var(--danger-color)',
                       borderRadius: '6px',
                       fontSize: '11px',
                       cursor: 'pointer',
@@ -1163,7 +1276,14 @@ export default function AutonomousAgentWorkspace({
                 </div>
               )}
             </div>
-            <span style={{ fontSize: '10px', color: '#71717a', marginTop: '3px', padding: '0 4px' }}>
+            <span
+              style={{
+                fontSize: '10px',
+                color: 'var(--text-muted)',
+                marginTop: '3px',
+                padding: '0 4px'
+              }}
+            >
               {m.timestamp}
             </span>
           </div>
@@ -1176,9 +1296,9 @@ export default function AutonomousAgentWorkspace({
               alignItems: 'center',
               gap: '8px',
               padding: '8px 12px',
-              backgroundColor: '#202024',
+              backgroundColor: 'var(--surface-control)',
               borderRadius: '8px',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
+              border: '1px solid color-mix(in srgb, var(--success-strong) 30%, transparent)',
               width: 'fit-content'
             }}
           >
@@ -1187,12 +1307,12 @@ export default function AutonomousAgentWorkspace({
                 width: '8px',
                 height: '8px',
                 borderRadius: '50%',
-                backgroundColor: '#10b981',
+                backgroundColor: 'var(--success-strong)',
                 boxShadow: '0 0 8px rgba(16, 185, 129, 0.7)',
                 display: 'inline-block'
               }}
             />
-            <span style={{ fontSize: '12px', color: '#a1a1aa' }}>
+            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
               {statusText} {elapsedSeconds > 0 ? `(${elapsedSeconds}s)` : ''}
             </span>
           </div>
@@ -1205,8 +1325,8 @@ export default function AutonomousAgentWorkspace({
         <div
           style={{
             padding: '6px 12px',
-            backgroundColor: '#18181b',
-            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+            backgroundColor: 'var(--surface-raised)',
+            borderTop: '1px solid var(--border-color)',
             display: 'flex',
             flexWrap: 'wrap',
             gap: '6px'
@@ -1221,13 +1341,13 @@ export default function AutonomousAgentWorkspace({
                 gap: '6px',
                 padding: '4px 9px',
                 borderRadius: '6px',
-                backgroundColor: 'rgba(16, 185, 129, 0.15)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                color: '#34d399',
+                backgroundColor: 'color-mix(in srgb, var(--success-strong) 15%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--success-strong) 30%, transparent)',
+                color: 'var(--success-strong)',
                 fontSize: '11.5px'
               }}
             >
-              <PdfIcon size={13} style={{ color: '#f87171' }} />
+              <PdfIcon size={13} style={{ color: 'var(--danger-color)' }} />
               <span style={{ maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {att.name}
               </span>
@@ -1237,7 +1357,7 @@ export default function AutonomousAgentWorkspace({
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#a1a1aa',
+                  color: 'var(--text-secondary)',
                   cursor: 'pointer',
                   padding: '1px',
                   display: 'flex',
@@ -1252,7 +1372,13 @@ export default function AutonomousAgentWorkspace({
       )}
 
       {/* Zone de Saisie */}
-      <div style={{ padding: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', backgroundColor: '#18181b' }}>
+      <div
+        style={{
+          padding: '12px',
+          borderTop: '1px solid var(--border-color)',
+          backgroundColor: 'var(--surface-raised)'
+        }}
+      >
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -1267,10 +1393,10 @@ export default function AutonomousAgentWorkspace({
             title="Joindre un PDF ou fichier document"
             style={{
               padding: '8px',
-              backgroundColor: '#27272a',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              backgroundColor: 'var(--surface-input)',
+              border: '1px solid var(--border-strong)',
               borderRadius: '8px',
-              color: '#a1a1aa',
+              color: 'var(--text-secondary)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -1293,11 +1419,11 @@ export default function AutonomousAgentWorkspace({
             disabled={isExecuting}
             style={{
               flex: 1,
-              backgroundColor: '#27272a',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              backgroundColor: 'var(--surface-input)',
+              border: '1px solid var(--border-strong)',
               borderRadius: '8px',
               padding: '8px 12px',
-              color: '#ffffff',
+              color: 'var(--text-strong)',
               fontSize: '12.5px',
               outline: 'none'
             }}
@@ -1311,10 +1437,10 @@ export default function AutonomousAgentWorkspace({
               style={{
                 padding: '0 12px',
                 height: '34px',
-                backgroundColor: '#dc2626',
+                backgroundColor: 'var(--danger-strong)',
                 border: 'none',
                 borderRadius: '8px',
-                color: '#ffffff',
+                color: 'var(--text-strong)',
                 cursor: 'pointer',
                 fontSize: '11px',
                 fontWeight: 600
@@ -1329,10 +1455,13 @@ export default function AutonomousAgentWorkspace({
               style={{
                 padding: '0 12px',
                 height: '34px',
-                backgroundColor: !inputValue.trim() && attachments.length === 0 ? '#3f3f46' : '#10b981',
+                backgroundColor:
+                  !inputValue.trim() && attachments.length === 0
+                    ? 'var(--border-strong)'
+                    : 'var(--success-strong)',
                 border: 'none',
                 borderRadius: '8px',
-                color: '#ffffff',
+                color: 'var(--text-strong)',
                 cursor: !inputValue.trim() && attachments.length === 0 ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',

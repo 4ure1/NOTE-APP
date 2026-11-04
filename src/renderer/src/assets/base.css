@@ -26,6 +26,20 @@
   --border-strong: #3e3e42; /* = --border du thème des notes */
   --border-input: rgba(255, 255, 255, 0.28); /* contour de champ, 3:1 (WCAG 1.4.11) */
 
+  /* Surfaces des composants (modales, panneaux, champs), du plus creux au plus en relief */
+  --surface-sunken: #161617;
+  --surface-panel: #1f1f20;
+  --surface-raised: #252526;
+  --surface-control: #2a2a2c;
+  --surface-input: #303033;
+  --overlay-bg: rgba(0, 0, 0, 0.72); /* fond derrière une fenêtre modale */
+
+  --text-strong: #f4f2ed;
+  --accent-strong: #3a6fd8; /* bouton principal, texte blanc 4,7:1 */
+  --danger-strong: #e5484d;
+  --success-color: #4ade80;
+  --success-strong: #2fb67c;
+
   --font-ui: 'Atkinson Hyperlegible Next', 'Segoe UI', system-ui, sans-serif;
   --font-title: 'Newsreader', Georgia, serif;
   --font-mono: Consolas, 'Cascadia Code', 'Courier New', monospace;

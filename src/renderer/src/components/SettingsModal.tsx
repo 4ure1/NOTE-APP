@@ -209,7 +209,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        backgroundColor: 'var(--overlay-bg)',
         backdropFilter: 'blur(8px)',
         display: 'flex',
         justifyContent: 'center',
@@ -231,8 +231,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         aria-labelledby="settings-modal-title"
         tabIndex={-1}
         style={{
-          backgroundColor: '#18181b',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          backgroundColor: 'var(--surface-raised)',
+          border: '1px solid var(--border-strong)',
           borderRadius: '14px',
           width: '900px',
           maxWidth: '94vw',
@@ -241,7 +241,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           display: 'flex',
           flexDirection: 'column',
           boxShadow: '0 25px 60px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.05)',
-          color: '#ffffff',
+          color: 'var(--text-strong)',
           overflow: 'hidden'
         }}
       >
@@ -249,11 +249,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         <div
           style={{
             padding: '16px 22px',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            borderBottom: '1px solid var(--border-color)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            background: '#141417'
+            background: 'var(--surface-panel)'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -262,12 +262,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 width: '34px',
                 height: '34px',
                 borderRadius: '8px',
-                backgroundColor: 'rgba(56, 189, 248, 0.15)',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
+                backgroundColor: 'color-mix(in srgb, var(--accent-color) 15%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--accent-color) 30%, transparent)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#38bdf8'
+                color: 'var(--accent-color)'
               }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -282,7 +282,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               >
                 Paramètres & Aide
               </h2>
-              <p style={{ margin: 0, fontSize: '12px', color: '#a1a1aa' }}>
+              <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
                 Personnalisation de l'application, raccourcis et guide des snippets
               </p>
             </div>
@@ -297,7 +297,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#a1a1aa',
+              color: 'var(--text-secondary)',
               fontSize: '20px',
               cursor: 'pointer',
               borderRadius: '6px',
@@ -310,11 +310,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'
-              e.currentTarget.style.color = '#fff'
+              e.currentTarget.style.color = 'var(--text-strong)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent'
-              e.currentTarget.style.color = '#a1a1aa'
+              e.currentTarget.style.color = 'var(--text-secondary)'
             }}
           >
             <span aria-hidden="true">✕</span>
@@ -327,8 +327,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <div
             style={{
               width: '210px',
-              borderRight: '1px solid rgba(255, 255, 255, 0.08)',
-              backgroundColor: '#141416',
+              borderRight: '1px solid var(--border-color)',
+              backgroundColor: 'var(--surface-panel)',
               padding: '12px 8px',
               display: 'flex',
               flexDirection: 'column',
@@ -353,9 +353,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     justifyContent: 'space-between',
                     padding: '9px 12px',
                     borderRadius: '8px',
-                    background: isActive ? 'rgba(56, 189, 248, 0.12)' : 'transparent',
+                    background: isActive
+                      ? 'color-mix(in srgb, var(--accent-color) 12%, transparent)'
+                      : 'transparent',
                     border: 'none',
-                    color: isActive ? '#38bdf8' : '#a1a1aa',
+                    color: isActive ? 'var(--accent-color)' : 'var(--text-secondary)',
                     fontWeight: isActive ? 600 : 500,
                     fontSize: '13px',
                     cursor: 'pointer',
@@ -377,8 +379,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <span
                       style={{
                         fontSize: '11px',
-                        background: isActive ? 'rgba(56, 189, 248, 0.25)' : '#27272a',
-                        color: isActive ? '#38bdf8' : '#71717a',
+                        background: isActive
+                          ? 'color-mix(in srgb, var(--accent-color) 25%, transparent)'
+                          : 'var(--surface-input)',
+                        color: isActive ? 'var(--accent-color)' : 'var(--text-muted)',
                         padding: '1px 6px',
                         borderRadius: '10px'
                       }}
@@ -398,33 +402,61 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div>
                 <div style={{ marginBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <h3 style={{ margin: '0 0 4px', fontSize: '16px', color: '#38bdf8' }}>
+                    <h3
+                      style={{ margin: '0 0 4px', fontSize: '16px', color: 'var(--accent-color)' }}
+                    >
                       Catalogue des Snippets ({snippets.length})
                     </h3>
                     <span
                       style={{
                         fontSize: '11px',
-                        background: '#27272a',
-                        color: '#d4d4d8',
+                        background: 'var(--surface-input)',
+                        color: 'var(--text-primary)',
                         padding: '3px 8px',
                         borderRadius: '6px'
                       }}
                     >
-                      Déclencheur : <strong style={{ color: '#38bdf8' }}>/</strong>
+                      Déclencheur : <strong style={{ color: 'var(--accent-color)' }}>/</strong>
                     </span>
                   </div>
-                  <p style={{ margin: '0 0 12px', fontSize: '12.5px', color: '#a1a1aa', lineHeight: 1.5 }}>
-                    Tapez <code style={{ color: '#f59e0b', background: '#27272a', padding: '1px 4px', borderRadius: 3 }}>/</code>{' '}
+                  <p
+                    style={{
+                      margin: '0 0 12px',
+                      fontSize: '12.5px',
+                      color: 'var(--text-secondary)',
+                      lineHeight: 1.5
+                    }}
+                  >
+                    Tapez{' '}
+                    <code
+                      style={{
+                        color: 'var(--accent-amber)',
+                        background: 'var(--surface-input)',
+                        padding: '1px 4px',
+                        borderRadius: 3
+                      }}
+                    >
+                      /
+                    </code>{' '}
                     dans l'éditeur pour ouvrir la palette instantanée. Utilisez{' '}
-                    <code style={{ color: '#38bdf8', background: '#27272a', padding: '1px 4px', borderRadius: 3 }}>Tab</code>{' '}
+                    <code
+                      style={{
+                        color: 'var(--accent-color)',
+                        background: 'var(--surface-input)',
+                        padding: '1px 4px',
+                        borderRadius: 3
+                      }}
+                    >
+                      Tab
+                    </code>{' '}
                     pour naviguer entre les champs modifiables.
                   </p>
 
                   {/* ASTUCE SUR LE FICHIER DU COFFRE */}
                   <div
                     style={{
-                      background: 'rgba(56, 189, 248, 0.08)',
-                      border: '1px solid rgba(56, 189, 248, 0.2)',
+                      background: 'color-mix(in srgb, var(--accent-color) 8%, transparent)',
+                      border: '1px solid color-mix(in srgb, var(--accent-color) 20%, transparent)',
                       borderRadius: '8px',
                       padding: '10px 14px',
                       fontSize: '12px',
@@ -446,9 +478,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             .catch((err) => notifyApiError("Affichage dans l'Explorateur", err))
                         }
                         style={{
-                          background: 'rgba(56, 189, 248, 0.2)',
+                          background: 'color-mix(in srgb, var(--accent-color) 20%, transparent)',
                           border: 'none',
-                          color: '#38bdf8',
+                          color: 'var(--accent-color)',
                           padding: '4px 8px',
                           borderRadius: '4px',
                           fontSize: '11px',
@@ -472,25 +504,37 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       style={{
                         flex: 1,
                         minWidth: '220px',
-                        background: '#202024',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        background: 'var(--surface-control)',
+                        border: '1px solid var(--border-strong)',
                         borderRadius: '6px',
                         padding: '6px 12px',
-                        color: '#fff',
+                        color: 'var(--text-strong)',
                         fontSize: '12.5px',
                         outline: 'none'
                       }}
                     />
 
                     {/* Filtre de Scope */}
-                    <div style={{ display: 'flex', background: '#202024', borderRadius: '6px', padding: '2px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        background: 'var(--surface-control)',
+                        borderRadius: '6px',
+                        padding: '2px',
+                        border: '1px solid var(--border-strong)'
+                      }}
+                    >
                       {(['all', 'html', 'markdown'] as const).map((sc) => (
                         <button
                           key={sc}
                           onClick={() => setSnippetScopeFilter(sc)}
                           style={{
-                            background: snippetScopeFilter === sc ? '#38bdf8' : 'transparent',
-                            color: snippetScopeFilter === sc ? '#09090b' : '#a1a1aa',
+                            background:
+                              snippetScopeFilter === sc ? 'var(--accent-color)' : 'transparent',
+                            color:
+                              snippetScopeFilter === sc
+                                ? 'var(--surface-sunken)'
+                                : 'var(--text-secondary)',
                             border: 'none',
                             padding: '4px 10px',
                             borderRadius: '4px',
@@ -510,10 +554,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       value={snippetCategoryFilter}
                       onChange={(e) => setSnippetCategoryFilter(e.target.value)}
                       style={{
-                        background: '#202024',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        background: 'var(--surface-control)',
+                        border: '1px solid var(--border-strong)',
                         borderRadius: '6px',
-                        color: '#a1a1aa',
+                        color: 'var(--text-secondary)',
                         fontSize: '12px',
                         padding: '6px 10px',
                         outline: 'none',
@@ -533,7 +577,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 {/* LISTE DES SNIPPETS */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '380px', overflowY: 'auto' }}>
                   {filteredSnippets.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '30px', color: '#71717a', fontSize: '13px' }}>
+                    <div
+                      style={{
+                        textAlign: 'center',
+                        padding: '30px',
+                        color: 'var(--text-muted)',
+                        fontSize: '13px'
+                      }}
+                    >
                       Aucun snippet ne correspond aux filtres.
                     </div>
                   ) : (
@@ -546,8 +597,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         <div
                           key={s.prefix + s.name}
                           style={{
-                            background: '#202024',
-                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            background: 'var(--surface-control)',
+                            border: '1px solid var(--border-color)',
                             borderRadius: '8px',
                             padding: '10px 14px',
                             transition: 'border-color 0.15s'
@@ -560,9 +611,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 onClick={() => handleCopyPrefix(s.prefix)}
                                 title="Cliquer pour copier le préfixe"
                                 style={{
-                                  background: isCopied ? '#22c55e' : '#27272a',
-                                  color: isCopied ? '#fff' : '#f59e0b',
-                                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                                  background: isCopied
+                                    ? 'var(--success-strong)'
+                                    : 'var(--surface-input)',
+                                  color: isCopied ? 'var(--text-strong)' : 'var(--accent-amber)',
+                                  border: '1px solid var(--border-color)',
                                   borderRadius: '4px',
                                   padding: '3px 8px',
                                   fontFamily: 'Consolas, monospace',
@@ -580,10 +633,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                               {/* Nom et description */}
                               <div style={{ minWidth: 0 }}>
-                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#f4f4f5' }}>
+                                <div
+                                  style={{
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    color: 'var(--text-strong)'
+                                  }}
+                                >
                                   {s.name}
                                 </div>
-                                <div style={{ fontSize: '11.5px', color: '#a1a1aa' }}>
+                                <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>
                                   {s.description}
                                 </div>
                               </div>
@@ -609,8 +668,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                               <span
                                 style={{
                                   fontSize: '10.5px',
-                                  color: s.scope === 'html' ? '#60a5fa' : s.scope === 'markdown' ? '#fb923c' : '#a1a1aa',
-                                  background: '#27272a',
+                                  color:
+                                    s.scope === 'html'
+                                      ? '#60a5fa'
+                                      : s.scope === 'markdown'
+                                        ? '#fb923c'
+                                        : 'var(--text-secondary)',
+                                  background: 'var(--surface-input)',
                                   padding: '2px 6px',
                                   borderRadius: '4px',
                                   fontWeight: 500
@@ -625,7 +689,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 style={{
                                   background: 'transparent',
                                   border: 'none',
-                                  color: '#a1a1aa',
+                                  color: 'var(--text-secondary)',
                                   fontSize: '11px',
                                   cursor: 'pointer',
                                   padding: '3px 6px',
@@ -642,12 +706,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             <pre
                               style={{
                                 marginTop: '10px',
-                                background: '#121214',
-                                border: '1px solid rgba(255,255,255,0.06)',
+                                background: 'var(--surface-panel)',
+                                border: '1px solid var(--border-color)',
                                 borderRadius: '6px',
                                 padding: '10px',
                                 fontSize: '11px',
-                                color: '#d4d4d8',
+                                color: 'var(--text-primary)',
                                 overflowX: 'auto',
                                 maxHeight: '180px',
                                 whiteSpace: 'pre-wrap'
@@ -668,8 +732,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             {activeTab === 'shortcuts' && (
               <div>
                 <div style={{ marginBottom: '16px' }}>
-                  <h3 style={{ margin: '0 0 4px', fontSize: '16px', color: '#38bdf8' }}>Raccourcis clavier</h3>
-                  <p style={{ margin: 0, fontSize: '12.5px', color: '#a1a1aa' }}>
+                  <h3 style={{ margin: '0 0 4px', fontSize: '16px', color: 'var(--accent-color)' }}>
+                    Raccourcis clavier
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--text-secondary)' }}>
                     Configurez vos touches d'accès rapide. Cliquez sur Modifier puis appuyez sur la combinaison souhaitée.
                   </p>
                 </div>
@@ -683,8 +749,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '10px 14px',
-                        backgroundColor: '#202024',
-                        border: '1px solid rgba(255,255,255,0.06)',
+                        backgroundColor: 'var(--surface-control)',
+                        border: '1px solid var(--border-color)',
                         borderRadius: '8px'
                       }}
                     >
@@ -700,9 +766,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           })
                         }}
                         style={{
-                          backgroundColor: '#18181b',
-                          color: '#f4f4f5',
-                          border: '1px solid rgba(255,255,255,0.1)',
+                          backgroundColor: 'var(--surface-raised)',
+                          color: 'var(--text-strong)',
+                          border: '1px solid var(--border-strong)',
                           borderRadius: '6px',
                           padding: '6px 10px',
                           fontSize: '12.5px',
@@ -720,9 +786,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span
                           style={{
-                            backgroundColor: recordingUuid === s.uuid ? '#38bdf8' : '#141416',
-                            color: recordingUuid === s.uuid ? '#09090b' : '#f4f4f5',
-                            border: `1px solid ${recordingUuid === s.uuid ? '#38bdf8' : 'rgba(255,255,255,0.1)'}`,
+                            backgroundColor:
+                              recordingUuid === s.uuid
+                                ? 'var(--accent-color)'
+                                : 'var(--surface-panel)',
+                            color:
+                              recordingUuid === s.uuid
+                                ? 'var(--surface-sunken)'
+                                : 'var(--text-strong)',
+                            border: `1px solid ${recordingUuid === s.uuid ? 'var(--accent-color)' : 'var(--border-strong)'}`,
                             borderRadius: '6px',
                             padding: '5px 12px',
                             fontFamily: 'monospace',
@@ -738,9 +810,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         <button
                           onClick={() => setRecordingUuid(s.uuid)}
                           style={{
-                            backgroundColor: '#27272a',
-                            color: '#fff',
-                            border: '1px solid rgba(255,255,255,0.08)',
+                            backgroundColor: 'var(--surface-input)',
+                            color: 'var(--text-strong)',
+                            border: '1px solid var(--border-color)',
                             borderRadius: '6px',
                             padding: '6px 12px',
                             fontSize: '12px',
@@ -761,8 +833,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           }}
                           style={{
                             backgroundColor: 'transparent',
-                            color: '#ef4444',
-                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            color: 'var(--danger-strong)',
+                            border:
+                              '1px solid color-mix(in srgb, var(--danger-strong) 30%, transparent)',
                             borderRadius: '6px',
                             padding: '6px 10px',
                             fontSize: '12px',
@@ -793,9 +866,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       setRecordingUuid(newUuid)
                     }}
                     style={{
-                      backgroundColor: '#27272a',
-                      color: '#38bdf8',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      backgroundColor: 'var(--surface-input)',
+                      color: 'var(--accent-color)',
+                      border: '1px solid color-mix(in srgb, var(--accent-color) 30%, transparent)',
                       borderRadius: '6px',
                       padding: '8px 14px',
                       fontSize: '12.5px',
@@ -815,8 +888,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     }}
                     style={{
                       backgroundColor: 'transparent',
-                      color: '#a1a1aa',
-                      border: '1px solid rgba(255,255,255,0.1)',
+                      color: 'var(--text-secondary)',
+                      border: '1px solid var(--border-strong)',
                       borderRadius: '6px',
                       padding: '8px 14px',
                       fontSize: '12.5px',
@@ -833,15 +906,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             {activeTab === 'ai' && (
               <div>
                 <div style={{ marginBottom: '20px' }}>
-                  <h3 style={{ margin: '0 0 4px', fontSize: '16px', color: '#38bdf8' }}>Intelligence Artificielle</h3>
-                  <p style={{ margin: 0, fontSize: '12.5px', color: '#a1a1aa' }}>
+                  <h3 style={{ margin: '0 0 4px', fontSize: '16px', color: 'var(--accent-color)' }}>
+                    Intelligence Artificielle
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--text-secondary)' }}>
                     Configurez l'IA principale et les paramètres de votre agent local Ollama.
                   </p>
                 </div>
 
                 {/* Sélecteur d'IA principale */}
-                <div style={{ background: '#202024', padding: '16px', borderRadius: '8px', marginBottom: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: '#f4f4f5' }}>
+                <div
+                  style={{
+                    background: 'var(--surface-control)',
+                    padding: '16px',
+                    borderRadius: '8px',
+                    marginBottom: '16px',
+                    border: '1px solid var(--border-color)'
+                  }}
+                >
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      marginBottom: '8px',
+                      color: 'var(--text-strong)'
+                    }}
+                  >
                     Assistant IA actif par défaut
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
@@ -855,34 +946,53 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         key={item.id}
                         onClick={() => onSelectAI(item.id as any)}
                         style={{
-                          background: activeAI === item.id ? 'rgba(56, 189, 248, 0.15)' : '#18181b',
-                          border: `1px solid ${activeAI === item.id ? '#38bdf8' : 'rgba(255,255,255,0.08)'}`,
+                          background:
+                            activeAI === item.id
+                              ? 'color-mix(in srgb, var(--accent-color) 15%, transparent)'
+                              : 'var(--surface-raised)',
+                          border: `1px solid ${activeAI === item.id ? 'var(--accent-color)' : 'var(--border-color)'}`,
                           borderRadius: '8px',
                           padding: '10px',
                           textAlign: 'left',
                           cursor: 'pointer',
-                          color: activeAI === item.id ? '#38bdf8' : '#e4e4e7'
+                          color:
+                            activeAI === item.id ? 'var(--accent-color)' : 'var(--text-primary)'
                         }}
                       >
                         <div style={{ fontWeight: 600, fontSize: '13px' }}>{item.label}</div>
-                        <div style={{ fontSize: '11px', color: '#71717a' }}>{item.desc}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          {item.desc}
+                        </div>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {/* Configuration Ollama */}
-                <div style={{ background: '#202024', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div
+                  style={{
+                    background: 'var(--surface-control)',
+                    padding: '16px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)'
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                    <h4 style={{ margin: 0, fontSize: '14px', color: '#f4f4f5' }}>Backend Local Ollama</h4>
+                    <h4 style={{ margin: 0, fontSize: '14px', color: 'var(--text-strong)' }}>
+                      Backend Local Ollama
+                    </h4>
                     <span
                       style={{
                         fontSize: '11px',
                         padding: '2px 8px',
                         borderRadius: '10px',
-                        background: ollamaStatus?.online ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                        color: ollamaStatus?.online ? '#4ade80' : '#f87171',
-                        border: `1px solid ${ollamaStatus?.online ? '#22c55e' : '#ef4444'}`
+                        background: ollamaStatus?.online
+                          ? 'color-mix(in srgb, var(--success-strong) 15%, transparent)'
+                          : 'color-mix(in srgb, var(--danger-strong) 15%, transparent)',
+                        color: ollamaStatus?.online
+                          ? 'var(--success-color)'
+                          : 'var(--danger-color)',
+                        border: `1px solid ${ollamaStatus?.online ? 'var(--success-strong)' : 'var(--danger-strong)'}`
                       }}
                     >
                       {ollamaStatus?.online ? '● Connecté (localhost:11434)' : '○ Non détecté'}
@@ -896,7 +1006,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       style={{
                         display: 'block',
                         fontSize: '12px',
-                        color: '#a1a1aa',
+                        color: 'var(--text-secondary)',
                         marginBottom: '4px'
                       }}
                     >
@@ -910,11 +1020,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       placeholder="qwen2.5:7b-instruct, qwen3:8b, hermes3:8b..."
                       style={{
                         width: '100%',
-                        background: '#18181b',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        background: 'var(--surface-raised)',
+                        border: '1px solid var(--border-strong)',
                         borderRadius: '6px',
                         padding: '8px 12px',
-                        color: '#fff',
+                        color: 'var(--text-strong)',
                         fontSize: '13px',
                         outline: 'none',
                         boxSizing: 'border-box'
@@ -929,7 +1039,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       style={{
                         display: 'block',
                         fontSize: '12px',
-                        color: '#a1a1aa',
+                        color: 'var(--text-secondary)',
                         marginBottom: '4px'
                       }}
                     >
@@ -944,11 +1054,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         placeholder="dbe4d585..."
                         style={{
                           flex: 1,
-                          background: '#18181b',
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          background: 'var(--surface-raised)',
+                          border: '1px solid var(--border-strong)',
                           borderRadius: '6px',
                           padding: '8px 12px',
-                          color: '#fff',
+                          color: 'var(--text-strong)',
                           fontSize: '13px',
                           outline: 'none'
                         }}
@@ -956,8 +1066,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       <button
                         onClick={handleSaveApiKey}
                         style={{
-                          background: isApiKeySaved ? '#22c55e' : '#38bdf8',
-                          color: '#09090b',
+                          background: isApiKeySaved
+                            ? 'var(--success-strong)'
+                            : 'var(--accent-color)',
+                          color: 'var(--surface-sunken)',
                           border: 'none',
                           borderRadius: '6px',
                           padding: '8px 16px',
@@ -970,7 +1082,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         {isApiKeySaved ? 'Enregistré ✓' : 'Sauvegarder'}
                       </button>
                     </div>
-                    <span style={{ fontSize: '11px', color: '#71717a', marginTop: '4px', display: 'block' }}>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        color: 'var(--text-muted)',
+                        marginTop: '4px',
+                        display: 'block'
+                      }}
+                    >
                       Note : Si la clé n'a plus de crédits (code 402), l'agent bascule automatiquement sur le moteur web public sans bloquer.
                     </span>
                   </div>
@@ -982,15 +1101,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             {activeTab === 'editor' && (
               <div>
                 <div style={{ marginBottom: '20px' }}>
-                  <h3 style={{ margin: '0 0 4px', fontSize: '16px', color: '#38bdf8' }}>Éditeur & Coffre</h3>
-                  <p style={{ margin: 0, fontSize: '12.5px', color: '#a1a1aa' }}>
+                  <h3 style={{ margin: '0 0 4px', fontSize: '16px', color: 'var(--accent-color)' }}>
+                    Éditeur & Coffre
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--text-secondary)' }}>
                     Préférences d'affichage et gestion des notes.
                   </p>
                 </div>
 
                 {/* Mode d'affichage par défaut */}
-                <div style={{ background: '#202024', padding: '16px', borderRadius: '8px', marginBottom: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: '#f4f4f5' }}>
+                <div
+                  style={{
+                    background: 'var(--surface-control)',
+                    padding: '16px',
+                    borderRadius: '8px',
+                    marginBottom: '16px',
+                    border: '1px solid var(--border-color)'
+                  }}
+                >
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      marginBottom: '8px',
+                      color: 'var(--text-strong)'
+                    }}
+                  >
                     Disposition de l'éditeur
                   </label>
                   <div style={{ display: 'flex', gap: '10px' }}>
@@ -1005,10 +1142,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         style={{
                           flex: 1,
                           padding: '10px',
-                          background: editorMode === mode.id ? 'rgba(56, 189, 248, 0.15)' : '#18181b',
-                          border: `1px solid ${editorMode === mode.id ? '#38bdf8' : 'rgba(255,255,255,0.08)'}`,
+                          background:
+                            editorMode === mode.id
+                              ? 'color-mix(in srgb, var(--accent-color) 15%, transparent)'
+                              : 'var(--surface-raised)',
+                          border: `1px solid ${editorMode === mode.id ? 'var(--accent-color)' : 'var(--border-color)'}`,
                           borderRadius: '6px',
-                          color: editorMode === mode.id ? '#38bdf8' : '#a1a1aa',
+                          color:
+                            editorMode === mode.id
+                              ? 'var(--accent-color)'
+                              : 'var(--text-secondary)',
                           fontSize: '12.5px',
                           fontWeight: editorMode === mode.id ? 600 : 500,
                           cursor: 'pointer'
@@ -1021,28 +1164,64 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
 
                 {/* Zoom */}
-                <div style={{ background: '#202024', padding: '16px', borderRadius: '8px', marginBottom: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div
+                  style={{
+                    background: 'var(--surface-control)',
+                    padding: '16px',
+                    borderRadius: '8px',
+                    marginBottom: '16px',
+                    border: '1px solid var(--border-color)'
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#f4f4f5' }}>Niveau de zoom de l'éditeur</div>
-                      <div style={{ fontSize: '11.5px', color: '#71717a' }}>Actuel : {zoomLevel}%</div>
+                      <div
+                        style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-strong)' }}
+                      >
+                        Niveau de zoom de l’éditeur
+                      </div>
+                      <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                        Actuel : {zoomLevel}%
+                      </div>
                     </div>
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <button
                         onClick={() => onSetZoomLevel(Math.max(50, zoomLevel - 10))}
-                        style={{ background: '#27272a', border: 'none', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer' }}
+                        style={{
+                          background: 'var(--surface-input)',
+                          border: 'none',
+                          color: 'var(--text-strong)',
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          cursor: 'pointer'
+                        }}
                       >
                         -
                       </button>
                       <button
                         onClick={() => onSetZoomLevel(100)}
-                        style={{ background: '#27272a', border: 'none', color: '#38bdf8', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
+                        style={{
+                          background: 'var(--surface-input)',
+                          border: 'none',
+                          color: 'var(--accent-color)',
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
                       >
                         100%
                       </button>
                       <button
                         onClick={() => onSetZoomLevel(Math.min(250, zoomLevel + 10))}
-                        style={{ background: '#27272a', border: 'none', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer' }}
+                        style={{
+                          background: 'var(--surface-input)',
+                          border: 'none',
+                          color: 'var(--text-strong)',
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          cursor: 'pointer'
+                        }}
                       >
                         +
                       </button>
@@ -1051,11 +1230,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
 
                 {/* Gestion du coffre */}
-                <div style={{ background: '#202024', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#f4f4f5', marginBottom: '4px' }}>
+                <div
+                  style={{
+                    background: 'var(--surface-control)',
+                    padding: '16px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)'
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: 'var(--text-strong)',
+                      marginBottom: '4px'
+                    }}
+                  >
                     Dossier Vault / Notes
                   </div>
-                  <div style={{ fontSize: '12px', color: '#a1a1aa', marginBottom: '12px' }}>
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: 'var(--text-secondary)',
+                      marginBottom: '12px'
+                    }}
+                  >
                     {notesCount} note(s) dans la base.
                   </div>
                   <button
@@ -1066,9 +1265,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       }
                     }}
                     style={{
-                      background: 'rgba(239, 68, 68, 0.1)',
-                      border: '1px solid rgba(239, 68, 68, 0.3)',
-                      color: '#ef4444',
+                      background: 'color-mix(in srgb, var(--danger-strong) 10%, transparent)',
+                      border: '1px solid color-mix(in srgb, var(--danger-strong) 30%, transparent)',
+                      color: 'var(--danger-strong)',
                       padding: '8px 14px',
                       borderRadius: '6px',
                       fontSize: '12px',
@@ -1091,45 +1290,60 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       width: '54px',
                       height: '54px',
                       borderRadius: '16px',
-                      background: 'linear-gradient(135deg, #38bdf8, #818cf8)',
+                      background: 'linear-gradient(135deg, var(--accent-color), #818cf8)',
                       margin: '0 auto 12px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: '24px',
                       fontWeight: 'bold',
-                      color: '#09090b',
+                      color: 'var(--surface-sunken)',
                       boxShadow: '0 8px 24px rgba(56, 189, 248, 0.35)'
                     }}
                   >
                     N
                   </div>
                   <h3 style={{ margin: '0 0 4px', fontSize: '18px' }}>NOTE-APP Desktop</h3>
-                  <div style={{ fontSize: '12px', color: '#71717a' }}>Version 1.0.0 (Production)</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Version 1.0.0 (Production)
+                  </div>
                 </div>
 
                 <div
                   style={{
-                    background: '#202024',
-                    border: '1px solid rgba(255,255,255,0.06)',
+                    background: 'var(--surface-control)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
                     padding: '16px',
                     fontSize: '12.5px',
                     lineHeight: 1.6,
-                    color: '#d4d4d8',
+                    color: 'var(--text-primary)',
                     marginTop: '20px'
                   }}
                 >
                   <p style={{ margin: '0 0 10px' }}>
                     <strong>NOTE-APP</strong> est un espace de travail personnel pour la prise de notes, l'étude et la programmation :
                   </p>
-                  <ul style={{ margin: '0 0 10px', paddingLeft: '20px', color: '#a1a1aa' }}>
+                  <ul
+                    style={{
+                      margin: '0 0 10px',
+                      paddingLeft: '20px',
+                      color: 'var(--text-secondary)'
+                    }}
+                  >
                     <li>Éditeur bimodal : <strong>Monaco Editor</strong> pour l'HTML / CSS et <strong>Markdown</strong> avec aperçu synchronisé.</li>
                     <li>Moteur de snippets VS Code & Obsidian avec navigation complète au clavier (<kbd>Tab</kbd> / <kbd>Shift+Tab</kbd>).</li>
                     <li>Agent IA autonome local branché sur Ollama avec outil de recherche web direct et sécurité par sandbox.</li>
                     <li>Gestion fluide des fiches, cours, quiz QCM interactifs et coloration syntaxique ultra-lisible.</li>
                   </ul>
-                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '10px', fontSize: '11.5px', color: '#71717a' }}>
+                  <div
+                    style={{
+                      borderTop: '1px solid var(--border-color)',
+                      paddingTop: '10px',
+                      fontSize: '11.5px',
+                      color: 'var(--text-muted)'
+                    }}
+                  >
                     Stack : Electron 39 • React 19 • TypeScript • Monaco Editor • Vite
                   </div>
                 </div>
@@ -1142,16 +1356,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         <div
           style={{
             padding: '12px 22px',
-            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+            borderTop: '1px solid var(--border-color)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '12px',
-            backgroundColor: '#141416'
+            backgroundColor: 'var(--surface-panel)'
           }}
         >
           {/* Auteur et lien GitHub (src/shared/credits.ts) */}
-          <div style={{ fontSize: '11.5px', color: '#71717a', display: 'flex', gap: '6px' }}>
+          <div
+            style={{ fontSize: '11.5px', color: 'var(--text-muted)', display: 'flex', gap: '6px' }}
+          >
             <span>
               {APP_NAME} · {COPYRIGHT}
             </span>
@@ -1166,7 +1382,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 background: 'none',
                 border: 'none',
                 padding: 0,
-                color: '#7dd3fc',
+                color: 'var(--accent-color)',
                 fontSize: '11.5px',
                 cursor: 'pointer',
                 textDecoration: 'underline',
@@ -1185,7 +1401,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 background: 'none',
                 border: 'none',
                 padding: 0,
-                color: '#7dd3fc',
+                color: 'var(--accent-color)',
                 fontSize: '11.5px',
                 cursor: 'pointer',
                 textDecoration: 'underline',
@@ -1201,17 +1417,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               onClose()
             }}
             style={{
-              backgroundColor: '#27272a',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              color: '#e4e4e7',
+              backgroundColor: 'var(--surface-input)',
+              border: '1px solid var(--border-strong)',
+              color: 'var(--text-primary)',
               borderRadius: '6px',
               padding: '7px 18px',
               fontWeight: 500,
               fontSize: '12.5px',
               cursor: 'pointer'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3f3f46')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#27272a')}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--border-strong)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-input)')}
           >
             Fermer
           </button>

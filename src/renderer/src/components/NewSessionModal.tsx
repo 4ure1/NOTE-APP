@@ -119,7 +119,7 @@ export default function NewSessionModal({
         position: 'fixed',
         inset: 0,
         zIndex: 10000,
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        backgroundColor: 'var(--overlay-bg)',
         backdropFilter: 'blur(5px)',
         display: 'flex',
         alignItems: 'center',
@@ -138,13 +138,13 @@ export default function NewSessionModal({
         style={{
           width: '100%',
           maxWidth: '560px',
-          backgroundColor: '#14151a',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
+          backgroundColor: 'var(--surface-panel)',
+          border: '1px solid var(--border-strong)',
           borderRadius: '12px',
           display: 'flex',
           flexDirection: 'column',
           boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8)',
-          color: '#f8fafc',
+          color: 'var(--text-strong)',
           fontFamily: 'var(--font-ui)',
           overflow: 'hidden'
         }}
@@ -157,8 +157,8 @@ export default function NewSessionModal({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '16px 20px',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-            backgroundColor: '#0d0e12'
+            borderBottom: '1px solid var(--border-color)',
+            backgroundColor: 'var(--surface-sunken)'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -168,14 +168,14 @@ export default function NewSessionModal({
             <div>
               <div
                 id={`${fid}-title`}
-                style={{ fontSize: '14px', fontWeight: 600, color: '#ffffff' }}
+                style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-strong)' }}
               >
                 Nouvelle séance de cours
               </div>
               <div
                 style={{
                   fontSize: '12px',
-                  color: '#94a3b8',
+                  color: 'var(--text-secondary)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '5px',
@@ -188,8 +188,8 @@ export default function NewSessionModal({
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
-                    color: '#38bdf8',
-                    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+                    color: 'var(--accent-color)',
+                    backgroundColor: 'color-mix(in srgb, var(--accent-color) 12%, transparent)',
                     padding: '1px 6px',
                     borderRadius: '4px',
                     fontWeight: 500
@@ -208,7 +208,7 @@ export default function NewSessionModal({
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--text-secondary)',
               cursor: 'pointer',
               padding: '6px',
               borderRadius: '6px',
@@ -219,11 +219,11 @@ export default function NewSessionModal({
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-              e.currentTarget.style.color = '#ffffff'
+              e.currentTarget.style.color = 'var(--text-strong)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent'
-              e.currentTarget.style.color = '#94a3b8'
+              e.currentTarget.style.color = 'var(--text-secondary)'
             }}
           >
             <XIcon size={16} />
@@ -240,7 +240,7 @@ export default function NewSessionModal({
                 style={{
                   display: 'block',
                   fontSize: '12px',
-                  color: '#94a3b8',
+                  color: 'var(--text-secondary)',
                   marginBottom: '6px',
                   fontWeight: 500
                 }}
@@ -255,11 +255,11 @@ export default function NewSessionModal({
                 onChange={(e) => handleSessionNumberChange(parseInt(e.target.value, 10) || 1)}
                 style={{
                   width: '100%',
-                  backgroundColor: '#090a0d',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  backgroundColor: 'var(--surface-sunken)',
+                  border: '1px solid var(--border-strong)',
                   borderRadius: '6px',
                   padding: '8px 10px',
-                  color: '#ffffff',
+                  color: 'var(--text-strong)',
                   fontSize: '13px',
                   fontWeight: 600,
                   outline: 'none',
@@ -274,7 +274,7 @@ export default function NewSessionModal({
                 style={{
                   display: 'block',
                   fontSize: '12px',
-                  color: '#94a3b8',
+                  color: 'var(--text-secondary)',
                   marginBottom: '6px',
                   fontWeight: 500
                 }}
@@ -287,11 +287,11 @@ export default function NewSessionModal({
                 onChange={(e) => handleTemplateChange(e.target.value)}
                 style={{
                   width: '100%',
-                  backgroundColor: '#090a0d',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  backgroundColor: 'var(--surface-sunken)',
+                  border: '1px solid var(--border-strong)',
                   borderRadius: '6px',
                   padding: '8px 10px',
-                  color: '#ffffff',
+                  color: 'var(--text-strong)',
                   fontSize: '13px',
                   outline: 'none',
                   boxSizing: 'border-box',
@@ -314,7 +314,7 @@ export default function NewSessionModal({
               style={{
                 display: 'block',
                 fontSize: '12px',
-                color: '#94a3b8',
+                color: 'var(--text-secondary)',
                 marginBottom: '6px',
                 fontWeight: 500
               }}
@@ -330,11 +330,11 @@ export default function NewSessionModal({
                 placeholder="ex: poo-seance-04.html"
                 style={{
                   width: '100%',
-                  backgroundColor: '#090a0d',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  backgroundColor: 'var(--surface-sunken)',
+                  border: '1px solid var(--border-strong)',
                   borderRadius: '6px',
                   padding: '8px 32px 8px 10px',
-                  color: '#ffffff',
+                  color: 'var(--text-strong)',
                   fontSize: '13px',
                   fontFamily: "Consolas, 'Cascadia Code', monospace",
                   outline: 'none',
@@ -360,7 +360,7 @@ export default function NewSessionModal({
               style={{
                 display: 'block',
                 fontSize: '12px',
-                color: '#94a3b8',
+                color: 'var(--text-secondary)',
                 marginBottom: '6px',
                 fontWeight: 500
               }}
@@ -375,11 +375,11 @@ export default function NewSessionModal({
               placeholder="ex: POO - Séance 04 : Polymorphisme"
               style={{
                 width: '100%',
-                backgroundColor: '#090a0d',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
+                backgroundColor: 'var(--surface-sunken)',
+                border: '1px solid var(--border-strong)',
                 borderRadius: '6px',
                 padding: '8px 10px',
-                color: '#ffffff',
+                color: 'var(--text-strong)',
                 fontSize: '13px',
                 outline: 'none',
                 boxSizing: 'border-box'
@@ -394,7 +394,7 @@ export default function NewSessionModal({
               style={{
                 display: 'block',
                 fontSize: '12px',
-                color: '#94a3b8',
+                color: 'var(--text-secondary)',
                 marginBottom: '6px',
                 fontWeight: 500
               }}
@@ -409,11 +409,11 @@ export default function NewSessionModal({
               placeholder="ex: cours, poo, java"
               style={{
                 width: '100%',
-                backgroundColor: '#090a0d',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
+                backgroundColor: 'var(--surface-sunken)',
+                border: '1px solid var(--border-strong)',
                 borderRadius: '6px',
                 padding: '8px 10px',
-                color: '#ffffff',
+                color: 'var(--text-strong)',
                 fontSize: '13px',
                 outline: 'none',
                 boxSizing: 'border-box'
@@ -429,18 +429,18 @@ export default function NewSessionModal({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '14px 20px',
-            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-            backgroundColor: '#0d0e12'
+            borderTop: '1px solid var(--border-color)',
+            backgroundColor: 'var(--surface-sunken)'
           }}
         >
-          <div style={{ fontSize: '11px', color: '#64748b' }}>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
             <span>Appuyez sur </span>
             <kbd
               style={{
                 backgroundColor: '#1e2029',
                 padding: '2px 5px',
                 borderRadius: '3px',
-                color: '#94a3b8'
+                color: 'var(--text-secondary)'
               }}
             >
               Entrée
@@ -453,8 +453,8 @@ export default function NewSessionModal({
               onClick={onCancel}
               style={{
                 background: 'transparent',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                color: '#cbd5e1',
+                border: '1px solid var(--border-strong)',
+                color: 'var(--text-primary)',
                 cursor: 'pointer',
                 padding: '7px 14px',
                 borderRadius: '6px',
@@ -473,9 +473,9 @@ export default function NewSessionModal({
               onClick={handleConfirm}
               disabled={isSubmitting || !fileName.trim()}
               style={{
-                backgroundColor: '#38bdf8',
+                backgroundColor: 'var(--accent-color)',
                 border: 'none',
-                color: '#09090b',
+                color: 'var(--surface-sunken)',
                 fontWeight: 600,
                 cursor: isSubmitting ? 'not-allowed' : 'pointer',
                 padding: '7px 16px',
@@ -489,10 +489,10 @@ export default function NewSessionModal({
                 transition: 'all 0.12s'
               }}
               onMouseEnter={(e) => {
-                if (!isSubmitting) e.currentTarget.style.backgroundColor = '#7dd3fc'
+                if (!isSubmitting) e.currentTarget.style.backgroundColor = 'var(--accent-color)'
               }}
               onMouseLeave={(e) => {
-                if (!isSubmitting) e.currentTarget.style.backgroundColor = '#38bdf8'
+                if (!isSubmitting) e.currentTarget.style.backgroundColor = 'var(--accent-color)'
               }}
             >
               <CheckIcon size={14} />
