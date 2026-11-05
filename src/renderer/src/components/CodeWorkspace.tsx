@@ -730,13 +730,23 @@ export const prepareHtmlPreview = (
           // Champs gardés (et non aplatis) pour pouvoir les remplir dans le rendu
           var built = buildSnippetFragment(document, snip.body, selectedText, new Date(), snippetVariables);
 
-          if (snippetSession) endSnippetSession(false);
+          // Snippet en ligne tapé dans un champ : la saisie en cours est suspendue et reprendra après
+          var nested = !!snippetSession && !!sel && fieldPositionOf(sel.anchorNode) !== -1 &&
+            !fragmentHasBlock(built.fragment);
+          if (nested) {
+            outerSessions.push(snippetSession);
+            snippetSession = null;
+          }
 
           if (currentTriggerRange) {
             sel.removeAllRanges();
             sel.addRange(currentTriggerRange);
             currentTriggerRange.deleteContents();
           }
+
+          // Après le retrait du déclencheur : fermer la saisie déplace le texte des champs, ce qui
+          // faisait perdre sa position (le « /… » restait dans la note)
+          if (snippetSession) endSnippetSession(false);
 
           if (sel && sel.rangeCount > 0) {
             var range = sel.getRangeAt(0);
@@ -766,6 +776,8 @@ export const prepareHtmlPreview = (
           }
 
           closeSnippetMenu();
+          // Snippet sans champ : la saisie suspendue reprend tout de suite
+          if (nested && !snippetSession) resumeOuterSession();
           emitDocChange();
         }
 
@@ -790,6 +802,8 @@ export const prepareHtmlPreview = (
           'DETAILS', 'FIGURE', 'BLOCKQUOTE', 'SECTION', 'FOOTER'];
         var INLINE_WRAPPERS = ['SPAN', 'STRONG', 'EM', 'B', 'I', 'CODE', 'MARK'];
         var snippetSession = null;
+        // Saisies suspendues par un snippet tapé dans un de leurs champs (la plus récente à la fin)
+        var outerSessions = [];
         var choiceMenuEl = null;
         var choiceOccurrence = null;
         var choiceIndex = 0;
@@ -1118,7 +1132,29 @@ export const prepareHtmlPreview = (
           return rest.toString().split(ZERO_WIDTH).join('') === '';
         }
 
-        function endSnippetSession(goToFinal) {
+        function fragmentHasBlock(fragment) {
+          var all = fragment.querySelectorAll('*');
+          for (var i = 0; i < all.length; i++) {
+            if (BLOCK_NAMES.indexOf(all[i].nodeName) !== -1) return true;
+          }
+          return false;
+        }
+
+        function resumeOuterSession() {
+          var s = outerSessions.pop();
+          if (!s) return;
+          snippetSession = s;
+          var group = s.groups[s.current];
+          var occ = group ? group.occurrences[0] : null;
+          if (!occ || occ.kind !== 'text') return;
+          occ.element.classList.add('nf-active');
+          // Le champ a pu se vider (snippet imbriqué laissé vide) : il retrouve son indication
+          if (fieldText(occ.element) === '') activateField(s.current);
+          else occ.element.classList.remove('nf-empty');
+        }
+
+        // resumeOuter : le snippet englobant suspendu reprend ; sinon il se termine avec celui-ci
+        function endSnippetSession(goToFinal, resumeOuter) {
           var s = snippetSession;
           if (!s) return;
           snippetSession = null;
@@ -1134,6 +1170,16 @@ export const prepareHtmlPreview = (
           if (s.finalMarker && s.finalMarker.parentNode) {
             if (goToFinal) placeCaretAtFinal(s.finalMarker);
             else s.finalMarker.parentNode.removeChild(s.finalMarker);
+          }
+          if (outerSessions.length) {
+            if (goToFinal || resumeOuter) {
+              resumeOuterSession();
+              emitDocChange();
+            } else {
+              snippetSession = outerSessions.pop();
+              endSnippetSession(false);
+            }
+            return;
           }
           // Copies d'encadrés créées par le navigateur (Entrée au milieu d'un champ) : retirées aussi
           sweepStrayFields();
@@ -1190,12 +1236,20 @@ export const prepareHtmlPreview = (
           var sel = window.getSelection();
           if (!sel || sel.rangeCount === 0) return;
           if (fieldPositionOf(sel.anchorNode) === -1 && fieldPositionOf(sel.focusNode) === -1) {
-            endSnippetSession(false);
+            endSnippetSession(false, inOuterField(sel.anchorNode));
           }
         }
 
         function fieldPositionOf(node) {
-          var s = snippetSession;
+          return fieldPositionIn(snippetSession, node);
+        }
+
+        // Le nœud est-il dans un champ du snippet englobant suspendu ?
+        function inOuterField(node) {
+          return fieldPositionIn(outerSessions[outerSessions.length - 1], node) !== -1;
+        }
+
+        function fieldPositionIn(s, node) {
           if (!s || !node) return -1;
           for (var i = 0; i < s.groups.length; i++) {
             var occ = s.groups[i].occurrences[0];
@@ -1260,7 +1314,7 @@ export const prepareHtmlPreview = (
             if (e.key === 'Escape') {
               e.preventDefault();
               e.stopPropagation();
-              endSnippetSession(sessionEndsAfterInline());
+              endSnippetSession(sessionEndsAfterInline(), true);
               return;
             }
             // Flèche droite au bout d'un champ de couleur : sortir comme avec Tab (sinon le champ se
@@ -1879,7 +1933,7 @@ export const prepareHtmlPreview = (
           // Session de snippet : clic dans un champ = ce champ ; clic ailleurs = fin, le texte reste
           if (snippetSession && !(choiceMenuEl && choiceMenuEl.contains(e.target))) {
             var position = fieldPositionOf(e.target);
-            if (position === -1) endSnippetSession(false);
+            if (position === -1) endSnippetSession(false, inOuterField(e.target));
             else if (position !== snippetSession.current) {
               closeChoiceMenu();
               snippetSession.groups.forEach(function(g) {
@@ -1997,7 +2051,7 @@ export const prepareHtmlPreview = (
             if (snippetSession) {
               e.preventDefault();
               e.stopPropagation();
-              endSnippetSession(sessionEndsAfterInline());
+              endSnippetSession(sessionEndsAfterInline(), true);
               return;
             }
             e.preventDefault();
