@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import Modal from './Modal'
 import * as pdfjsLib from 'pdfjs-dist'
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url'
 import { SparklesIcon, SendIcon, PaperclipIcon, XIcon, PdfIcon } from './Icons'
@@ -65,14 +66,18 @@ export default function AutonomousAgentWorkspace({
     try {
       const saved = localStorage.getItem('agent_selected_engine') as any
       if (saved === 'ollama' || saved === 'claude' || saved === 'chatgpt') return saved
-    } catch {}
+    } catch (err) {
+      console.debug('[Agent]', err)
+    }
     return 'ollama'
   })
 
   useEffect(() => {
     try {
       localStorage.setItem('agent_selected_engine', selectedEngine)
-    } catch {}
+    } catch (err) {
+      console.debug('[Agent]', err)
+    }
   }, [selectedEngine])
 
   // Modèle Ollama configurable (par défaut qwen2.5:7b-instruct)
@@ -80,14 +85,18 @@ export default function AutonomousAgentWorkspace({
     try {
       const saved = localStorage.getItem('agent_configured_model')
       if (saved) return saved
-    } catch {}
+    } catch (err) {
+      console.debug('[Agent]', err)
+    }
     return 'qwen2.5:7b-instruct'
   })
 
   useEffect(() => {
     try {
       localStorage.setItem('agent_configured_model', agentModel)
-    } catch {}
+    } catch (err) {
+      console.debug('[Agent]', err)
+    }
   }, [agentModel])
 
   // Mode outils activés ou chat pur
@@ -102,7 +111,9 @@ export default function AutonomousAgentWorkspace({
   useEffect(() => {
     try {
       localStorage.setItem('agent_tools_enabled', String(toolsEnabled))
-    } catch {}
+    } catch (err) {
+      console.debug('[Agent]', err)
+    }
   }, [toolsEnabled])
 
   const [ollamaInfo, setOllamaInfo] = useState<{ online: boolean; models: string[]; defaultModel: string | null }>({
@@ -149,7 +160,9 @@ export default function AutonomousAgentWorkspace({
           setOllamaApiKey(cfg.ollamaApiKey)
           localStorage.setItem('ollama_api_key', cfg.ollamaApiKey)
         }
-      } catch {}
+      } catch (err) {
+        console.debug('[Agent]', err)
+      }
     }
     loadKey()
   }, [])
@@ -161,7 +174,9 @@ export default function AutonomousAgentWorkspace({
       localStorage.setItem('ollama_api_key', clean)
       const cfg = (await (window.api as any).getConfig()) || {}
       await (window.api as any).saveConfig({ ...cfg, ollamaApiKey: clean })
-    } catch {}
+    } catch (err) {
+      console.debug('[Agent]', err)
+    }
     setShowSettingsModal(false)
   }
 
@@ -196,7 +211,9 @@ export default function AutonomousAgentWorkspace({
       if (res) {
         setOllamaInfo(res)
       }
-    } catch (_) {}
+    } catch (_) {
+      console.debug('[Agent]', _)
+    }
   }
 
   useEffect(() => {
@@ -398,7 +415,9 @@ export default function AutonomousAgentWorkspace({
       await window.api.agentCancel()
       setIsExecuting(false)
       setStatusText('Annulé par l’utilisateur.')
-    } catch {}
+    } catch (err) {
+      console.debug('[Agent]', err)
+    }
   }
 
   // Exécution principale
@@ -822,153 +841,151 @@ export default function AutonomousAgentWorkspace({
 
       {/* Modal de Configuration Clé API Ollama Web */}
       {showSettingsModal && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundColor: 'var(--overlay-bg)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 100,
-            backdropFilter: 'blur(3px)'
+        <Modal
+          label="Clé API Ollama"
+          onClose={() => setShowSettingsModal(false)}
+          overlayStyle={{ position: 'absolute' }}
+          panelStyle={{
+            backgroundColor: 'var(--surface-raised)',
+            border: '1px solid var(--border-strong)',
+            borderRadius: '12px',
+            padding: '20px',
+            width: '90%',
+            maxWidth: '480px',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)'
           }}
-          onClick={() => setShowSettingsModal(false)}
         >
           <div
             style={{
-              backgroundColor: 'var(--surface-raised)',
-              border: '1px solid var(--border-strong)',
-              borderRadius: '12px',
-              padding: '20px',
-              width: '90%',
-              maxWidth: '480px',
-              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)'
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '14px'
             }}
-            onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '16px' }}>⚙️</span>
-                <h3
-                  style={{
-                    margin: 0,
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    color: 'var(--text-strong)'
-                  }}
-                >
-                  Réglages de l’Agent (Clé Web Ollama)
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowSettingsModal(false)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '16px' }}>⚙️</span>
+              <h3
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  fontSize: '16px'
+                  margin: 0,
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: 'var(--text-strong)'
                 }}
               >
-                ✕
-              </button>
+                Réglages de l’Agent (Clé Web Ollama)
+              </h3>
             </div>
-
-            <p
+            <button
+              onClick={() => setShowSettingsModal(false)}
               style={{
-                fontSize: '12px',
+                background: 'none',
+                border: 'none',
                 color: 'var(--text-secondary)',
-                margin: '0 0 14px 0',
-                lineHeight: 1.5
+                cursor: 'pointer',
+                fontSize: '16px'
               }}
             >
-              Cette clé permet à l’Agent d’exécuter les outils <code>web_search</code> et <code>web_fetch</code> via l’API officielle Ollama (<code>https://ollama.com/api/web_search</code>). Elle est stockée de manière sécurisée dans <code>.config.json</code> et n'est jamais exposée en dur.
-            </p>
+              ✕
+            </button>
+          </div>
 
-            <div style={{ marginBottom: '16px' }}>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: 'var(--text-primary)',
-                  marginBottom: '6px'
-                }}
-              >
-                Clé API Ollama (Bearer Token)
-              </label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  type={showKeySecret ? 'text' : 'password'}
-                  value={tempApiKey}
-                  onChange={(e) => setTempApiKey(e.target.value)}
-                  placeholder="ex: dbe4d58575a0450483899a639b2075d2..."
-                  style={{
-                    flex: 1,
-                    padding: '8px 10px',
-                    backgroundColor: 'var(--surface-input)',
-                    border: '1px solid var(--border-strong)',
-                    borderRadius: '6px',
-                    color: 'var(--text-strong)',
-                    fontSize: '12px',
-                    fontFamily: 'monospace',
-                    outline: 'none'
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowKeySecret(!showKeySecret)}
-                  style={{
-                    padding: '0 10px',
-                    backgroundColor: 'var(--surface-input)',
-                    border: '1px solid var(--border-strong)',
-                    borderRadius: '6px',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    fontSize: '11px'
-                  }}
-                >
-                  {showKeySecret ? 'Masquer' : 'Afficher'}
-                </button>
-              </div>
-            </div>
+          <p
+            style={{
+              fontSize: '12px',
+              color: 'var(--text-secondary)',
+              margin: '0 0 14px 0',
+              lineHeight: 1.5
+            }}
+          >
+            Cette clé permet à l’Agent d’exécuter les outils <code>web_search</code> et{' '}
+            <code>web_fetch</code> via l’API officielle Ollama (
+            <code>https://ollama.com/api/web_search</code>). Elle est stockée de manière sécurisée
+            dans <code>.config.json</code> et n’est jamais exposée en dur.
+          </p>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button
-                type="button"
-                onClick={() => setShowSettingsModal(false)}
+          <div style={{ marginBottom: '16px' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '11px',
+                fontWeight: 600,
+                color: 'var(--text-primary)',
+                marginBottom: '6px'
+              }}
+            >
+              Clé API Ollama (Bearer Token)
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type={showKeySecret ? 'text' : 'password'}
+                value={tempApiKey}
+                onChange={(e) => setTempApiKey(e.target.value)}
+                placeholder="ex: dbe4d58575a0450483899a639b2075d2..."
                 style={{
-                  padding: '6px 14px',
-                  backgroundColor: 'transparent',
+                  flex: 1,
+                  padding: '8px 10px',
+                  backgroundColor: 'var(--surface-input)',
                   border: '1px solid var(--border-strong)',
-                  borderRadius: '6px',
-                  color: 'var(--text-primary)',
-                  fontSize: '12px',
-                  cursor: 'pointer'
-                }}
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSaveApiKey(tempApiKey)}
-                style={{
-                  padding: '6px 14px',
-                  backgroundColor: 'var(--success-strong)',
-                  border: 'none',
                   borderRadius: '6px',
                   color: 'var(--text-strong)',
                   fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer'
+                  fontFamily: 'monospace',
+                  outline: 'none'
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowKeySecret(!showKeySecret)}
+                style={{
+                  padding: '0 10px',
+                  backgroundColor: 'var(--surface-input)',
+                  border: '1px solid var(--border-strong)',
+                  borderRadius: '6px',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '11px'
                 }}
               >
-                Enregistrer la clé
+                {showKeySecret ? 'Masquer' : 'Afficher'}
               </button>
             </div>
           </div>
-        </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={() => setShowSettingsModal(false)}
+              style={{
+                padding: '6px 14px',
+                backgroundColor: 'transparent',
+                border: '1px solid var(--border-strong)',
+                borderRadius: '6px',
+                color: 'var(--text-primary)',
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSaveApiKey(tempApiKey)}
+              style={{
+                padding: '6px 14px',
+                backgroundColor: 'var(--success-strong)',
+                border: 'none',
+                borderRadius: '6px',
+                color: 'var(--text-strong)',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Enregistrer la clé
+            </button>
+          </div>
+        </Modal>
       )}
 
       {/* Alerte si le modèle n'est pas encore installé */}

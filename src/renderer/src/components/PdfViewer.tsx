@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback, type ReactNode } from 'react'
+import Modal from './Modal'
 import * as pdfjsLib from 'pdfjs-dist'
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url'
 import 'pdfjs-dist/web/pdf_viewer.css'
 import { describeApiError, notifyApiError, ensureSuccess } from '../utils/apiError'
+import { LocalCMapReaderFactory } from '../utils/pdfCMaps'
 import {
   PdfIcon,
   ExternalLinkIcon,
@@ -498,8 +500,7 @@ export default function PdfViewer({
 
         const loadingTask = pdfjsLib.getDocument({
           data: uint8Array,
-          cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/cmaps/',
-          cMapPacked: true
+          CMapReaderFactory: LocalCMapReaderFactory
         })
 
         const doc = await loadingTask.promise
@@ -1795,200 +1796,157 @@ export default function PdfViewer({
 
       {/* ── MODALE "ENVOYER VERS LA NOTE" ── */}
       {sendToNoteTarget && (
-        <div
+        <Modal
+          label="Envoyer vers la note"
+          onClose={() => setSendToNoteTarget(null)}
+          closeOnBackdrop={false}
           className="pdf-modal"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'var(--overlay-bg)',
-            backdropFilter: 'blur(4px)',
+          overlayStyle={{ zIndex: 9999999 }}
+          panelStyle={{
+            width: '460px',
+            maxWidth: '90vw',
+            backgroundColor: 'var(--surface-raised)',
+            border: '1px solid var(--border-strong)',
+            borderRadius: '12px',
+            padding: '20px',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)',
+            color: 'var(--text-primary)',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999999
+            flexDirection: 'column',
+            gap: '14px'
           }}
         >
-          <div
-            style={{
-              width: '460px',
-              maxWidth: '90vw',
-              backgroundColor: 'var(--surface-raised)',
-              border: '1px solid var(--border-strong)',
-              borderRadius: '12px',
-              padding: '20px',
-              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)',
-              color: 'var(--text-primary)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '14px'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: '15px',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
-              >
-                <span>📌</span>
-                <span>Insérer l&apos;extrait dans une note (p. {sendToNoteTarget.pageNumber})</span>
-              </h3>
-              <button
-                onClick={(): void => setSendToNoteTarget(null)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  fontSize: '16px'
-                }}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Extrait de texte sélectionné */}
-            <div
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h3
               style={{
-                maxHeight: '110px',
-                overflowY: 'auto',
-                padding: '10px 12px',
-                backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                borderLeft: '3px solid var(--accent-color)',
-                borderRadius: '4px',
-                fontSize: '12px',
-                fontStyle: 'italic',
-                color: 'var(--text-primary)',
-                lineHeight: 1.5
+                margin: 0,
+                fontSize: '15px',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
               }}
             >
-              &quot;{sendToNoteTarget.text}&quot;
-            </div>
+              <span>📌</span>
+              <span>Insérer l&apos;extrait dans une note (p. {sendToNoteTarget.pageNumber})</span>
+            </h3>
+            <button
+              onClick={(): void => setSendToNoteTarget(null)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
+            >
+              ✕
+            </button>
+          </div>
 
-            {/* Choix de la note cible */}
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  color: 'var(--text-secondary)',
-                  marginBottom: '6px'
-                }}
-              >
-                Note de destination :
-              </label>
+          {/* Extrait de texte sélectionné */}
+          <div
+            style={{
+              maxHeight: '110px',
+              overflowY: 'auto',
+              padding: '10px 12px',
+              backgroundColor: 'rgba(255, 255, 255, 0.04)',
+              borderLeft: '3px solid var(--accent-color)',
+              borderRadius: '4px',
+              fontSize: '12px',
+              fontStyle: 'italic',
+              color: 'var(--text-primary)',
+              lineHeight: 1.5
+            }}
+          >
+            &quot;{sendToNoteTarget.text}&quot;
+          </div>
 
-              {lastActiveNote && (
-                <button
-                  onClick={(): Promise<void> => handleExecuteSend(lastActiveNote)}
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '9px 12px',
-                    backgroundColor: 'color-mix(in srgb, var(--accent-color) 10%, transparent)',
-                    border: '1px solid color-mix(in srgb, var(--accent-color) 35%, transparent)',
-                    borderRadius: '6px',
-                    color: 'var(--accent-color)',
-                    fontSize: '12.5px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    marginBottom: '10px'
-                  }}
-                >
-                  <span>📌 Insérer dans la note active : {lastActiveNote.split('/').pop()}</span>
-                  <span style={{ fontSize: '11px', opacity: 0.8 }}>Entrée ↵</span>
-                </button>
-              )}
+          {/* Choix de la note cible */}
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '12px',
+                fontWeight: 500,
+                color: 'var(--text-secondary)',
+                marginBottom: '6px'
+              }}
+            >
+              Note de destination :
+            </label>
 
-              <select
-                value={selectedDestNote}
-                onChange={(e): void => setSelectedDestNote(e.target.value)}
+            {lastActiveNote && (
+              <button
+                onClick={(): Promise<void> => handleExecuteSend(lastActiveNote)}
                 style={{
                   width: '100%',
-                  backgroundColor: 'var(--surface-sunken)',
-                  color: 'var(--text-strong)',
-                  border: '1px solid var(--border-strong)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '9px 12px',
+                  backgroundColor: 'color-mix(in srgb, var(--accent-color) 10%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--accent-color) 35%, transparent)',
                   borderRadius: '6px',
-                  padding: '7px 10px',
-                  fontSize: '12px',
-                  boxSizing: 'border-box'
+                  color: 'var(--accent-color)',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  marginBottom: '10px'
                 }}
               >
-                <option value="">-- Choisir une autre note existante --</option>
-                {allNotes
-                  ?.filter((n) => !n.toLowerCase().endsWith('.pdf'))
-                  .map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-              </select>
-            </div>
+                <span>📌 Insérer dans la note active : {lastActiveNote.split('/').pop()}</span>
+                <span style={{ fontSize: '11px', opacity: 0.8 }}>Entrée ↵</span>
+              </button>
+            )}
 
-            {/* Option créer nouvelle note */}
-            <div>
-              <div
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}
-              >
-                <input
-                  type="checkbox"
-                  id="create-new-toggle"
-                  checked={isCreatingNewNote}
-                  onChange={(e): void => setIsCreatingNewNote(e.target.checked)}
-                />
-                <label
-                  htmlFor="create-new-toggle"
-                  style={{ fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer' }}
-                >
-                  Créer une nouvelle note pour cet extrait
-                </label>
-              </div>
-              {isCreatingNewNote && (
-                <input
-                  type="text"
-                  placeholder="Nom de la note (ex: algo-seance-01.html ou note.md)"
-                  value={newNoteName}
-                  onChange={(e): void => setNewNoteName(e.target.value)}
-                  style={{
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    backgroundColor: 'var(--surface-sunken)',
-                    color: 'var(--text-strong)',
-                    border: '1px solid var(--border-strong)',
-                    borderRadius: '6px',
-                    padding: '7px 10px',
-                    fontSize: '12px',
-                    marginTop: '4px'
-                  }}
-                />
-              )}
-            </div>
+            <select
+              value={selectedDestNote}
+              onChange={(e): void => setSelectedDestNote(e.target.value)}
+              style={{
+                width: '100%',
+                backgroundColor: 'var(--surface-sunken)',
+                color: 'var(--text-strong)',
+                border: '1px solid var(--border-strong)',
+                borderRadius: '6px',
+                padding: '7px 10px',
+                fontSize: '12px',
+                boxSizing: 'border-box'
+              }}
+            >
+              <option value="">-- Choisir une autre note existante --</option>
+              {allNotes
+                ?.filter((n) => !n.toLowerCase().endsWith('.pdf'))
+                .map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+            </select>
+          </div>
 
-            {/* Commentaire optionnel */}
-            <div>
+          {/* Option créer nouvelle note */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+              <input
+                type="checkbox"
+                id="create-new-toggle"
+                checked={isCreatingNewNote}
+                onChange={(e): void => setIsCreatingNewNote(e.target.checked)}
+              />
               <label
-                style={{
-                  display: 'block',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  color: 'var(--text-secondary)',
-                  marginBottom: '4px'
-                }}
+                htmlFor="create-new-toggle"
+                style={{ fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer' }}
               >
-                Remarque ou note personnelle (facultatif) :
+                Créer une nouvelle note pour cet extrait
               </label>
+            </div>
+            {isCreatingNewNote && (
               <input
                 type="text"
-                placeholder="Ex: Formule à retenir, sujet d'examen..."
-                value={quoteComment}
-                onChange={(e): void => setQuoteComment(e.target.value)}
+                placeholder="Nom de la note (ex: algo-seance-01.html ou note.md)"
+                value={newNoteName}
+                onChange={(e): void => setNewNoteName(e.target.value)}
                 style={{
                   width: '100%',
                   boxSizing: 'border-box',
@@ -1997,47 +1955,79 @@ export default function PdfViewer({
                   border: '1px solid var(--border-strong)',
                   borderRadius: '6px',
                   padding: '7px 10px',
-                  fontSize: '12px'
+                  fontSize: '12px',
+                  marginTop: '4px'
                 }}
               />
-            </div>
-
-            {/* Boutons d'action */}
-            <div
-              style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}
-            >
-              <button
-                onClick={(): void => setSendToNoteTarget(null)}
-                style={{
-                  padding: '7px 14px',
-                  backgroundColor: 'transparent',
-                  border: '1px solid var(--border-strong)',
-                  borderRadius: '6px',
-                  color: 'var(--text-secondary)',
-                  fontSize: '12px',
-                  cursor: 'pointer'
-                }}
-              >
-                Annuler
-              </button>
-              <button
-                onClick={(): Promise<void> => handleExecuteSend()}
-                style={{
-                  padding: '7px 16px',
-                  backgroundColor: 'var(--accent-color)',
-                  border: 'none',
-                  borderRadius: '6px',
-                  color: 'var(--surface-sunken)',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                Insérer dans la note
-              </button>
-            </div>
+            )}
           </div>
-        </div>
+
+          {/* Commentaire optionnel */}
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '12px',
+                fontWeight: 500,
+                color: 'var(--text-secondary)',
+                marginBottom: '4px'
+              }}
+            >
+              Remarque ou note personnelle (facultatif) :
+            </label>
+            <input
+              type="text"
+              placeholder="Ex: Formule à retenir, sujet d'examen..."
+              value={quoteComment}
+              onChange={(e): void => setQuoteComment(e.target.value)}
+              style={{
+                width: '100%',
+                boxSizing: 'border-box',
+                backgroundColor: 'var(--surface-sunken)',
+                color: 'var(--text-strong)',
+                border: '1px solid var(--border-strong)',
+                borderRadius: '6px',
+                padding: '7px 10px',
+                fontSize: '12px'
+              }}
+            />
+          </div>
+
+          {/* Boutons d'action */}
+          <div
+            style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}
+          >
+            <button
+              onClick={(): void => setSendToNoteTarget(null)}
+              style={{
+                padding: '7px 14px',
+                backgroundColor: 'transparent',
+                border: '1px solid var(--border-strong)',
+                borderRadius: '6px',
+                color: 'var(--text-secondary)',
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              Annuler
+            </button>
+            <button
+              onClick={(): Promise<void> => handleExecuteSend()}
+              style={{
+                padding: '7px 16px',
+                backgroundColor: 'var(--accent-color)',
+                border: 'none',
+                borderRadius: '6px',
+                color: 'var(--surface-sunken)',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Insérer dans la note
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   )

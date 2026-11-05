@@ -294,14 +294,18 @@ async function setCookieSafely(
     try {
       await sessionObj.cookies.set({ ...details, domain: d })
       return true
-    } catch (_) {}
+    } catch (_) {
+      console.error('[Main]', _)
+    }
   }
 
   // 2ème tentative : sans paramètre domain (Electron lie le cookie à l'hôte exact de l'URL)
   try {
     await sessionObj.cookies.set(details)
     return true
-  } catch (_) {}
+  } catch (_) {
+    console.error('[Main]', _)
+  }
 
   // 3ème tentative : pour les domaines comme youtube.com ou google.com, tester avec www.
   if (cleanDomain === 'youtube.com' || cleanDomain === 'google.com') {
@@ -312,7 +316,9 @@ async function setCookieSafely(
         domain: `.${cleanDomain}`
       })
       return true
-    } catch (_) {}
+    } catch (_) {
+      console.error('[Main]', _)
+    }
   }
 
   return false
@@ -331,10 +337,14 @@ function killProcessOnPort(port: number): void {
       if (!isNaN(pid) && pid > 0 && pid !== process.pid) {
         try {
           execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore' })
-        } catch (_) {}
+        } catch (_) {
+          console.error('[Main]', _)
+        }
       }
     }
-  } catch (_) {}
+  } catch (_) {
+    console.error('[Main]', _)
+  }
 }
 
 async function syncCookiesToSessions(cookies: any[]): Promise<number> {
@@ -373,7 +383,9 @@ async function syncCookiesToSessions(cookies: any[]): Promise<number> {
     await youtubeSession.flushStorageData()
     await claudeSession.flushStorageData()
     await defaultSession.flushStorageData()
-  } catch (_) {}
+  } catch (_) {
+    console.error('[Main]', _)
+  }
 
   return syncedCount
 }
@@ -408,7 +420,9 @@ async function syncCookiesFromBrowser(
           resolved = true
           try {
             ws.close()
-          } catch (_) {}
+          } catch (_) {
+            console.error('[Main]', _)
+          }
           resolve({ success: false, count: 0 })
         }
       }, 5000)
@@ -427,7 +441,9 @@ async function syncCookiesFromBrowser(
             try {
               ws.send(JSON.stringify({ id: 9999, method: 'Browser.close' }))
               ws.close()
-            } catch (_) {}
+            } catch (_) {
+              console.error('[Main]', _)
+            }
             if (globalMainWindow && !globalMainWindow.isDestroyed()) {
               globalMainWindow.webContents.send('google-login-success', service)
             }
@@ -536,7 +552,9 @@ async function openGoogleLoginWindow(
             await targetSession.flushStorageData()
             await session.fromPartition('persist:youtube').flushStorageData()
             await session.defaultSession.flushStorageData()
-          } catch (_) {}
+          } catch (_) {
+            console.error('[Main]', _)
+          }
 
           if (globalMainWindow && !globalMainWindow.isDestroyed()) {
             globalMainWindow.webContents.send('google-login-success', service)
@@ -576,7 +594,9 @@ async function openGoogleLoginWindow(
           if (cookieTimer) clearInterval(cookieTimer)
           checkSuccessAndClose(currentUrl || 'https://www.youtube.com/')
         }
-      } catch (_) {}
+      } catch (_) {
+        console.error('[Main]', _)
+      }
     }, 1000)
 
     loginWin.webContents.on('did-navigate', (_e, navUrl) => {
@@ -642,7 +662,9 @@ export async function loginWithExternalBrowser(
   if (activeExternalBrowserProc && !activeExternalBrowserProc.killed) {
     try {
       activeExternalBrowserProc.kill()
-    } catch (_) {}
+    } catch (_) {
+      console.error('[Main]', _)
+    }
     activeExternalBrowserProc = null
   }
   killProcessOnPort(port)
@@ -658,7 +680,9 @@ export async function loginWithExternalBrowser(
     if (fs.existsSync(lockPath)) {
       try {
         fs.unlinkSync(lockPath)
-      } catch (_) {}
+      } catch (_) {
+        console.error('[Main]', _)
+      }
     }
   }
 
@@ -712,13 +736,17 @@ export async function loginWithExternalBrowser(
         try {
           ws.send(JSON.stringify({ id: 9999, method: 'Browser.close' }))
           ws.close()
-        } catch (_) {}
+        } catch (_) {
+          console.error('[Main]', _)
+        }
         ws = null
       }
       if (activeExternalBrowserProc && !activeExternalBrowserProc.killed) {
         try {
           activeExternalBrowserProc.kill()
-        } catch (_) {}
+        } catch (_) {
+          console.error('[Main]', _)
+        }
         activeExternalBrowserProc = null
       }
     }
@@ -754,7 +782,9 @@ export async function loginWithExternalBrowser(
           } else {
             targetWebview.reloadIgnoringCache()
           }
-        } catch (_) {}
+        } catch (_) {
+          console.error('[Main]', _)
+        }
       }
 
       if (globalMainWindow && !globalMainWindow.isDestroyed()) {
@@ -785,13 +815,17 @@ export async function loginWithExternalBrowser(
           )
           try {
             ws.send(JSON.stringify({ id: 100, method: 'Storage.getCookies' }))
-          } catch (_) {}
+          } catch (_) {
+            console.error('[Main]', _)
+          }
 
           checkInterval = setInterval(async () => {
             if (ws && ws.readyState === 1 && !isFinished) {
               try {
                 ws.send(JSON.stringify({ id: 100, method: 'Storage.getCookies' }))
-              } catch (_) {}
+              } catch (_) {
+                console.error('[Main]', _)
+              }
             }
           }, 1000)
         }
@@ -892,13 +926,17 @@ export async function loginWithExternalBrowser(
                             setTimeout(() => {
                               try {
                                 pageWs.close()
-                              } catch (_) {}
+                              } catch (_) {
+                                console.error('[Main]', _)
+                              }
                             }, 500)
                           }
                         }
                       }
                     }
-                  } catch (_) {}
+                  } catch (_) {
+                    console.error('[Main]', _)
+                  }
                 }
               } else if (service === 'claude') {
                 hasLoggedIn =
@@ -1085,7 +1123,9 @@ async function applyCookiesToSession(
     await ytSession.flushStorageData()
     await claudeSession.flushStorageData()
     await session.defaultSession.flushStorageData()
-  } catch (_) {}
+  } catch (_) {
+    console.error('[Main]', _)
+  }
 
   console.log(
     `[applyCookiesToSession] ${count}/${parsedItems.length} cookies appliqués avec succès !`
@@ -1333,7 +1373,9 @@ function createWindow(): void {
     if (fileWatcher) {
       try {
         fileWatcher.close()
-      } catch (_) {}
+      } catch (_) {
+        console.error('[Main]', _)
+      }
       fileWatcher = null
     }
   })
@@ -1384,7 +1426,9 @@ function createWindow(): void {
     webviewContents.setUserAgent(CHROME_UA)
     try {
       webviewContents.setBackgroundThrottling(false)
-    } catch (_) {}
+    } catch (_) {
+      console.error('[Main]', _)
+    }
 
     // Helper: télécharger un PDF depuis une URL et le sauvegarder dans le dossier actif
     const downloadPdfFromUrl = async (pdfUrl: string) => {
@@ -1932,7 +1976,9 @@ ipcMain.handle('rename-note', (_event, oldRelativePath: string, newName: string)
       if (fs.existsSync(oldAnn)) {
         try {
           fs.renameSync(oldAnn, newAnn)
-        } catch {}
+        } catch (err) {
+          console.error('[Main]', err)
+        }
       }
     }
     return path.relative(NOTES_DIR, newPath).replace(/\\/g, '/')
@@ -2015,7 +2061,9 @@ ipcMain.handle(
       if (fs.existsSync(oldAnn)) {
         try {
           fs.renameSync(oldAnn, newAnn)
-        } catch {}
+        } catch (err) {
+          console.error('[Main]', err)
+        }
       }
     }
     return path.relative(NOTES_DIR, destPath).replace(/\\/g, '/')
@@ -2058,7 +2106,9 @@ ipcMain.handle('delete-note', (_event, relativePath: string) => {
       if (fs.existsSync(oldAnn)) {
         try {
           fs.renameSync(oldAnn, trashAnn)
-        } catch {}
+        } catch (err) {
+          console.error('[Main]', err)
+        }
       }
     }
     return true
@@ -2105,7 +2155,9 @@ ipcMain.handle('restore-deleted-note', (_event, trashId: string) => {
       if (fs.existsSync(trashAnn)) {
         try {
           fs.renameSync(trashAnn, targetAnn)
-        } catch {}
+        } catch (err) {
+          console.error('[Main]', err)
+        }
       }
     }
     return path.relative(NOTES_DIR, target).replace(/\\/g, '/')
@@ -2186,7 +2238,9 @@ function getDefaultSnippetsData(): any {
     if (fs.existsSync(c)) {
       try {
         return JSON.parse(fs.readFileSync(c, 'utf-8'))
-      } catch {}
+      } catch (err) {
+        console.error('[Main]', err)
+      }
     }
   }
   return { version: 1, trigger: '/', snippets: [] }
@@ -2505,7 +2559,9 @@ ipcMain.handle(
     // Sauvegarde immédiate dans l'historique Time Travel
     try {
       await saveSnapshot(NOTES_DIR, relPath, expanded)
-    } catch {}
+    } catch (err) {
+      console.error('[Main]', err)
+    }
 
     return {
       success: true,
@@ -2876,7 +2932,9 @@ ipcMain.handle('agent-run', async (event, params: AgentRunParams) => {
       const cfg = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'))
       if (cfg.ollamaApiKey) savedApiKey = cfg.ollamaApiKey
     }
-  } catch {}
+  } catch (err) {
+    console.error('[Main]', err)
+  }
 
   const context = {
     notesDir: NOTES_DIR,

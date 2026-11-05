@@ -33,6 +33,8 @@ import {
   OutlineIcon
 } from '@renderer/components/Icons'
 import AutonomousAgentWorkspace from './components/AutonomousAgentWorkspace'
+import { askConfirm, ConfirmHost } from './components/ConfirmDialog'
+import Modal from './components/Modal'
 import defaultSnippetsJson from '@renderer/assets/snippets.default.json'
 import { Snippet } from './types/snippets'
 import { expandSnippet, filterSnippets, SnippetSession } from './utils/snippetEngine'
@@ -246,7 +248,9 @@ function App() {
         const parsed = JSON.parse(saved)
         if (Array.isArray(parsed) && parsed.length > 0) return parsed
       }
-    } catch {}
+    } catch (err) {
+      console.debug('[App]', err)
+    }
     return []
   })
 
@@ -255,7 +259,9 @@ function App() {
       if (selectedFiles.length > 0) {
         localStorage.setItem('app_last_selected_files', JSON.stringify(selectedFiles))
       }
-    } catch {}
+    } catch (err) {
+      console.debug('[App]', err)
+    }
   }, [selectedFiles])
 
   const [fileContent, setFileContent] = useState<string>('')
@@ -271,14 +277,18 @@ function App() {
       if (saved && ['all', 'drafts', 'deleted', 'workflow', 'recent', 'youtube'].includes(saved)) {
         return saved as any
       }
-    } catch {}
+    } catch (err) {
+      console.debug('[App]', err)
+    }
     return 'all'
   })
 
   useEffect(() => {
     try {
       localStorage.setItem('app_last_active_view', activeView)
-    } catch {}
+    } catch (err) {
+      console.debug('[App]', err)
+    }
   }, [activeView])
 
   const [hasOpenedYouTube, setHasOpenedYouTube] = useState(() => {
@@ -290,7 +300,9 @@ function App() {
         const parsed = JSON.parse(saved)
         if (Array.isArray(parsed) && parsed.length > 0) return true
       }
-    } catch {}
+    } catch (err) {
+      console.debug('[App]', err)
+    }
     return false
   })
 
@@ -393,7 +405,9 @@ function App() {
       const next = !prev
       try {
         localStorage.setItem('note_app_outline_open', String(next))
-      } catch {}
+      } catch (err) {
+        console.debug('[App]', err)
+      }
       return next
     })
   }, [])
@@ -402,7 +416,9 @@ function App() {
     setOutlinePosition(pos)
     try {
       localStorage.setItem('note_app_outline_position', pos)
-    } catch {}
+    } catch (err) {
+      console.debug('[App]', err)
+    }
   }, [])
 
   // Modèles de cours & Nouvelle séance
@@ -423,7 +439,9 @@ function App() {
       const saved = localStorage.getItem('selected_ai_provider') as AIProvider
       if (saved === 'agent' || saved === 'chatgpt' || saved === 'gemini' || saved === 'claude')
         return saved
-    } catch {}
+    } catch (err) {
+      console.debug('[App]', err)
+    }
     return 'claude'
   })
 
@@ -431,14 +449,18 @@ function App() {
   useEffect(() => {
     try {
       localStorage.setItem('selected_ai_provider', activeAI)
-    } catch {}
+    } catch (err) {
+      console.debug('[App]', err)
+    }
   }, [activeAI])
 
   const handleSelectAI = (ai: AIProvider) => {
     setActiveAI(ai)
     try {
       localStorage.setItem('selected_ai_provider', ai)
-    } catch {}
+    } catch (err) {
+      console.debug('[App]', err)
+    }
     setShowAIWorkspace(true)
   }
   const [spyActive, setSpyActive] = useState(false)
@@ -453,7 +475,9 @@ function App() {
   useEffect(() => {
     try {
       localStorage.setItem('show_ai_workspace', String(showAIWorkspace))
-    } catch {}
+    } catch (err) {
+      console.debug('[App]', err)
+    }
   }, [showAIWorkspace])
   const claudeWebviewRef = useRef<any>(null)
   const chatgptWebviewRef = useRef<any>(null)
@@ -647,7 +671,9 @@ function App() {
                 if (validSaved.length > 0) return validSaved
               }
             }
-          } catch {}
+          } catch (err) {
+            console.debug('[App]', err)
+          }
 
           if (flat.length > 0) {
             const showcase =
@@ -1029,7 +1055,9 @@ function App() {
               }
             })()
           }
-        } catch {}
+        } catch (err) {
+          console.debug('[App]', err)
+        }
       }
 
       webview.addEventListener('dom-ready', onLoad)
@@ -1144,9 +1172,12 @@ function App() {
     const hasLocalEdits = fileContentRef.current !== savedContentRef.current.content
     if (
       hasLocalEdits &&
-      !window.confirm(
-        'Recharger la version du disque ? Tes modifications non enregistrées seront perdues.'
-      )
+      !(await askConfirm({
+        title: 'Recharger la version du disque ?',
+        message: 'Vos modifications non enregistrées seront perdues.',
+        confirmLabel: 'Recharger',
+        danger: true
+      }))
     ) {
       return
     }
@@ -1648,7 +1679,9 @@ function App() {
 
       try {
         localStorage.setItem('pdf_page_' + resolvedPath, String(parsed.page))
-      } catch {}
+      } catch (err) {
+        console.debug('[App]', err)
+      }
 
       setTargetPdfPage(parsed.page)
       setSelectedFiles([resolvedPath])
@@ -1996,16 +2029,24 @@ function App() {
 
   const handleEmptyTrash = async () => {
     if (deletedNotes.length === 0) return
-    const confirmed = window.confirm(
-      'Êtes-vous sûr de vouloir vider définitivement la corbeille ? Tous les fichiers seront supprimés sans retour possible.'
-    )
+    const confirmed = await askConfirm({
+      title: 'Vider la corbeille ?',
+      message: 'Les notes seront supprimées définitivement.',
+      confirmLabel: 'Vider la corbeille',
+      danger: true
+    })
     if (!confirmed) return
     await window.api.emptyTrash()
     await fetchFiles()
   }
 
   const handleDeletePermanently = async (trashId: string) => {
-    const confirmed = window.confirm('Supprimer définitivement cette note de la corbeille ?')
+    const confirmed = await askConfirm({
+      title: 'Supprimer définitivement cette note ?',
+      message: 'Elle ne pourra plus être restaurée depuis la corbeille.',
+      confirmLabel: 'Supprimer',
+      danger: true
+    })
     if (!confirmed) return
     try {
       await window.api.deletePermanently(trashId)
@@ -2189,7 +2230,9 @@ function App() {
           const max = docHeight - w.innerHeight
           const ratio = max > 0 ? scrollY / max : 0
           localStorage.setItem('html_scroll_' + currentFile, JSON.stringify({ scrollY, ratio }))
-        } catch {}
+        } catch (err) {
+          console.debug('[App]', err)
+        }
       } else if (!isPdf && !isHtml && fullscreenMarkdownRef.current) {
         try {
           const el = fullscreenMarkdownRef.current
@@ -2199,7 +2242,9 @@ function App() {
             'markdown_scroll_' + currentFile,
             JSON.stringify({ ratio, scrollTop: el.scrollTop })
           )
-        } catch {}
+        } catch (err) {
+          console.debug('[App]', err)
+        }
       }
     }
 
@@ -2286,7 +2331,9 @@ function App() {
                 ratio: event.data.ratio
               })
             )
-          } catch {}
+          } catch (err) {
+            console.debug('[App]', err)
+          }
         } else {
           captureCurrentFullscreenScroll()
         }
@@ -2301,7 +2348,9 @@ function App() {
                 ratio: event.data.ratio
               })
             )
-          } catch {}
+          } catch (err) {
+            console.debug('[App]', err)
+          }
         } else if (isRenderFullscreenRef.current) {
           captureCurrentFullscreenScroll()
         }
@@ -2330,7 +2379,9 @@ function App() {
                 ratio: event.data.ratio
               })
             )
-          } catch {}
+          } catch (err) {
+            console.debug('[App]', err)
+          }
         }
       } else if (event.data?.type === 'PREVIEW_DOC_MUTATED') {
         // Seulement l'iframe plein écran (l'aperçu normal est traité par CodeWorkspace), et seulement
@@ -2354,7 +2405,11 @@ function App() {
         // Plus de normalisation automatique (inactivité, blur) : seul Shift+Alt+F reformate la note
         handleContentChange(newHtml)
       } else if (event.data?.type === 'OPEN_PDF_PAGE') {
-        if (event.data.href) {
+        // Seulement depuis une iframe d'aperçu de cette fenêtre
+        const fromPreview = Array.from(document.querySelectorAll('iframe')).some(
+          (frame) => frame.contentWindow === event.source
+        )
+        if (fromPreview && typeof event.data.href === 'string' && event.data.href) {
           handleOpenPdfLink(event.data.href)
         }
       }
@@ -2396,7 +2451,9 @@ function App() {
               const max = docHeight - w.innerHeight
               const ratio = max > 0 ? scrollY / max : 0
               localStorage.setItem('html_scroll_' + currentFile, JSON.stringify({ scrollY, ratio }))
-            } catch {}
+            } catch (err) {
+              console.debug('[App]', err)
+            }
           } else if (!isPdf && !isHtml && fullscreenMarkdownRef.current) {
             try {
               const el = fullscreenMarkdownRef.current
@@ -2406,7 +2463,9 @@ function App() {
                 'markdown_scroll_' + currentFile,
                 JSON.stringify({ ratio, scrollTop: el.scrollTop })
               )
-            } catch {}
+            } catch (err) {
+              console.debug('[App]', err)
+            }
           }
         }
         exitRenderFullscreen()
@@ -2425,7 +2484,9 @@ function App() {
           try {
             console.log('[App] Connexion Google terminée, rechargement du webview IA...')
             wv.reload()
-          } catch (_) {}
+          } catch (_) {
+            console.debug('[App]', _)
+          }
         }
       }
     })
@@ -2464,7 +2525,9 @@ function App() {
                 'markdown_scroll_' + currentFile,
                 JSON.stringify({ ratio, scrollTop: target.scrollTop })
               )
-            } catch {}
+            } catch (err) {
+              console.debug('[App]', err)
+            }
           }
           // Scroll-spy pour le plan Markdown
           const domHeadings = container.querySelectorAll('h1, h2, h3, h4, h5, h6')
@@ -2506,7 +2569,9 @@ function App() {
         savedRatio = parsed.ratio || 0
         savedTop = parsed.scrollTop || 0
       }
-    } catch {}
+    } catch (err) {
+      console.debug('[App]', err)
+    }
 
     if (savedRatio <= 0 && savedTop <= 0) return
 
@@ -2563,7 +2628,9 @@ function App() {
         savedRatio = parsed.ratio || 0
         savedTop = parsed.scrollTop || 0
       }
-    } catch {}
+    } catch (err) {
+      console.debug('[App]', err)
+    }
 
     if (savedRatio <= 0 && savedTop <= 0) return
 
@@ -2670,7 +2737,8 @@ function App() {
         if (e.key === 'Escape') {
           e.preventDefault()
           setNotesToDelete([])
-        } else if (e.key === 'Enter') {
+        } else if (e.key === 'Enter' && !(document.activeElement instanceof HTMLButtonElement)) {
+          // Sur un bouton, Entrée l'active : « Annuler » ne doit pas supprimer
           e.preventDefault()
           confirmDeleteNotes()
         }
@@ -2727,7 +2795,9 @@ function App() {
             const next = order[(idx + 1) % order.length]
             try {
               localStorage.setItem('selected_ai_provider', next)
-            } catch {}
+            } catch (err) {
+              console.debug('[App]', err)
+            }
             setShowAIWorkspace(true)
             const names: Record<AIProvider, string> = {
               agent: 'Agent IA',
@@ -3425,7 +3495,9 @@ function App() {
     setIsResizing(false)
     try {
       localStorage.setItem('claude_panel_width', String(aiWidthRef.current))
-    } catch {}
+    } catch (err) {
+      console.debug('[App]', err)
+    }
     document.removeEventListener('mousemove', handleResize as any)
     document.removeEventListener('mouseup', stopResize)
     window.removeEventListener('mouseup', stopResize)
@@ -3561,7 +3633,9 @@ function App() {
         savedRatio = parsed.ratio || 0
         savedScrollY = parsed.scrollY || 0
       }
-    } catch {}
+    } catch (err) {
+      console.debug('[App]', err)
+    }
     const prepared = prepareHtmlPreview(
       fileContent,
       savedRatio,
@@ -4567,7 +4641,9 @@ function App() {
                                 const next = !prev
                                 try {
                                   localStorage.setItem('copilot_enabled', String(next))
-                                } catch {}
+                                } catch (err) {
+                                  console.debug('[App]', err)
+                                }
                                 showClaudeToast(
                                   next ? 'Copilote IA activé' : 'Copilote IA désactivé'
                                 )
@@ -5410,7 +5486,9 @@ function App() {
                         } catch (_) {
                           try {
                             wv.executeJavaScript('window.history.back()')
-                          } catch (_) {}
+                          } catch (_) {
+                            console.debug('[App]', _)
+                          }
                         }
                       }
                     }}
@@ -5455,7 +5533,9 @@ function App() {
                         } catch (_) {
                           try {
                             wv.executeJavaScript('window.history.forward()')
-                          } catch (_) {}
+                          } catch (_) {
+                            console.debug('[App]', _)
+                          }
                         }
                       }
                     }}
@@ -5492,7 +5572,9 @@ function App() {
                         try {
                           getActiveWebview().reload()
                           showClaudeToast('Rechargement de la page...')
-                        } catch (_) {}
+                        } catch (_) {
+                          console.debug('[App]', _)
+                        }
                       }
                     }}
                     title={`Recharger ${activeAI === 'claude' ? 'Claude' : activeAI === 'chatgpt' ? 'ChatGPT' : 'Gemini'} (F5)`}
@@ -5534,7 +5616,9 @@ function App() {
                         try {
                           getActiveWebview().loadURL(url)
                           showClaudeToast("Retour à l'accueil")
-                        } catch (_) {}
+                        } catch (_) {
+                          console.debug('[App]', _)
+                        }
                       }
                     }}
                     title={`Retour à l'accueil de ${activeAI === 'claude' ? 'Claude' : activeAI === 'chatgpt' ? 'ChatGPT' : 'Gemini'}`}
@@ -5819,619 +5903,559 @@ function App() {
 
       {/* Custom Confirm Delete Modal (Pixel-perfect to reference screenshot) */}
       {notesToDelete.length > 0 && (
-        <div
-          onClick={() => setNotesToDelete([])}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'var(--overlay-bg)',
-            backdropFilter: 'blur(8px)',
+        <Modal
+          label="Confirmer la suppression"
+          onClose={() => setNotesToDelete([])}
+          panelStyle={{
+            backgroundColor: 'var(--surface-raised)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '16px',
+            width: '460px',
+            maxWidth: '92vw',
             display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 10000
+            flexDirection: 'column',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.06)',
+            color: 'var(--text-strong)',
+            padding: '24px 28px'
           }}
         >
+          {/* Header: Red Trash Badge + Title */}
           <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundColor: 'var(--surface-raised)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '16px',
-              width: '460px',
-              maxWidth: '92vw',
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow:
-                '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.06)',
-              color: 'var(--text-strong)',
-              padding: '24px 28px'
-            }}
+            style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px' }}
           >
-            {/* Header: Red Trash Badge + Title */}
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px' }}
-            >
-              <div
-                style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '10px',
-                  backgroundColor: 'color-mix(in srgb, var(--danger-strong) 12%, transparent)',
-                  border: '1px solid color-mix(in srgb, var(--danger-strong) 25%, transparent)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#ef4444"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="3 6 5 6 21 6" />
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                  <line x1="10" y1="11" x2="10" y2="17" />
-                  <line x1="14" y1="11" x2="14" y2="17" />
-                </svg>
-              </div>
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: '17px',
-                  fontWeight: 600,
-                  color: 'var(--text-strong)'
-                }}
-              >
-                {notesToDelete.length > 1
-                  ? `Supprimer les ${notesToDelete.length} notes ?`
-                  : `Supprimer « ${
-                      notesToDelete[0]
-                        .split('/')
-                        .pop()
-                        ?.replace(/\.(html|htm|md|markdown)$/i, '') || notesToDelete[0]
-                    } » ?`}
-              </h3>
-            </div>
-
-            {/* Subtitle text matching exact wording from screenshot */}
-            <p
-              style={{
-                margin: '0 0 24px 0',
-                fontSize: '13.5px',
-                color: 'var(--text-secondary)',
-                lineHeight: '1.6'
-              }}
-            >
-              {notesToDelete.length > 1
-                ? 'Ces notes et leur contenu seront déplacés dans la corbeille.'
-                : notesToDelete[0].endsWith('.md') ||
-                    notesToDelete[0].endsWith('.html') ||
-                    notesToDelete[0].endsWith('.htm')
-                  ? 'Cette note sera déplacée dans la corbeille.'
-                  : 'Ce dossier et son contenu seront déplacés dans la corbeille.'}
-              <br />
-              Vous pourrez les restaurer plus tard.
-            </p>
-
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button
-                onClick={() => setNotesToDelete([])}
-                style={{
-                  backgroundColor: 'var(--surface-input)',
-                  border: '1px solid var(--border-color)',
-                  color: 'var(--text-primary)',
-                  borderRadius: '8px',
-                  padding: '8px 18px',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  outline: 'none',
-                  transition: 'background-color 0.15s'
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = 'var(--border-strong)')
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor = 'var(--surface-input)')
-                }
-              >
-                Annuler
-              </button>
-              <button
-                autoFocus
-                onClick={confirmDeleteNotes}
-                style={{
-                  backgroundColor: 'var(--danger-strong)',
-                  color: 'var(--text-strong)',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '8px 18px',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  outline: 'none',
-                  transition: 'background-color 0.15s'
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = 'var(--danger-strong)')
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor = 'var(--danger-strong)')
-                }
-              >
-                {notesToDelete.length > 1
-                  ? 'Supprimer les notes'
-                  : notesToDelete[0].endsWith('.md')
-                    ? 'Supprimer la note'
-                    : 'Supprimer le dossier'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Claude Save */}
-      {codeToSave && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'var(--overlay-bg)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10000
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: 'var(--surface-raised)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '16px',
-              width: '480px',
-              maxWidth: '92vw',
-              padding: '24px 28px',
-              boxShadow:
-                '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.06)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '18px',
-              color: 'var(--text-strong)'
-            }}
-          >
-            {/* Header: Amber Claude Badge + Title */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <div
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '10px',
-                  backgroundColor: 'color-mix(in srgb, var(--accent-amber) 12%, transparent)',
-                  border: '1px solid color-mix(in srgb, var(--accent-amber) 25%, transparent)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--accent-amber)',
-                  flexShrink: 0
-                }}
-              >
-                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z" />
-                </svg>
-              </div>
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: '17px',
-                  fontWeight: 600,
-                  color: 'var(--text-strong)'
-                }}
-              >
-                Sauvegarder le code depuis Claude
-              </h2>
-            </div>
-
-            {/* Code Snippet Box */}
             <div
               style={{
-                backgroundColor: '#121316',
-                padding: '12px 14px',
+                width: '42px',
+                height: '42px',
                 borderRadius: '10px',
-                border: '1px solid var(--border-color)',
-                fontSize: '12.5px',
-                color: 'var(--text-secondary)',
-                maxHeight: '120px',
-                overflowY: 'auto'
-              }}
-            >
-              <div
-                style={{
-                  color: 'var(--accent-amber)',
-                  marginBottom: '6px',
-                  fontWeight: 600,
-                  fontSize: '11px',
-                  textTransform: 'uppercase'
-                }}
-              >
-                {codeToSave.language}
-              </div>
-              <pre
-                style={{
-                  margin: 0,
-                  whiteSpace: 'pre-wrap',
-                  fontFamily: 'monospace',
-                  color: 'var(--text-primary)'
-                }}
-              >
-                {codeToSave.code.length > 200
-                  ? codeToSave.code.substring(0, 200) + '...'
-                  : codeToSave.code}
-              </pre>
-            </div>
-
-            {/* Options */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  cursor: 'pointer',
-                  fontSize: '13.5px',
-                  color: 'var(--text-primary)'
-                }}
-              >
-                <input
-                  type="radio"
-                  checked={saveActionType === 'new'}
-                  onChange={() => setSaveActionType('new')}
-                  style={{ accentColor: 'var(--accent-color)' }}
-                />
-                Créer une nouvelle note
-              </label>
-              {saveActionType === 'new' && (
-                <input
-                  type="text"
-                  value={newFileName}
-                  onChange={(e) => setNewFileName(e.target.value)}
-                  placeholder="Ex: claude-code.md"
-                  autoFocus
-                  style={{
-                    marginLeft: '26px',
-                    background: 'var(--surface-control)',
-                    color: 'var(--text-strong)',
-                    border: '1px solid var(--border-strong)',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    outline: 'none',
-                    width: 'calc(100% - 26px)',
-                    boxSizing: 'border-box',
-                    fontSize: '13px'
-                  }}
-                />
-              )}
-
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  cursor: 'pointer',
-                  fontSize: '13.5px',
-                  color: 'var(--text-primary)'
-                }}
-              >
-                <input
-                  type="radio"
-                  checked={saveActionType === 'append'}
-                  onChange={() => setSaveActionType('append')}
-                  style={{ accentColor: 'var(--accent-color)' }}
-                />
-                Ajouter à une note existante
-              </label>
-              {saveActionType === 'append' && (
-                <select
-                  value={selectedExistingFile}
-                  onChange={(e) => setSelectedExistingFile(e.target.value)}
-                  style={{
-                    marginLeft: '26px',
-                    background: 'var(--surface-control)',
-                    color: 'var(--text-strong)',
-                    border: '1px solid var(--border-strong)',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    outline: 'none',
-                    width: 'calc(100% - 26px)',
-                    boxSizing: 'border-box',
-                    cursor: 'pointer',
-                    fontSize: '13px'
-                  }}
-                >
-                  {files.filter((f) => f !== '__claude_code__').length === 0 && (
-                    <option value="" disabled>
-                      Aucune note existante
-                    </option>
-                  )}
-                  {files
-                    .filter((f) => f !== '__claude_code__')
-                    .map((f) => (
-                      <option key={f} value={f}>
-                        {f.replace('.md', '')}
-                      </option>
-                    ))}
-                </select>
-              )}
-
-              <hr
-                style={{
-                  border: 'none',
-                  borderTop: '1px solid var(--border-color)',
-                  margin: '2px 0'
-                }}
-              />
-
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  cursor: 'pointer',
-                  fontSize: '12.5px',
-                  color: 'var(--text-secondary)'
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={saveAsCodeBlock}
-                  onChange={(e) => setSaveAsCodeBlock(e.target.checked)}
-                  style={{ accentColor: 'var(--accent-color)' }}
-                />
-                Envelopper le contenu dans un bloc de code (```)
-              </label>
-            </div>
-
-            {/* Buttons */}
-            <div
-              style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}
-            >
-              <button
-                onClick={() => setCodeToSave(null)}
-                style={{
-                  backgroundColor: 'var(--surface-input)',
-                  border: '1px solid var(--border-color)',
-                  color: 'var(--text-primary)',
-                  padding: '8px 18px',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'background-color 0.15s'
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = 'var(--border-strong)')
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor = 'var(--surface-input)')
-                }
-              >
-                Annuler
-              </button>
-              <button
-                onClick={confirmSaveClaudeCode}
-                disabled={
-                  saveActionType === 'append' &&
-                  (!selectedExistingFile ||
-                    files.filter((f) => f !== '__claude_code__').length === 0)
-                }
-                style={{
-                  background: 'var(--accent-strong)',
-                  color: 'var(--text-strong)',
-                  border: 'none',
-                  padding: '8px 20px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  opacity:
-                    saveActionType === 'append' &&
-                    (!selectedExistingFile ||
-                      files.filter((f) => f !== '__claude_code__').length === 0)
-                      ? 0.5
-                      : 1,
-                  transition: 'background-color 0.15s'
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3b82f6')}
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor = 'var(--accent-strong)')
-                }
-              >
-                Sauvegarder
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Quick Search Modal (VS Code style Ctrl+S / Ctrl+P with sleek dark card) */}
-      {isSearchOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'var(--overlay-bg)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'flex-start',
-            paddingTop: '80px',
-            zIndex: 99999
-          }}
-          onClick={() => {
-            setIsSearchOpen(false)
-            setSearchFilter('')
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: 'var(--surface-raised)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '16px',
-              width: '560px',
-              maxWidth: '92vw',
-              boxShadow:
-                '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.06)',
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              style={{
+                backgroundColor: 'color-mix(in srgb, var(--danger-strong) 12%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--danger-strong) 25%, transparent)',
                 display: 'flex',
                 alignItems: 'center',
-                padding: '14px 18px',
-                borderBottom: '1px solid var(--border-color)',
-                gap: '10px'
+                justifyContent: 'center',
+                flexShrink: 0
               }}
             >
               <svg
-                width="16"
-                height="16"
+                width="20"
+                height="20"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#9ca3af"
+                stroke="#ef4444"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <line x1="10" y1="11" x2="10" y2="17" />
+                <line x1="14" y1="11" x2="14" y2="17" />
               </svg>
+            </div>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: '17px',
+                fontWeight: 600,
+                color: 'var(--text-strong)'
+              }}
+            >
+              {notesToDelete.length > 1
+                ? `Supprimer les ${notesToDelete.length} notes ?`
+                : `Supprimer « ${
+                    notesToDelete[0]
+                      .split('/')
+                      .pop()
+                      ?.replace(/\.(html|htm|md|markdown)$/i, '') || notesToDelete[0]
+                  } » ?`}
+            </h3>
+          </div>
+
+          {/* Subtitle text matching exact wording from screenshot */}
+          <p
+            style={{
+              margin: '0 0 24px 0',
+              fontSize: '13.5px',
+              color: 'var(--text-secondary)',
+              lineHeight: '1.6'
+            }}
+          >
+            {notesToDelete.length > 1
+              ? 'Ces notes et leur contenu seront déplacés dans la corbeille.'
+              : notesToDelete[0].endsWith('.md') ||
+                  notesToDelete[0].endsWith('.html') ||
+                  notesToDelete[0].endsWith('.htm')
+                ? 'Cette note sera déplacée dans la corbeille.'
+                : 'Ce dossier et son contenu seront déplacés dans la corbeille.'}
+            <br />
+            Vous pourrez les restaurer plus tard.
+          </p>
+
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <button
+              onClick={() => setNotesToDelete([])}
+              style={{
+                backgroundColor: 'var(--surface-input)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)',
+                borderRadius: '8px',
+                padding: '8px 18px',
+                fontSize: '13px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                outline: 'none',
+                transition: 'background-color 0.15s'
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--border-strong)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-input)')}
+            >
+              Annuler
+            </button>
+            <button
+              autoFocus
+              data-autofocus
+              onClick={confirmDeleteNotes}
+              style={{
+                backgroundColor: 'var(--danger-strong)',
+                color: 'var(--text-strong)',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '8px 18px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                outline: 'none',
+                transition: 'background-color 0.15s'
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--danger-strong)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--danger-strong)')}
+            >
+              {notesToDelete.length > 1
+                ? 'Supprimer les notes'
+                : notesToDelete[0].endsWith('.md')
+                  ? 'Supprimer la note'
+                  : 'Supprimer le dossier'}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      <ConfirmHost />
+
+      {/* Modal Claude Save */}
+      {codeToSave && (
+        <Modal
+          label="Enregistrer le code"
+          onClose={() => setCodeToSave(null)}
+          closeOnBackdrop={false}
+          panelStyle={{
+            backgroundColor: 'var(--surface-raised)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '16px',
+            width: '480px',
+            maxWidth: '92vw',
+            padding: '24px 28px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.06)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '18px',
+            color: 'var(--text-strong)'
+          }}
+        >
+          {/* Header: Amber Claude Badge + Title */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                backgroundColor: 'color-mix(in srgb, var(--accent-amber) 12%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--accent-amber) 25%, transparent)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--accent-amber)',
+                flexShrink: 0
+              }}
+            >
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                <path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z" />
+              </svg>
+            </div>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: '17px',
+                fontWeight: 600,
+                color: 'var(--text-strong)'
+              }}
+            >
+              Sauvegarder le code depuis Claude
+            </h2>
+          </div>
+
+          {/* Code Snippet Box */}
+          <div
+            style={{
+              backgroundColor: '#121316',
+              padding: '12px 14px',
+              borderRadius: '10px',
+              border: '1px solid var(--border-color)',
+              fontSize: '12.5px',
+              color: 'var(--text-secondary)',
+              maxHeight: '120px',
+              overflowY: 'auto'
+            }}
+          >
+            <div
+              style={{
+                color: 'var(--accent-amber)',
+                marginBottom: '6px',
+                fontWeight: 600,
+                fontSize: '11px',
+                textTransform: 'uppercase'
+              }}
+            >
+              {codeToSave.language}
+            </div>
+            <pre
+              style={{
+                margin: 0,
+                whiteSpace: 'pre-wrap',
+                fontFamily: 'monospace',
+                color: 'var(--text-primary)'
+              }}
+            >
+              {codeToSave.code.length > 200
+                ? codeToSave.code.substring(0, 200) + '...'
+                : codeToSave.code}
+            </pre>
+          </div>
+
+          {/* Options */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                cursor: 'pointer',
+                fontSize: '13.5px',
+                color: 'var(--text-primary)'
+              }}
+            >
               <input
+                type="radio"
+                checked={saveActionType === 'new'}
+                onChange={() => setSaveActionType('new')}
+                style={{ accentColor: 'var(--accent-color)' }}
+              />
+              Créer une nouvelle note
+            </label>
+            {saveActionType === 'new' && (
+              <input
+                type="text"
+                value={newFileName}
+                onChange={(e) => setNewFileName(e.target.value)}
+                placeholder="Ex: claude-code.md"
                 autoFocus
-                placeholder="Rechercher une note ou un dossier..."
-                value={searchFilter}
-                onChange={(e) => setSearchFilter(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
-                    setIsSearchOpen(false)
-                    setSearchFilter('')
-                  }
-                }}
                 style={{
-                  width: '100%',
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
+                  marginLeft: '26px',
+                  background: 'var(--surface-control)',
                   color: 'var(--text-strong)',
-                  fontSize: '14px'
+                  border: '1px solid var(--border-strong)',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  outline: 'none',
+                  width: 'calc(100% - 26px)',
+                  boxSizing: 'border-box',
+                  fontSize: '13px'
                 }}
               />
-              <span
+            )}
+
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                cursor: 'pointer',
+                fontSize: '13.5px',
+                color: 'var(--text-primary)'
+              }}
+            >
+              <input
+                type="radio"
+                checked={saveActionType === 'append'}
+                onChange={() => setSaveActionType('append')}
+                style={{ accentColor: 'var(--accent-color)' }}
+              />
+              Ajouter à une note existante
+            </label>
+            {saveActionType === 'append' && (
+              <select
+                value={selectedExistingFile}
+                onChange={(e) => setSelectedExistingFile(e.target.value)}
                 style={{
-                  fontSize: '11px',
-                  color: 'var(--text-secondary)',
-                  backgroundColor: 'var(--surface-input)',
-                  border: '1px solid var(--border-color)',
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  fontFamily: 'monospace'
+                  marginLeft: '26px',
+                  background: 'var(--surface-control)',
+                  color: 'var(--text-strong)',
+                  border: '1px solid var(--border-strong)',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  outline: 'none',
+                  width: 'calc(100% - 26px)',
+                  boxSizing: 'border-box',
+                  cursor: 'pointer',
+                  fontSize: '13px'
                 }}
               >
-                ESC
-              </span>
-            </div>
-            <div style={{ maxHeight: '350px', overflowY: 'auto', padding: '8px' }}>
-              {files
-                .filter(
-                  (f) =>
-                    f !== '__claude_code__' &&
-                    !f.startsWith('.snippets') &&
-                    !f.startsWith('.trash') &&
-                    !f.includes('/.snippets') &&
-                    !f.includes('/.trash') &&
-                    f.toLowerCase().includes(searchFilter.toLowerCase())
-                )
-                .map((f) => {
-                  const clean = f.replace(/\.(html|htm|md|markdown)$/i, '')
-                  return (
-                    <div
-                      key={f}
-                      onClick={() => {
-                        setSelectedFiles([f])
-                        setActiveView('all')
-                        setIsSearchOpen(false)
-                        setSearchFilter('')
-                      }}
-                      style={{
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontSize: '13px',
-                        color: 'var(--text-strong)',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        transition: 'background-color 0.12s'
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.06)')
-                      }
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                    >
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {getFileIcon(f, 15)}
-                        <span>{clean}</span>
-                      </span>
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          color: 'var(--text-secondary)',
-                          backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                          padding: '2px 6px',
-                          borderRadius: '4px'
-                        }}
-                      >
-                        {f.includes('/') ? f.split('/').slice(0, -1).join('/') : 'Racine'}
-                      </span>
-                    </div>
-                  )
-                })}
-              {files.filter((f) => f.toLowerCase().includes(searchFilter.toLowerCase())).length ===
-                0 && (
-                <div
-                  style={{
-                    padding: '24px 16px',
-                    textAlign: 'center',
-                    color: 'var(--text-muted)',
-                    fontSize: '13px'
-                  }}
-                >
-                  Aucune note trouvée.
-                </div>
-              )}
-            </div>
+                {files.filter((f) => f !== '__claude_code__').length === 0 && (
+                  <option value="" disabled>
+                    Aucune note existante
+                  </option>
+                )}
+                {files
+                  .filter((f) => f !== '__claude_code__')
+                  .map((f) => (
+                    <option key={f} value={f}>
+                      {f.replace('.md', '')}
+                    </option>
+                  ))}
+              </select>
+            )}
+
+            <hr
+              style={{
+                border: 'none',
+                borderTop: '1px solid var(--border-color)',
+                margin: '2px 0'
+              }}
+            />
+
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                cursor: 'pointer',
+                fontSize: '12.5px',
+                color: 'var(--text-secondary)'
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={saveAsCodeBlock}
+                onChange={(e) => setSaveAsCodeBlock(e.target.checked)}
+                style={{ accentColor: 'var(--accent-color)' }}
+              />
+              Envelopper le contenu dans un bloc de code (```)
+            </label>
           </div>
-        </div>
+
+          {/* Buttons */}
+          <div
+            style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}
+          >
+            <button
+              onClick={() => setCodeToSave(null)}
+              style={{
+                backgroundColor: 'var(--surface-input)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)',
+                padding: '8px 18px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'background-color 0.15s'
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--border-strong)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-input)')}
+            >
+              Annuler
+            </button>
+            <button
+              onClick={confirmSaveClaudeCode}
+              disabled={
+                saveActionType === 'append' &&
+                (!selectedExistingFile || files.filter((f) => f !== '__claude_code__').length === 0)
+              }
+              style={{
+                background: 'var(--accent-strong)',
+                color: 'var(--text-strong)',
+                border: 'none',
+                padding: '8px 20px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: 600,
+                opacity:
+                  saveActionType === 'append' &&
+                  (!selectedExistingFile ||
+                    files.filter((f) => f !== '__claude_code__').length === 0)
+                    ? 0.5
+                    : 1,
+                transition: 'background-color 0.15s'
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3b82f6')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--accent-strong)')}
+            >
+              Sauvegarder
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Quick Search Modal (VS Code style Ctrl+S / Ctrl+P with sleek dark card) */}
+      {isSearchOpen && (
+        <Modal
+          label="Rechercher"
+          onClose={() => {
+            setIsSearchOpen(false)
+            setSearchFilter('')
+          }}
+          overlayStyle={{ alignItems: 'flex-start', paddingTop: '80px' }}
+          panelStyle={{
+            backgroundColor: 'var(--surface-raised)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '16px',
+            width: '560px',
+            maxWidth: '92vw',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.06)',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              padding: '14px 18px',
+              borderBottom: '1px solid var(--border-color)',
+              gap: '10px'
+            }}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#9ca3af"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              autoFocus
+              placeholder="Rechercher une note ou un dossier..."
+              value={searchFilter}
+              onChange={(e) => setSearchFilter(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setIsSearchOpen(false)
+                  setSearchFilter('')
+                }
+              }}
+              style={{
+                width: '100%',
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                color: 'var(--text-strong)',
+                fontSize: '14px'
+              }}
+            />
+            <span
+              style={{
+                fontSize: '11px',
+                color: 'var(--text-secondary)',
+                backgroundColor: 'var(--surface-input)',
+                border: '1px solid var(--border-color)',
+                padding: '2px 8px',
+                borderRadius: '4px',
+                fontFamily: 'monospace'
+              }}
+            >
+              ESC
+            </span>
+          </div>
+          <div style={{ maxHeight: '350px', overflowY: 'auto', padding: '8px' }}>
+            {files
+              .filter(
+                (f) =>
+                  f !== '__claude_code__' &&
+                  !f.startsWith('.snippets') &&
+                  !f.startsWith('.trash') &&
+                  !f.includes('/.snippets') &&
+                  !f.includes('/.trash') &&
+                  f.toLowerCase().includes(searchFilter.toLowerCase())
+              )
+              .map((f) => {
+                const clean = f.replace(/\.(html|htm|md|markdown)$/i, '')
+                return (
+                  <div
+                    key={f}
+                    onClick={() => {
+                      setSelectedFiles([f])
+                      setActiveView('all')
+                      setIsSearchOpen(false)
+                      setSearchFilter('')
+                    }}
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      color: 'var(--text-strong)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      transition: 'background-color 0.12s'
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.06)')
+                    }
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {getFileIcon(f, 15)}
+                      <span>{clean}</span>
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        color: 'var(--text-secondary)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                        padding: '2px 6px',
+                        borderRadius: '4px'
+                      }}
+                    >
+                      {f.includes('/') ? f.split('/').slice(0, -1).join('/') : 'Racine'}
+                    </span>
+                  </div>
+                )
+              })}
+            {files.filter((f) => f.toLowerCase().includes(searchFilter.toLowerCase())).length ===
+              0 && (
+              <div
+                style={{
+                  padding: '24px 16px',
+                  textAlign: 'center',
+                  color: 'var(--text-muted)',
+                  fontSize: '13px'
+                }}
+              >
+                Aucune note trouvée.
+              </div>
+            )}
+          </div>
+        </Modal>
       )}
 
       {/* MODE PLEIN ÉCRAN TOTALEMENT IMMERSIF DU RENDU (PDF, HTML & MARKDOWN) */}
@@ -6593,7 +6617,9 @@ function App() {
                       '*'
                     )
                   }
-                } catch {}
+                } catch (err) {
+                  console.debug('[App]', err)
+                }
               }}
               sandbox="allow-scripts allow-modals allow-forms allow-same-origin"
               style={{
@@ -6632,7 +6658,9 @@ function App() {
                           'markdown_scroll_' + currentFile,
                           JSON.stringify({ ratio, scrollTop: el.scrollTop })
                         )
-                      } catch {}
+                      } catch (err) {
+                        console.debug('[App]', err)
+                      }
                     }
                     if (fullscreenMarkdownRef.current) {
                       const domHeadings =

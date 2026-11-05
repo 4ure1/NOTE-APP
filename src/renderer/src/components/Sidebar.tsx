@@ -102,14 +102,18 @@ export default function Sidebar({
     try {
       const saved = localStorage.getItem('sidebar_open_folders')
       if (saved) return JSON.parse(saved)
-    } catch {}
+    } catch (err) {
+      console.debug('[Sidebar]', err)
+    }
     return {}
   })
 
   useEffect(() => {
     try {
       localStorage.setItem('sidebar_open_folders', JSON.stringify(openFolders))
-    } catch {}
+    } catch (err) {
+      console.debug('[Sidebar]', err)
+    }
   }, [openFolders])
 
   // Tri de « Mes notes », retenu d'un lancement à l'autre

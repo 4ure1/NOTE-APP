@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
+import Modal from './Modal'
 import { notifyApiError } from '../utils/apiError'
 import {
   YouTubeIcon,
@@ -109,7 +110,9 @@ export default function YouTubeWorkspace() {
     try {
       const saved = localStorage.getItem('youtube_active_tab_id')
       if (saved) return saved
-    } catch {}
+    } catch (err) {
+      console.debug('[YouTube]', err)
+    }
     return tabs[0]?.id || 'yt-tab-1'
   })
 
@@ -124,7 +127,9 @@ export default function YouTubeWorkspace() {
         const parsed = JSON.parse(saved)
         if (Array.isArray(parsed)) return parsed
       }
-    } catch {}
+    } catch (err) {
+      console.debug('[YouTube]', err)
+    }
     return DEFAULT_SHORTCUTS
   })
 
@@ -136,7 +141,9 @@ export default function YouTubeWorkspace() {
         const parsed = JSON.parse(saved)
         if (Array.isArray(parsed)) return parsed
       }
-    } catch {}
+    } catch (err) {
+      console.debug('[YouTube]', err)
+    }
     return []
   })
 
@@ -159,13 +166,17 @@ export default function YouTubeWorkspace() {
   useEffect(() => {
     try {
       localStorage.setItem('youtube_open_tabs', JSON.stringify(tabs))
-    } catch {}
+    } catch (err) {
+      console.debug('[YouTube]', err)
+    }
   }, [tabs])
 
   useEffect(() => {
     try {
       localStorage.setItem('youtube_active_tab_id', activeTabId)
-    } catch {}
+    } catch (err) {
+      console.debug('[YouTube]', err)
+    }
   }, [activeTabId])
 
   // Synchroniser l'input d'URL avec l'onglet actif
@@ -183,7 +194,9 @@ export default function YouTubeWorkspace() {
           setShortcuts(cfg.youtubeShortcuts)
           try {
             localStorage.setItem('youtube_quick_shortcuts', JSON.stringify(cfg.youtubeShortcuts))
-          } catch {}
+            } catch (err) {
+              console.debug('[YouTube]', err)
+            }
         }
       }).catch(() => {})
     }
@@ -206,7 +219,9 @@ export default function YouTubeWorkspace() {
     setShortcuts(updated)
     try {
       localStorage.setItem('youtube_quick_shortcuts', JSON.stringify(updated))
-    } catch {}
+    } catch (err) {
+      console.debug('[YouTube]', err)
+    }
     if (window.api?.getConfig && window.api?.saveConfig) {
       window.api.getConfig().then((cfg) => {
         window.api.saveConfig({ ...(cfg || {}), youtubeShortcuts: updated })
@@ -230,7 +245,11 @@ export default function YouTubeWorkspace() {
       // Si la vidéo la plus récente est identique, on met juste à jour l'heure
       if (prev.length > 0 && prev[0].url === url) {
         const updated = [{ ...prev[0], title: cleanTitle, timestamp: Date.now() }, ...prev.slice(1)]
-        try { localStorage.setItem('youtube_browsing_history', JSON.stringify(updated.slice(0, 500))) } catch {}
+        try {
+          localStorage.setItem('youtube_browsing_history', JSON.stringify(updated.slice(0, 500)))
+        } catch (err) {
+          console.debug('[YouTube]', err)
+        }
         return updated
       }
 
@@ -244,7 +263,11 @@ export default function YouTubeWorkspace() {
       // Évite les doublons multiples et conserve jusqu'à 500 entrées
       const filtered = prev.filter((item) => item.url !== url)
       const updated = [newItem, ...filtered].slice(0, 500)
-      try { localStorage.setItem('youtube_browsing_history', JSON.stringify(updated)) } catch {}
+      try {
+        localStorage.setItem('youtube_browsing_history', JSON.stringify(updated))
+      } catch (err) {
+        console.debug('[YouTube]', err)
+      }
       return updated
     })
   }
@@ -253,14 +276,22 @@ export default function YouTubeWorkspace() {
     e.stopPropagation()
     setHistory((prev) => {
       const updated = prev.filter((item) => item.id !== id)
-      try { localStorage.setItem('youtube_browsing_history', JSON.stringify(updated)) } catch {}
+      try {
+        localStorage.setItem('youtube_browsing_history', JSON.stringify(updated))
+      } catch (err) {
+        console.debug('[YouTube]', err)
+      }
       return updated
     })
   }
 
   const handleClearHistory = () => {
     setHistory([])
-    try { localStorage.removeItem('youtube_browsing_history') } catch {}
+    try {
+      localStorage.removeItem('youtube_browsing_history')
+    } catch (err) {
+      console.debug('[YouTube]', err)
+    }
   }
 
   // Grouper l'historique par date
@@ -457,7 +488,9 @@ export default function YouTubeWorkspace() {
     let currentUrl = ''
     try {
       currentUrl = typeof wv.getURL === 'function' ? wv.getURL() : (activeTab?.url || '')
-    } catch (_) {}
+    } catch (_) {
+      console.debug('[YouTube]', _)
+    }
 
     // Si on force l'accueil ou si l'onglet était bloqué sur un rejet de connexion
     if (forceHome || !currentUrl || currentUrl.includes('signin/rejected')) {
@@ -1404,188 +1437,188 @@ export default function YouTubeWorkspace() {
 
       {/* ── MODAL : AJOUTER UN RACCOURCI YOUTUBE ── */}
       {isAddModalOpen && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 9999,
-            backgroundColor: 'var(--overlay-bg)',
-            backdropFilter: 'blur(4px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px'
+        <Modal
+          label="Ajouter un raccourci YouTube"
+          onClose={() => setIsAddModalOpen(false)}
+          overlayStyle={{ position: 'absolute' }}
+          panelStyle={{
+            width: '420px',
+            maxWidth: '95%',
+            backgroundColor: 'var(--surface-raised)',
+            border: '1px solid var(--border-strong)',
+            borderRadius: '12px',
+            padding: '20px',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)'
           }}
-          onClick={() => setIsAddModalOpen(false)}
         >
           <div
-            onClick={(e) => e.stopPropagation()}
             style={{
-              width: '420px',
-              maxWidth: '95%',
-              backgroundColor: 'var(--surface-raised)',
-              border: '1px solid var(--border-strong)',
-              borderRadius: '12px',
-              padding: '20px',
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)'
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '16px'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <YouTubeIcon size={20} />
-                <h3
-                  style={{
-                    fontSize: '15px',
-                    fontWeight: 600,
-                    color: 'var(--text-strong)',
-                    margin: 0
-                  }}
-                >
-                  Ajouter un raccourci YouTube
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsAddModalOpen(false)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <YouTubeIcon size={20} />
+              <h3
                 style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  padding: '4px'
+                  fontSize: '15px',
+                  fontWeight: 600,
+                  color: 'var(--text-strong)',
+                  margin: 0
                 }}
               >
-                <XIcon size={16} />
-              </button>
+                Ajouter un raccourci YouTube
+              </h3>
+            </div>
+            <button
+              onClick={() => setIsAddModalOpen(false)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: '4px'
+              }}
+            >
+              <XIcon size={16} />
+            </button>
+          </div>
+
+          <form
+            onSubmit={handleSubmitNewShortcut}
+            style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
+          >
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  color: 'var(--text-primary)',
+                  marginBottom: '6px'
+                }}
+              >
+                Nom du raccourci
+              </label>
+              <input
+                type="text"
+                autoFocus
+                required
+                placeholder="Ex: Synthwave Relax, Tutos Node.js..."
+                value={newLabel}
+                onChange={(e) => setNewLabel(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  backgroundColor: 'var(--editor-bg)',
+                  border: '1px solid var(--border-strong)',
+                  color: 'var(--text-strong)',
+                  fontSize: '13px',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
             </div>
 
-            <form onSubmit={handleSubmitNewShortcut} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '12px',
-                    fontWeight: 500,
-                    color: 'var(--text-primary)',
-                    marginBottom: '6px'
-                  }}
-                >
-                  Nom du raccourci
-                </label>
-                <input
-                  type="text"
-                  autoFocus
-                  required
-                  placeholder="Ex: Synthwave Relax, Tutos Node.js..."
-                  value={newLabel}
-                  onChange={(e) => setNewLabel(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    backgroundColor: 'var(--editor-bg)',
-                    border: '1px solid var(--border-strong)',
-                    color: 'var(--text-strong)',
-                    fontSize: '13px',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                />
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  color: 'var(--text-primary)',
+                  marginBottom: '6px'
+                }}
+              >
+                Lien YouTube ou recherche
+              </label>
+              <input
+                type="text"
+                placeholder="URL YouTube (https://...) ou mots-clés"
+                value={newTarget}
+                onChange={(e) => setNewTarget(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  backgroundColor: 'var(--editor-bg)',
+                  border: '1px solid var(--border-strong)',
+                  color: 'var(--text-strong)',
+                  fontSize: '13px',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Si vous entrez des mots-clés, la recherche YouTube s’ouvrira directement.
               </div>
+            </div>
 
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '12px',
-                    fontWeight: 500,
-                    color: 'var(--text-primary)',
-                    marginBottom: '6px'
-                  }}
-                >
-                  Lien YouTube ou recherche
-                </label>
-                <input
-                  type="text"
-                  placeholder="URL YouTube (https://...) ou mots-clés"
-                  value={newTarget}
-                  onChange={(e) => setNewTarget(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    backgroundColor: 'var(--editor-bg)',
-                    border: '1px solid var(--border-strong)',
-                    color: 'var(--text-strong)',
-                    fontSize: '13px',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                />
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  Si vous entrez des mots-clés, la recherche YouTube s'ouvrira directement.
-                </div>
-              </div>
+            {activeTab && activeTab.url !== DEFAULT_URL && (
+              <button
+                type="button"
+                onClick={() => {
+                  setNewLabel(activeTab.title || 'Ma vidéo')
+                  setNewTarget(activeTab.url)
+                }}
+                style={{
+                  padding: '6px 10px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px dashed var(--border-strong)',
+                  borderRadius: '6px',
+                  color: 'var(--accent-color)',
+                  fontSize: '11.5px',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <ZapIcon size={12} style={{ flexShrink: 0 }} /> Remplir avec la vidéo actuellement
+                ouverte : <strong>{activeTab.title.slice(0, 35)}...</strong>
+              </button>
+            )}
 
-              {activeTab && activeTab.url !== DEFAULT_URL && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNewLabel(activeTab.title || 'Ma vidéo')
-                    setNewTarget(activeTab.url)
-                  }}
-                  style={{
-                    padding: '6px 10px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px dashed var(--border-strong)',
-                    borderRadius: '6px',
-                    color: 'var(--accent-color)',
-                    fontSize: '11.5px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <ZapIcon size={12} style={{ flexShrink: 0 }} /> Remplir avec la vidéo actuellement ouverte : <strong>{activeTab.title.slice(0, 35)}...</strong>
-                </button>
-              )}
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  style={{
-                    padding: '7px 14px',
-                    borderRadius: '6px',
-                    backgroundColor: 'transparent',
-                    border: '1px solid var(--border-strong)',
-                    color: 'var(--text-secondary)',
-                    fontSize: '12.5px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  style={{
-                    padding: '7px 16px',
-                    borderRadius: '6px',
-                    backgroundColor: 'var(--danger-strong)',
-                    border: 'none',
-                    color: 'var(--text-strong)',
-                    fontWeight: 600,
-                    fontSize: '12.5px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Enregistrer
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            <div
+              style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}
+            >
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(false)}
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: '6px',
+                  backgroundColor: 'transparent',
+                  border: '1px solid var(--border-strong)',
+                  color: 'var(--text-secondary)',
+                  fontSize: '12.5px',
+                  cursor: 'pointer'
+                }}
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                style={{
+                  padding: '7px 16px',
+                  borderRadius: '6px',
+                  backgroundColor: 'var(--danger-strong)',
+                  border: 'none',
+                  color: 'var(--text-strong)',
+                  fontWeight: 600,
+                  fontSize: '12.5px',
+                  cursor: 'pointer'
+                }}
+              >
+                Enregistrer
+              </button>
+            </div>
+          </form>
+        </Modal>
       )}
 
 

@@ -84,8 +84,8 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
    (`src/main/agent/security.ts`) avant de lire, écrire ou supprimer.
 5. Hors ligne : aucune ressource d'interface chargée depuis un CDN ou le réseau (scripts, CSS, polices, workers,
    cMaps, MathJax). Embarquer localement via npm ou Vite. Ne pas élargir la CSP de `src/renderer/index.html`.
-   Exceptions voulues : webviews IA, YouTube, recherche web, Ollama. Dette existante : Google Fonts
-   (`index.html`), MathJax cdnjs (`CodeWorkspace.tsx`), cMaps pdfjs jsdelivr (`PdfViewer.tsx`).
+   Exceptions voulues : webviews IA, YouTube, recherche web, Ollama. Polices (`@fontsource`), MathJax
+   (`mathjax/es5/tex-svg.js?url`) et cMaps pdf.js (`utils/pdfCMaps.ts`) sont embarqués.
 6. Ne jamais modifier le contenu d'une note sans action explicite de l'utilisateur : pas de reformatage ni de
    normalisation automatique sur ouverture, focus ou blur.
 7. Ne pas affaiblir la sécurité Electron : pas de `nodeIntegration`, pas de nouvel accès générique à IPC
@@ -101,11 +101,9 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
 - 3b-3 : SSRF (`downloadPdfFromUrl`, `download-pdf-from-url`, `web_fetch` de l'agent) : adresses privées
   refusées, `lookup` personnalisé (résoudre, valider, se connecter sur la même IP), redirections revérifiées.
 - 3b-4 : CSP sans `unsafe-eval` (`isEvalSupported: false` pour pdf.js).
-- Message `OPEN_PDF_PAGE` (`App.tsx`, `handleMessage`) traité sans vérifier `event.source` : le JS d'une note
-  peut le forger. Le restreindre aux iframes d'aperçu, comme `OPEN_EXTERNAL_URL`.
-- Le JS d'une note peut forger `PREVIEW_DOC_MUTATED` (donc réécrire la note ; `App.tsx` et
-  `CodeWorkspace.tsx` ne vérifient pas `event.source`), et appeler `closeReady` / `setUnsavedChanges` via
-  `window.parent.api` (fermeture sans écrire la saisie en attente).
+- Le JS d'une note tourne dans l'iframe d'aperçu : les contrôles `event.source` (`OPEN_PDF_PAGE`,
+  `PREVIEW_DOC_MUTATED`, `HTML_SCROLL_UPDATE`) ne l'arrêtent donc pas. Il peut aussi appeler `closeReady` /
+  `setUnsavedChanges` via `window.parent.api` (fermeture sans écrire la saisie en attente).
 
 ### Dette
 - Les clés `localStorage` indexées par chemin (`pdf_page_<chemin>`, `html_scroll_<chemin>`) ne suivent pas
@@ -115,6 +113,13 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
   première vraie modification dans l'aperçu.
 
 ## Pièges connus
+- Interface : couleurs par tokens de `base.css` (`cssTokens.test.ts` vérifie qu'ils existent) ; thèmes dans
+  `src/shared/appThemes.ts` (`graphite` = valeurs de `base.css`), appliqués par `utils/appTheme.ts`, l'aperçu
+  suit par une feuille d'aide jamais enregistrée. Fenêtres modales : `components/Modal.tsx` ; confirmations :
+  `askConfirm` (`ConfirmDialog.tsx`). Le script de l'aperçu (chaîne dans `CodeWorkspace.tsx`) échappe à tsc et
+  ESLint : `previewScript.test.ts` vérifie sa syntaxe.
+- Position de l'aperçu : `startRestore` (script de l'aperçu) la réapplique 2,5 s sans la rapporter à l'app,
+  sinon une position tronquée remplacerait la bonne ; un geste de l'utilisateur l'arrête.
 - Thème unique : `src/renderer/src/assets/theme.css`, injecté dans l'aperçu, embarqué dans l'export (le main
   l'importe en `?raw`) et copié dans `<notes>/.theme/notes.css`. `/page` ne copie plus de CSS : il insère
   `<link rel="stylesheet" href="${NOTES_THEME}" data-nf-theme>`, chemin relatif calculé par les trois

@@ -2,14 +2,19 @@ import type { CSSProperties, KeyboardEventHandler, ReactNode } from 'react'
 import { useModalA11y } from '../utils/useModalA11y'
 
 interface ModalProps {
-  /** id du titre de la fenêtre. */
-  labelledBy: string
+  /** id du titre de la fenêtre, ou `label` si elle n'a pas de titre à relier. */
+  labelledBy?: string
+  label?: string
   /** Échap et clic sur le fond. */
   onClose: () => void
   closeOnEscape?: boolean
+  closeOnBackdrop?: boolean
   initialFocus?: 'field' | 'first'
   /** Dimensions propres à la fenêtre, et fond si elle en a un autre. */
   panelStyle?: CSSProperties
+  /** Fond : position dans un panneau, alignement, plan d'affichage. */
+  overlayStyle?: CSSProperties
+  className?: string
   onKeyDown?: KeyboardEventHandler<HTMLDivElement>
   children: ReactNode
 }
@@ -17,10 +22,14 @@ interface ModalProps {
 // Structure commune des fenêtres modales : fond, panneau, sémantique et clavier (useModalA11y)
 export default function Modal({
   labelledBy,
+  label,
   onClose,
   closeOnEscape,
+  closeOnBackdrop = true,
   initialFocus,
   panelStyle,
+  overlayStyle,
+  className,
   onKeyDown,
   children
 }: ModalProps): ReactNode {
@@ -28,6 +37,7 @@ export default function Modal({
 
   return (
     <div
+      className={className}
       style={{
         position: 'fixed',
         inset: 0,
@@ -37,10 +47,11 @@ export default function Modal({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '20px'
+        padding: '20px',
+        ...overlayStyle
       }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose()
+        if (closeOnBackdrop && e.target === e.currentTarget) onClose()
       }}
       onKeyDown={onKeyDown}
     >
@@ -49,6 +60,7 @@ export default function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
+        aria-label={label}
         tabIndex={-1}
         style={{
           width: '100%',

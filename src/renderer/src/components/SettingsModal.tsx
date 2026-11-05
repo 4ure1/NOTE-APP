@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { askConfirm } from './ConfirmDialog'
 import Modal from './Modal'
 import { APP_THEMES } from '../../../shared/appThemes'
 import { savedAppThemeId, setAppTheme } from '../utils/appTheme'
@@ -896,9 +897,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </button>
 
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (
-                      window.confirm('Réinitialiser tous les raccourcis aux valeurs par défaut ?')
+                      await askConfirm({
+                        title: 'Réinitialiser les raccourcis ?',
+                        message: 'Tous les raccourcis reprendront leurs valeurs par défaut.',
+                        confirmLabel: 'Réinitialiser'
+                      })
                     ) {
                       setShortcuts(defaultShortcuts)
                       localStorage.setItem('note-app-shortcuts', JSON.stringify(defaultShortcuts))
@@ -1353,12 +1358,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <button
                   onClick={async () => {
                     if (
-                      window.confirm(
-                        'Voulez-vous vider définitivement tous les éléments de la corbeille (.trash) ?'
-                      )
+                      await askConfirm({
+                        title: 'Vider la corbeille ?',
+                        message: 'Les notes seront supprimées définitivement.',
+                        confirmLabel: 'Vider la corbeille',
+                        danger: true
+                      })
                     ) {
                       await onEmptyTrash()
-                      alert('La corbeille a été vidée.')
                     }
                   }}
                   style={{

@@ -18,6 +18,8 @@ import {
   previewThemeMessage
 } from '../utils/appTheme'
 import { previewRefreshDelay } from '../utils/previewDelay'
+// MathJax local, en SVG : ce paquet n'a pas besoin de fichiers de polices à part (hors ligne)
+import mathJaxUrl from 'mathjax/es5/tex-svg.js?url'
 import { isCodePointerActive, isUserScrollIntent } from '../utils/scrollIntent'
 import { buildSnippetFragment } from '../utils/snippetFields'
 import { generateDynamicSnippets } from '../utils/dynamicSnippets'
@@ -146,7 +148,7 @@ export const prepareHtmlPreview = (
           svg: { fontCache: 'global' }
         };
       </script>
-      <script data-injected-preview-helpers="true" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js"></script>
+      <script data-injected-preview-helpers="true" src="${new URL(mathJaxUrl, document.baseURI).href}"></script>
     `
     : ''
 
@@ -2517,7 +2519,9 @@ export default function CodeWorkspace({
         if (typeof parsed.scrollY === 'number') activePreviewScrollYRef.current = parsed.scrollY
         if (typeof parsed.ratio === 'number') activePreviewRatioRef.current = parsed.ratio
       }
-    } catch {}
+    } catch (err) {
+      console.debug('[Aperçu]', err)
+    }
   }, [currentFilePath])
 
   const [snippets, setSnippets] = useState<Snippet[]>(
@@ -2736,7 +2740,9 @@ export default function CodeWorkspace({
                 ratio: event.data.ratio
               })
             )
-          } catch {}
+          } catch (err) {
+            console.debug('[Aperçu]', err)
+          }
         }
         // App écoute le même message et quitte le plein écran externe (pas de bascule ici)
         setInternalFullscreen(false)
@@ -2756,7 +2762,9 @@ export default function CodeWorkspace({
                 ratio: event.data.ratio
               })
             )
-          } catch {}
+          } catch (err) {
+            console.debug('[Aperçu]', err)
+          }
         }
         if (externalToggleFullscreen && !externalFullscreen) {
           externalToggleFullscreen()
@@ -2790,7 +2798,9 @@ export default function CodeWorkspace({
               ratio: event.data.ratio
             })
           )
-        } catch {}
+        } catch (err) {
+          console.debug('[Aperçu]', err)
+        }
       } else if (event.data?.type === 'SYNC_SCROLL_FROM_PREVIEW') {
         if (editorModeRef.current !== 'live') return
         if (isScrollingFromCodeRef.current) return
@@ -2948,7 +2958,9 @@ export default function CodeWorkspace({
               '*'
             )
           }
-        } catch {}
+        } catch (err) {
+          console.debug('[Aperçu]', err)
+        }
       }
       syncScroll()
     }
@@ -3002,7 +3014,9 @@ export default function CodeWorkspace({
           '*'
         )
       }
-    } catch {}
+    } catch (err) {
+      console.debug('[Aperçu]', err)
+    }
   }
 
   // Changement de thème : Monaco et l'aperçu suivent sans recharger
@@ -3059,7 +3073,9 @@ export default function CodeWorkspace({
         if (!savedScrollY && typeof parsed.scrollY === 'number') savedScrollY = parsed.scrollY
         if (!savedRatio && typeof parsed.ratio === 'number') savedRatio = parsed.ratio
       }
-    } catch {}
+    } catch (err) {
+      console.debug('[Aperçu]', err)
+    }
     const prepared = prepareHtmlPreview(
       debouncedSrc,
       savedRatio,
@@ -3136,11 +3152,15 @@ export default function CodeWorkspace({
                       setTimeout(() => editor.setScrollTop(top), 60)
                     }
                   }
-                } catch {}
+                } catch (err) {
+                  console.debug('[Aperçu]', err)
+                }
                 editor.onDidScrollChange((e) => {
                   try {
                     localStorage.setItem('monaco_scroll_' + currentFilePath, String(e.scrollTop))
-                  } catch {}
+                  } catch (err) {
+                    console.debug('[Aperçu]', err)
+                  }
 
                   if (editorModeRef.current !== 'live') return
                   if (isScrollingFromPreviewRef.current) return

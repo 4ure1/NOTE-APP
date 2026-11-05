@@ -11,6 +11,8 @@ export default defineConfig({
         '@renderer': resolve('src/renderer/src')
       }
     },
+    // Tables de caractères de pdf.js, embarquées par utils/pdfCMaps.ts
+    assetsInclude: ['**/*.bcmap'],
     plugins: [react()]
   }
 })
