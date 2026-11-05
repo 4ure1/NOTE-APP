@@ -539,7 +539,7 @@ export const prepareHtmlPreview = (
           beforeChange: function() { recordUndo('edit'); },
           isEnabled: function() { return isLiveEditEnabled; }
         });
-        installTableTools(document, {
+        var tableTools = installTableTools(document, {
           onChange: emitDocChange,
           beforeChange: function() { recordUndo('edit'); },
           isEnabled: function() { return isLiveEditEnabled; }
@@ -1270,6 +1270,28 @@ export const prepareHtmlPreview = (
               e.preventDefault();
               e.stopPropagation();
               moveField(1);
+              return;
+            }
+          }
+
+          // Tab dans un tableau : case suivante (Maj+Tab : précédente), même dans du texte coloré.
+          // Le curseur va en fin de case : aucune saisie ne remplace son contenu par mégarde
+          if (e.key === 'Tab' && !e.ctrlKey && !e.altKey && !e.metaKey && isLiveEditEnabled && (!snippetMenuEl || snippetMenuEl.style.display === 'none')) {
+            var cellSel = window.getSelection();
+            var cellNode = cellSel && cellSel.rangeCount ? cellSel.anchorNode : null;
+            var cellEl = cellNode ? (cellNode.nodeType === 1 ? cellNode : cellNode.parentElement) : null;
+            var tabCell = cellEl && !cellEl.closest('pre') ? cellEl.closest('td, th') : null;
+            if (tabCell) {
+              e.preventDefault();
+              e.stopPropagation();
+              var nextCell = tableTools.cellAfterTab(tabCell, e.shiftKey);
+              if (nextCell) {
+                var cellRange = document.createRange();
+                cellRange.selectNodeContents(nextCell);
+                cellRange.collapse(false);
+                setCaret(cellRange);
+                nextCell.scrollIntoView({ block: 'nearest' });
+              }
               return;
             }
           }

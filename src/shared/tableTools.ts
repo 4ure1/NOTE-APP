@@ -4,7 +4,8 @@
  *   Suppr vide les cases sélectionnées ;
  * - clic droit sur une case : fond de la case (ou des cases sélectionnées), insérer / supprimer une
  *   ligne ou une colonne, vider ;
- * - clic droit sur une carte (.node, .step) : couleur de la carte.
+ * - clic droit sur une carte (.node, .step) : couleur de la carte ;
+ * - Tab / Maj+Tab : case suivante / précédente, Tab dans la dernière case ajoute une ligne.
  *
  * Les fonds sont des classes du thème (bg-red…), les couleurs de carte aussi (.node.red, .step.purple).
  * L'interface (repères de sélection, menu) est marquée data-injected-preview-helpers.
@@ -27,6 +28,8 @@ export interface TableTools {
   insertColumn(cell: Element, where: 'left' | 'right'): void
   deleteRow(cell: Element): void
   deleteColumn(cell: Element): void
+  /** Case atteinte par Tab (une ligne est ajoutée après la dernière case) ou Maj+Tab ; null : aucune. */
+  cellAfterTab(cell: Element, backwards: boolean): Element | null
   /** Couleur d'une carte (.node : red…brown, '' = gris ; .step : purple, orange, green, red, '' = bleu). */
   setCardColor(card: Element, color: string): void
   /** Cases actuellement sélectionnées. */
@@ -471,6 +474,23 @@ export function installTableTools(doc: Document, options: TableToolsOptions): Ta
     openMenu(e.clientX, e.clientY, cells, card)
   }
 
+  function cellAfterTab(cell: Element, backwards: boolean): Element | null {
+    const table = cell.closest('table')
+    if (!table) return null
+    if (selected.length) setSelection([])
+    const all: Element[] = []
+    rowsOf(table).forEach((tr) => cellsOf(tr).forEach((c) => all.push(c)))
+    const index = all.indexOf(cell)
+    if (index === -1) return null
+    if (backwards) return index > 0 ? all[index - 1] : null
+    if (index < all.length - 1) return all[index + 1]
+    before()
+    const tr = insertRow(cell, 'below')
+    if (!tr) return null
+    options.onChange()
+    return cellsOf(tr)[0] || null
+  }
+
   function onKeyDown(e: KeyboardEvent): void {
     if (menu && e.key === 'Escape') {
       e.preventDefault()
@@ -518,6 +538,7 @@ export function installTableTools(doc: Document, options: TableToolsOptions): Ta
     insertColumn,
     deleteRow,
     deleteColumn,
+    cellAfterTab,
     setCardColor,
     selection: () => selected.slice()
   }

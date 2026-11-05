@@ -168,3 +168,26 @@ describe('installTableTools : sélection et menu', () => {
     expect(t.cellsBetween(cell('1'), cell('5'))).toHaveLength(4)
   })
 })
+
+describe('installTableTools : Tab', () => {
+  it('passe à la case suivante, y compris à la ligne d’après', () => {
+    expect(tools.cellAfterTab(cell('1'), false)).toBe(cell('2'))
+    expect(tools.cellAfterTab(cell('3'), false)).toBe(cell('4'))
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('Maj+Tab revient à la case précédente, sans sortir du tableau', () => {
+    expect(tools.cellAfterTab(cell('4'), true)).toBe(cell('3'))
+    expect(tools.cellAfterTab(cell('A'), true)).toBeNull()
+  })
+
+  it('ajoute une ligne après la dernière case et va à sa première case', () => {
+    const next = tools.cellAfterTab(cell('6'), false)
+    const rows = document.querySelectorAll('tr')
+    expect(rows).toHaveLength(4)
+    expect(next).toBe(rows[3].children[0])
+    expect(rows[3].children).toHaveLength(3)
+    expect(beforeChange).toHaveBeenCalledTimes(1)
+    expect(onChange).toHaveBeenCalledTimes(1)
+  })
+})
