@@ -49,6 +49,7 @@ import {
   PathAccessError,
   SafePathOptions
 } from './agent/security'
+import { BlockedUrlError, safeFetch } from './safeFetch'
 import { writeFileAtomic, copyFileAtomic, cleanupTempFiles } from './atomicWrite'
 import { readConfig, mergeConfig } from './configStore'
 import { noteFingerprints, externalChangeMessage } from './noteFingerprints'
@@ -1436,13 +1437,13 @@ function createWindow(): void {
         ensureDir(NOTES_DIR)
         assertWebUrl(pdfUrl)
         const targetDir = activeTargetDir()
-        const res = await net.fetch(pdfUrl)
+        const res = await safeFetch(pdfUrl, { headers: { 'User-Agent': CHROME_UA } })
         if (!res.ok) {
           openExternalSafe(pdfUrl, 'Téléchargement PDF')
           return
         }
-        const buf = Buffer.from(await res.arrayBuffer())
-        const disposition = res.headers.get('content-disposition') || ''
+        const buf = res.body
+        const disposition = String(res.headers['content-disposition'] ?? '')
         let fname = ''
         const m = disposition.match(/filename\*?=["']?(?:UTF-8'')?([^;"'\r\n]+)/i)
         if (m) fname = decodeURIComponent(m[1].trim())
@@ -1467,7 +1468,9 @@ function createWindow(): void {
         }
       } catch (err) {
         console.error('[Download-pdf] Erreur téléchargement PDF:', err)
-        if (!(err instanceof PathAccessError)) openExternalSafe(pdfUrl, 'Téléchargement PDF')
+        if (!(err instanceof PathAccessError) && !(err instanceof BlockedUrlError)) {
+          openExternalSafe(pdfUrl, 'Téléchargement PDF')
+        }
       }
     }
 
@@ -2847,9 +2850,9 @@ ipcMain.handle('download-pdf-from-url', async (_event, url: string, filename: st
   assertWebUrl(url)
   const targetDir = activeTargetDir()
   try {
-    const res = await net.fetch(url)
+    const res = await safeFetch(url, { headers: { 'User-Agent': CHROME_UA } })
     if (!res.ok) return null
-    const buf = Buffer.from(await res.arrayBuffer())
+    const buf = res.body
     const safeName = sanitizeDownloadName(filename)
     let destPath = join(targetDir, safeName)
     if (fs.existsSync(destPath)) {

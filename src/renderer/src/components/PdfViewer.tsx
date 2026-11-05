@@ -500,7 +500,8 @@ export default function PdfViewer({
 
         const loadingTask = pdfjsLib.getDocument({
           data: uint8Array,
-          CMapReaderFactory: LocalCMapReaderFactory
+          CMapReaderFactory: LocalCMapReaderFactory,
+          isEvalSupported: false
         })
 
         const doc = await loadingTask.promise

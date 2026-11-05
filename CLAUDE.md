@@ -94,13 +94,10 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
    L'utilisateur s'en charge.
 
 ## Chantiers en attente
-### 3b (isoler le JavaScript des notes ; 3b-1, gardes du main : fait)
+### 3b (isoler le JavaScript des notes ; 3b-1, 3b-3 et 3b-4 : faits)
 - 3b-2 : iframes d'aperçu sans `allow-same-origin`, protocole de messages fermé et validé
   (`src/shared/previewProtocol.ts`), jeton par rendu, geste réel (2 s), substitut `localStorage` en mémoire,
   refus journalisés côté main, note piégée étendue.
-- 3b-3 : SSRF (`downloadPdfFromUrl`, `download-pdf-from-url`, `web_fetch` de l'agent) : adresses privées
-  refusées, `lookup` personnalisé (résoudre, valider, se connecter sur la même IP), redirections revérifiées.
-- 3b-4 : CSP sans `unsafe-eval` (`isEvalSupported: false` pour pdf.js).
 - Le JS d'une note tourne dans l'iframe d'aperçu : les contrôles `event.source` (`OPEN_PDF_PAGE`,
   `PREVIEW_DOC_MUTATED`, `HTML_SCROLL_UPDATE`) ne l'arrêtent donc pas. Il peut aussi appeler `closeReady` /
   `setUnsavedChanges` via `window.parent.api` (fermeture sans écrire la saisie en attente).
@@ -118,6 +115,9 @@ agent Ollama locaux. Cible Windows 11 uniquement ; shell principal PowerShell.
   suit par une feuille d'aide jamais enregistrée. Fenêtres modales : `components/Modal.tsx` ; confirmations :
   `askConfirm` (`ConfirmDialog.tsx`). Le script de l'aperçu (chaîne dans `CodeWorkspace.tsx`) échappe à tsc et
   ESLint : `previewScript.test.ts` vérifie sa syntaxe.
+- Téléchargements issus du web ou de l'agent : `safeFetch` (`src/main/safeFetch.ts`), jamais `net.fetch` ni `fetch` :
+  adresses locales refusées à la connexion, redirections revérifiées. La CSP n'a plus `unsafe-eval` :
+  `isEvalSupported: false` à chaque `getDocument` de pdf.js.
 - Position de l'aperçu : `startRestore` (script de l'aperçu) la réapplique 2,5 s sans la rapporter à l'app,
   sinon une position tronquée remplacerait la bonne ; un geste de l'utilisateur l'arrête.
 - Thème unique : `src/renderer/src/assets/theme.css`, injecté dans l'aperçu, embarqué dans l'export (le main
