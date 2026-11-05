@@ -34,6 +34,7 @@
     "@uiw/react-md-editor": "^4.1.1",
     "docx": "^9.15.0",
     "highlight.js": "^11.12.0",
+    "mathjax": "^3.2.2",
     "minisearch": "^7.2.0",
     "monaco-editor": "^0.57.0",
     "pdfjs-dist": "^4.10.38",
@@ -50,7 +51,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/textarea-caret": "^3.0.4",
     "@vitejs/plugin-react": "^5.1.1",
-    "electron": "^39.2.6",
+    "electron": "^45.2.3",
     "electron-builder": "^26.0.12",
     "electron-vite": "^5.0.0",
     "eslint": "^9.39.1",
@@ -73,5 +74,8 @@
     "url": "https://github.com/4ure1/NOTE-APP/issues"
   },
   "license": "SEE LICENSE IN LICENSE",
-  "private": true
+  "private": true,
+  "overrides": {
+    "dompurify": "3.4.17"
+  }
 }
