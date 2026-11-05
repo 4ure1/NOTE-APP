@@ -15,9 +15,12 @@ const OPTIONS: Array<{ key: TreeSortKey; label: string; asc: string; desc: strin
   { key: 'type', label: 'Type', asc: 'A → Z', desc: 'Z → A' }
 ]
 
+const MENU_WIDTH = 230
+const MENU_HEIGHT = 170
+
 // Bouton de tri de « Mes notes » : un critère choisi deux fois inverse l'ordre
 export default function TreeSortMenu({ sort, onChange }: TreeSortMenuProps): ReactNode {
-  const [position, setPosition] = useState<{ top: number; right: number } | null>(null)
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const isOpen = position !== null
@@ -44,7 +47,13 @@ export default function TreeSortMenu({ sort, onChange }: TreeSortMenuProps): Rea
       return
     }
     const r = buttonRef.current?.getBoundingClientRect()
-    if (r) setPosition({ top: r.bottom + 4, right: window.innerWidth - r.right })
+    // Toujours dans la fenêtre : la barre latérale est plus étroite que le menu à gauche du bouton
+    if (r) {
+      setPosition({
+        top: Math.max(8, Math.min(r.bottom + 4, window.innerHeight - MENU_HEIGHT - 8)),
+        left: Math.max(8, Math.min(r.left, window.innerWidth - MENU_WIDTH - 8))
+      })
+    }
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
@@ -97,8 +106,8 @@ export default function TreeSortMenu({ sort, onChange }: TreeSortMenuProps): Rea
           style={{
             position: 'fixed',
             top: `${position.top}px`,
-            right: `${position.right}px`,
-            width: '230px',
+            left: `${position.left}px`,
+            width: `${MENU_WIDTH}px`,
             padding: '4px',
             backgroundColor: 'var(--surface-raised)',
             border: '1px solid var(--border-strong)',
