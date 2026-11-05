@@ -79,6 +79,29 @@ export function SearchIcon({ size = 15, strokeWidth = 1.8, ...props }: IconProps
   )
 }
 
+export function SortIcon({
+  size = 15,
+  strokeWidth = 1.8,
+  ...props
+}: IconProps): React.ReactElement {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M7 4v16M3 16l4 4 4-4" />
+      <path d="M17 20V4M13 8l4-4 4 4" />
+    </svg>
+  )
+}
+
 export function ClockIcon({ size = 15, strokeWidth = 1.8, ...props }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" {...props}>

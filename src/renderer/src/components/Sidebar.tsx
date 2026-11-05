@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { TreeNode } from '../types'
 import { isAccessDenied, notifyApiError } from '../utils/apiError'
 import { treeKeyAction } from '../../../shared/treeKeys'
+import { DEFAULT_TREE_SORT, parseTreeSort, sortTree, type TreeSort } from '../utils/treeSort'
 import MoveToModal from './MoveToModal'
+import TreeSortMenu from './TreeSortMenu'
 import {
   FolderIcon,
   FolderOpenIcon,
@@ -109,6 +111,25 @@ export default function Sidebar({
       localStorage.setItem('sidebar_open_folders', JSON.stringify(openFolders))
     } catch {}
   }, [openFolders])
+
+  // Tri de « Mes notes », retenu d'un lancement à l'autre
+  const [treeSort, setTreeSort] = useState<TreeSort>(() => {
+    try {
+      return parseTreeSort(localStorage.getItem('sidebar_tree_sort'))
+    } catch {
+      return DEFAULT_TREE_SORT
+    }
+  })
+  const sortedTree = useMemo(() => sortTree(treeNodes, treeSort), [treeNodes, treeSort])
+
+  const handleTreeSortChange = (next: TreeSort): void => {
+    setTreeSort(next)
+    try {
+      localStorage.setItem('sidebar_tree_sort', JSON.stringify(next))
+    } catch (err) {
+      console.error('[Sidebar] Tri non enregistré', err)
+    }
+  }
 
   // Assurer que le dossier parent de la note actuellement ouverte est déplié
   useEffect(() => {
@@ -1185,6 +1206,7 @@ export default function Sidebar({
 
             {/* Create root file and folder buttons */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <TreeSortMenu sort={treeSort} onChange={handleTreeSortChange} />
               <button
                 onClick={(e) => handleStartCreate('', 'file', e)}
                 title="Nouvelle note à la racine (.html par défaut, .md pour du Markdown)"
@@ -1307,7 +1329,7 @@ export default function Sidebar({
                     target?.focus()
                   }}
                 >
-                  {renderTree(treeNodes)}
+                  {renderTree(sortedTree)}
                 </div>
               ) : (
                 <div style={{ padding: '12px 14px', fontSize: '12px', color: 'var(--text-muted)' }}>
