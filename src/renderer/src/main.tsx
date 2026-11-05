@@ -14,6 +14,7 @@ import './monacoConfig'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
+import { applySavedAppTheme } from './utils/appTheme'
 import { APP_NAME, AUTHOR_GITHUB, COPYRIGHT } from './utils/credits'
 
 console.info(
@@ -21,6 +22,8 @@ console.info(
   'color:#4fc1ff;font-weight:bold',
   'color:#9d9d9d'
 )
+
+applySavedAppTheme()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

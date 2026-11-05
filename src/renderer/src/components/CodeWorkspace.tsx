@@ -11,6 +11,12 @@ import { normalizeHtml } from '../utils/normalizeHtml'
 import { OutlineHeading } from '../utils/outlineExtractor'
 import { parsePdfHref } from '../utils/pdfLink'
 import { cleanPreviewDocument } from '../utils/previewClean'
+import {
+  APP_THEME_EVENT,
+  MONACO_THEME,
+  monacoThemeData,
+  previewThemeMessage
+} from '../utils/appTheme'
 import { previewRefreshDelay } from '../utils/previewDelay'
 import { isCodePointerActive, isUserScrollIntent } from '../utils/scrollIntent'
 import { buildSnippetFragment } from '../utils/snippetFields'
@@ -2121,44 +2127,54 @@ export const prepareHtmlPreview = (
           }
         }, { passive: false });
 
-        // Track user interaction to prevent any auto-restore fighting
-        var userInteracted = false;
-        function cancelRestore() { userInteracted = true; }
-        window.addEventListener('wheel', cancelRestore, { passive: true });
-        window.addEventListener('touchmove', cancelRestore, { passive: true });
-        window.addEventListener('pointerdown', cancelRestore, { passive: true });
-        window.addEventListener('keydown', cancelRestore, { passive: true });
+        // Retour à la position enregistrée. La page n'a pas sa hauteur finale au chargement (images,
+        // polices, formules, zoom) : la position est réappliquée pendant quelques instants, et rien
+        // n'est rapporté à l'app entre-temps, sinon une position tronquée remplacerait la bonne.
+        // Un geste de l'utilisateur (molette, clic, touche) l'arrête aussitôt.
+        var RESTORE_MS = 2500;
+        var restore = null;
+        var restoreTimer = null;
 
-        // Restore scroll position smoothly on load without fighting user
-        function doScroll(explicitTop, targetRatio) {
-          if (userInteracted) return;
+        function restoreTop() {
           var docHeight = Math.max(
             document.documentElement ? document.documentElement.scrollHeight : 0,
             document.body ? document.body.scrollHeight : 0
           );
           var max = Math.max(0, docHeight - window.innerHeight);
-          var top = -1;
-          if (typeof explicitTop === 'number' && explicitTop >= 0) {
-            top = explicitTop;
-          } else if (typeof targetRatio === 'number' && targetRatio > 0 && max > 0) {
-            top = targetRatio * max;
-          }
-          if (top >= 0) {
-            window.scrollTo({ top: top, behavior: 'instant' });
-            if (document.documentElement) document.documentElement.scrollTop = top;
-            if (document.body) document.body.scrollTop = top;
-          }
+          if (restore.preferRatio && restore.ratio >= 0 && max > 0) return restore.ratio * max;
+          if (restore.scrollY > 0) return restore.scrollY;
+          return restore.ratio > 0 ? restore.ratio * max : 0;
         }
 
-        var initRatio = ${safeRatio};
-        var initScrollY = ${safeScrollY};
-        if (initScrollY > 0 || initRatio > 0) {
-          doScroll(initScrollY, initRatio);
-          setTimeout(function() { doScroll(initScrollY, initRatio); }, 30);
-          setTimeout(function() { doScroll(initScrollY, initRatio); }, 80);
-          setTimeout(function() { doScroll(initScrollY, initRatio); }, 200);
-          setTimeout(function() { doScroll(initScrollY, initRatio); }, 500);
+        function applyRestore() {
+          if (!restore) return;
+          if (lastScrollGestureAt > restore.startedAt || Date.now() - restore.startedAt > RESTORE_MS) {
+            stopRestore();
+            return;
+          }
+          var top = restoreTop();
+          if (Math.abs((window.scrollY || 0) - top) > 1) window.scrollTo({ top: top, behavior: 'instant' });
         }
+
+        function stopRestore() {
+          if (!restore) return;
+          restore = null;
+          clearInterval(restoreTimer);
+          reportScroll();
+        }
+
+        function startRestore(scrollY, ratio, preferRatio) {
+          var y = typeof scrollY === 'number' && scrollY > 0 ? scrollY : 0;
+          var r = typeof ratio === 'number' && ratio > 0 ? ratio : 0;
+          clearInterval(restoreTimer);
+          restore = null;
+          if (y === 0 && r === 0) return;
+          restore = { scrollY: y, ratio: r, preferRatio: !!preferRatio, startedAt: Date.now() };
+          applyRestore();
+          restoreTimer = setInterval(applyRestore, 100);
+        }
+
+        startRestore(${safeScrollY}, ${safeRatio}, false);
 
         // Synchronisation temps réel 60fps sans délai ni saccade
         var isCodeScrolling = false;
@@ -2189,6 +2205,7 @@ export const prepareHtmlPreview = (
         // Helper pour rapporter le scroll actuel au parent
         var scrollDebounce = null;
         function reportScroll() {
+          if (restore) return;
           var info = getScrollInfo();
           window.parent.postMessage({
             type: 'HTML_SCROLL_UPDATE',
@@ -2202,6 +2219,7 @@ export const prepareHtmlPreview = (
           if (!event.data) return;
 
           if (event.data.type === 'SYNC_SCROLL_FROM_CODE') {
+            stopRestore();
             isCodeScrolling = true;
             clearTimeout(codeScrollTimer);
             codeScrollTimer = setTimeout(function() {
@@ -2263,25 +2281,17 @@ export const prepareHtmlPreview = (
               reportScroll();
             }
           } else if (event.data.type === 'SET_SCROLL') {
-            var docHeight = Math.max(
-              document.documentElement ? document.documentElement.scrollHeight : 0,
-              document.body ? document.body.scrollHeight : 0
-            );
-            var max = Math.max(0, docHeight - window.innerHeight);
-            var target = -1;
-            if (event.data.preferRatio && typeof event.data.ratio === 'number' && event.data.ratio >= 0 && max > 0) {
-              target = event.data.ratio * max;
-            } else if (typeof event.data.scrollY === 'number' && event.data.scrollY >= 0) {
-              target = event.data.scrollY;
-            } else if (typeof event.data.ratio === 'number' && event.data.ratio >= 0 && max > 0) {
-              target = event.data.ratio * max;
+            startRestore(event.data.scrollY, event.data.ratio, event.data.preferRatio);
+          } else if (event.data.type === 'SET_PREVIEW_THEME') {
+            // Thème de l'app : feuille d'aide retirée à l'enregistrement, la note n'est pas modifiée
+            var themeStyle = document.getElementById('nf-preview-theme');
+            if (!themeStyle) {
+              themeStyle = document.createElement('style');
+              themeStyle.id = 'nf-preview-theme';
+              themeStyle.setAttribute('data-injected-preview-helpers', 'true');
+              (document.head || document.documentElement).appendChild(themeStyle);
             }
-            if (target >= 0) {
-              window.scrollTo({ top: target, behavior: 'instant' });
-              if (document.documentElement) document.documentElement.scrollTop = target;
-              if (document.body) document.body.scrollTop = target;
-              reportScroll();
-            }
+            themeStyle.textContent = event.data.css || '';
           } else if (event.data.type === 'SET_HTML_ZOOM') {
             // Zoom par une feuille de style d'aide (retirée à l'enregistrement), jamais par body.style
             var z = event.data.zoom || 100;
@@ -2299,6 +2309,7 @@ export const prepareHtmlPreview = (
               snippetsData = event.data.snippets;
             }
           } else if (event.data.type === 'SCROLL_TO_HEADING') {
+            stopRestore();
             var targetEl = null;
             if (event.data.id) {
               targetEl = document.getElementById(event.data.id);
@@ -2489,6 +2500,7 @@ export default function CodeWorkspace({
 
   const isFullscreen = externalFullscreen !== undefined ? externalFullscreen : internalFullscreen
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const monacoRef = useRef<typeof import('monaco-editor') | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Suivi en temps réel de la position de scroll de l'aperçu pour figer l'affichage lors des modifications de code
@@ -2752,6 +2764,18 @@ export default function CodeWorkspace({
           setInternalFullscreen(true)
         }
       } else if (event.data?.type === 'HTML_SCROLL_UPDATE' && currentFilePath) {
+        // Seulement notre iframe, et seulement si elle affiche cette note : sinon la position d'un
+        // autre panneau, ou de la note précédente, remplacerait celle de la note ouverte
+        if (!iframeRef.current || event.source !== iframeRef.current.contentWindow) return
+        if (
+          !previewMatchesNote({
+            previewFile: srcDocFileRef.current,
+            currentFile: currentFilePathRef.current,
+            contentFile: contentFilePathRef.current
+          })
+        ) {
+          return
+        }
         if (typeof event.data?.scrollY === 'number') {
           activePreviewScrollYRef.current = event.data.scrollY
         }
@@ -2927,8 +2951,6 @@ export default function CodeWorkspace({
         } catch {}
       }
       syncScroll()
-      requestAnimationFrame(syncScroll)
-      setTimeout(syncScroll, 40)
     }
     prevFullscreenRef.current = isFullscreen
   }, [isFullscreen, currentFilePath, isHtml])
@@ -2967,10 +2989,9 @@ export default function CodeWorkspace({
         }
       }
 
+      // Une seule demande : l'aperçu la réapplique lui-même tant que sa hauteur évolue
       applyScroll()
-      requestAnimationFrame(applyScroll)
-      setTimeout(applyScroll, 40)
-      setTimeout(applyScroll, 160)
+      iframeRef.current?.contentWindow?.postMessage(previewThemeMessage(), '*')
 
       if (iframeRef.current?.contentWindow && zoomLevel) {
         iframeRef.current.contentWindow.postMessage(
@@ -2983,6 +3004,17 @@ export default function CodeWorkspace({
       }
     } catch {}
   }
+
+  // Changement de thème : Monaco et l'aperçu suivent sans recharger
+  useEffect(() => {
+    const handleThemeChange = (): void => {
+      monacoRef.current?.editor.defineTheme(MONACO_THEME, monacoThemeData())
+      monacoRef.current?.editor.setTheme(MONACO_THEME)
+      iframeRef.current?.contentWindow?.postMessage(previewThemeMessage(), '*')
+    }
+    window.addEventListener(APP_THEME_EVENT, handleThemeChange)
+    return () => window.removeEventListener(APP_THEME_EVENT, handleThemeChange)
+  }, [])
 
   // Appliquer le zoom à l'iframe dès que zoomLevel change
   useEffect(() => {
@@ -3086,7 +3118,11 @@ export default function CodeWorkspace({
               height="100%"
               language={isHtml ? 'html' : 'markdown'}
               defaultValue={value}
-              theme="vs-dark"
+              theme={MONACO_THEME}
+              beforeMount={(monaco) => {
+                monacoRef.current = monaco
+                monaco.editor.defineTheme(MONACO_THEME, monacoThemeData())
+              }}
               onMount={(editor) => {
                 editorRef.current = editor
                 if (editor.getValue() !== value) {

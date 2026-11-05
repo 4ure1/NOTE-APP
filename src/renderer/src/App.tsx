@@ -61,6 +61,7 @@ import {
 import UnreadableNotePanel from './components/UnreadableNotePanel'
 import ExternalChangeBar, { ExternalChangeReason } from './components/ExternalChangeBar'
 import { copyNoteName } from './utils/copyNoteName'
+import { previewThemeMessage } from './utils/appTheme'
 import { formatRelativeDate } from './utils/relativeDate'
 import getCaretCoordinates from 'textarea-caret'
 import { describeApiError, isAccessDenied, notifyApiError, ensureSuccess } from './utils/apiError'
@@ -2318,7 +2319,9 @@ function App() {
       } else if (event.data?.type === 'REQUEST_ZOOM_RESET') {
         applyZoom(100)
       } else if (event.data?.type === 'HTML_SCROLL_UPDATE') {
-        if (currentFile) {
+        // Seulement l'iframe plein écran : l'aperçu normal est suivi par CodeWorkspace
+        const fullscreenFrame = fullscreenHtmlIframeRef.current
+        if (currentFile && fullscreenFrame && event.source === fullscreenFrame.contentWindow) {
           try {
             localStorage.setItem(
               'html_scroll_' + currentFile,
@@ -2432,7 +2435,7 @@ function App() {
       unsubToggleAi?.()
       unsubGoogle?.()
     }
-  }, [exitRenderFullscreen, handleToggleRenderFullscreen])
+  }, [exitRenderFullscreen, handleToggleRenderFullscreen, currentFile, isHtml])
 
   // Surveillance et persistance du défilement dans l'éditeur Markdown (mode normal)
   useEffect(() => {
@@ -6568,6 +6571,10 @@ function App() {
                       '*'
                     )
                   }
+                  fullscreenHtmlIframeRef.current?.contentWindow?.postMessage(
+                    previewThemeMessage(),
+                    '*'
+                  )
                   if (fullscreenHtmlIframeRef.current?.contentWindow && zoomLevel) {
                     fullscreenHtmlIframeRef.current.contentWindow.postMessage(
                       {

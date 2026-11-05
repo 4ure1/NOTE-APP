@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import Modal from './Modal'
+import { APP_THEMES } from '../../../shared/appThemes'
+import { savedAppThemeId, setAppTheme } from '../utils/appTheme'
 import { Snippet } from '../types/snippets'
 import { getSnippetBodyText } from '../utils/snippetEngine'
 import { notifyApiError } from '../utils/apiError'
@@ -193,6 +195,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       console.error('Error saving API key:', err)
     }
   }
+
+  const [appThemeId, setAppThemeId] = useState(savedAppThemeId)
 
   // Échap ferme (sauf pendant l'enregistrement d'un raccourci : la capture de la touche l'intercepte avant)
   const handleDismiss = (): void => {
@@ -1129,6 +1133,74 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </h3>
                 <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--text-secondary)' }}>
                   Préférences d'affichage et gestion des notes.
+                </p>
+              </div>
+
+              {/* Thème de l'interface */}
+              <div
+                style={{
+                  background: 'var(--surface-control)',
+                  padding: '16px',
+                  borderRadius: '8px',
+                  marginBottom: '16px',
+                  border: '1px solid var(--border-color)'
+                }}
+              >
+                <div
+                  id="settings-theme-label"
+                  style={{ fontSize: '13px', fontWeight: 600, marginBottom: '10px' }}
+                >
+                  Thème
+                </div>
+                <div
+                  role="radiogroup"
+                  aria-labelledby="settings-theme-label"
+                  style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}
+                >
+                  {APP_THEMES.map((theme) => {
+                    const active = theme.id === appThemeId
+                    return (
+                      <button
+                        key={theme.id}
+                        role="radio"
+                        aria-checked={active}
+                        onClick={() => {
+                          setAppTheme(theme.id)
+                          setAppThemeId(theme.id)
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '6px 10px',
+                          borderRadius: '6px',
+                          border: active
+                            ? '1px solid var(--accent-marge)'
+                            : '1px solid var(--border-strong)',
+                          background: 'transparent',
+                          color: 'var(--text-primary)',
+                          fontSize: '12.5px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            width: '26px',
+                            height: '16px',
+                            borderRadius: '3px',
+                            border: '1px solid var(--border-strong)',
+                            background: `linear-gradient(90deg, ${theme.colors.panel} 50%, ${theme.colors.marge} 50%)`
+                          }}
+                        />
+                        {theme.label}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p style={{ margin: '10px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+                  S&apos;applique à l&apos;app et à l&apos;aperçu. Vos fichiers de notes et leurs
+                  exports ne changent pas.
                 </p>
               </div>
 
