@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import {
   MoreHorizontalIcon,
-  FolderIcon,
   PlusIcon,
   ClaudeIcon,
   ChatGPTIcon,
@@ -11,7 +10,10 @@ import {
   EditIcon,
   CheckIcon,
   ClockIcon,
-  getFileIcon
+  CodeIcon,
+  ColumnsIcon,
+  ChevronRight,
+  ShareIcon
 } from './Icons'
 import { WORKFLOW_COLUMNS, WorkflowStatus } from './WorkflowView'
 
@@ -242,69 +244,22 @@ export default function EditorHeader({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', userSelect: 'none', backgroundColor: 'var(--editor-bg)' }}>
-      {/* Top Navbar: Breadcrumbs + Actions (matching screenshot) */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '12px 32px',
-          borderBottom: '1px solid var(--border-subtle)',
-          backgroundColor: 'var(--editor-bg)',
-          minHeight: '46px'
-        }}
-      >
-        {/* Breadcrumb links with icons and slash separators */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: 'var(--fs-md)',
-            color: 'var(--text-secondary)',
-            overflow: 'hidden'
-          }}
-        >
-          {folders.map((folder, idx) => {
-            const isFirst = idx === 0
-            const isAgency = folder.toLowerCase().includes('equal')
-            return (
-              <React.Fragment key={idx}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}>
-                  {isAgency ? (
-                    <span
-                      style={{
-                        color: 'var(--success-color)',
-                        fontSize: 'var(--fs-sm)',
-                        display: 'inline-flex',
-                        alignItems: 'center'
-                      }}
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="#4ade80" stroke="#4ade80" strokeWidth="2">
-                        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-                      </svg>
-                    </span>
-                  ) : (
-                    <FolderIcon size={14} style={{ color: 'var(--text-muted)' }} />
-                  )}
-                  <span style={{ color: isFirst ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: isFirst ? 500 : 400 }}>
-                    {folder}
-                  </span>
-                </span>
-                <span style={{ color: 'rgba(255, 255, 255, 0.25)', fontSize: 'var(--fs-sm)' }}>
-                  /
-                </span>
-              </React.Fragment>
-            )
-          })}
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {getFileIcon(fileName, 14)}
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{fileName.replace(/\.(html|htm|md|markdown)$/i, '')}</span>
+      {/* Barre de la note : chemin du fichier, puis disposition et actions */}
+      <div className="eh-bar">
+        <nav className="eh-path" aria-label="Emplacement de la note">
+          {folders.map((folder, idx) => (
+            <React.Fragment key={idx}>
+              <span className="eh-crumb">{folder}</span>
+              <ChevronRight size={12} className="eh-sep" aria-hidden="true" />
+            </React.Fragment>
+          ))}
+          <span className="eh-file" title={currentFilePath}>
+            {fileName}
           </span>
-        </div>
+        </nav>
 
         {/* Action icons right */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, position: 'relative' }}>
+        <div className="eh-actions">
           {/* Toast Notification */}
           {toastMessage && (
             <div
@@ -333,84 +288,32 @@ export default function EditorHeader({
             </div>
           )}
 
-          {/* Mode Switcher: Code | Split | Aperçu */}
+          {/* Disposition : Code | Côte à côte | Aperçu */}
           {onChangeEditorMode ? (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '6px',
-                padding: '2px',
-                gap: '2px',
-                height: '28px',
-                boxSizing: 'border-box'
-              }}
-            >
+            <div className="eh-seg" role="group" aria-label="Disposition">
               <button
+                aria-pressed={editorMode === 'edit'}
                 onClick={() => onChangeEditorMode('edit')}
-                title="Mode Code seul (moteur VS Code)"
-                style={{
-                  background: editorMode === 'edit' ? 'var(--surface-input)' : 'transparent',
-                  border: 'none',
-                  color: editorMode === 'edit' ? 'var(--text-strong)' : 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  padding: '3px 7px',
-                  borderRadius: '4px',
-                  fontSize: 'var(--fs-sm)',
-                  fontWeight: editorMode === 'edit' ? 600 : 400,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  transition: 'all 0.15s'
-                }}
+                title="Code seul"
               >
-                <EditIcon size={12} />
-                <span>Code</span>
+                <CodeIcon size={14} />
+                Code
               </button>
               <button
+                aria-pressed={editorMode === 'live'}
                 onClick={() => onChangeEditorMode('live')}
-                title="Côte à côte : code à gauche, aperçu en direct à droite"
-                style={{
-                  background: editorMode === 'live' ? 'var(--surface-input)' : 'transparent',
-                  border: 'none',
-                  color: editorMode === 'live' ? 'var(--text-strong)' : 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  padding: '3px 7px',
-                  borderRadius: '4px',
-                  fontSize: 'var(--fs-sm)',
-                  fontWeight: editorMode === 'live' ? 600 : 400,
-                  whiteSpace: 'nowrap',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  transition: 'all 0.15s'
-                }}
+                title="Côte à côte : code à gauche, aperçu à droite"
               >
-                <span style={{ fontSize: 'var(--fs-xs)', lineHeight: 1 }}>◫</span>
-                <span>Côte à côte</span>
+                <ColumnsIcon size={14} />
+                Côte à côte
               </button>
               <button
+                aria-pressed={editorMode === 'preview'}
                 onClick={() => onChangeEditorMode('preview')}
-                title="Mode Rendu interactif plein écran"
-                style={{
-                  background: editorMode === 'preview' ? 'var(--surface-input)' : 'transparent',
-                  border: 'none',
-                  color: editorMode === 'preview' ? 'var(--text-strong)' : 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  padding: '3px 7px',
-                  borderRadius: '4px',
-                  fontSize: 'var(--fs-sm)',
-                  fontWeight: editorMode === 'preview' ? 600 : 400,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  transition: 'all 0.15s'
-                }}
+                title="Aperçu seul, éditable"
               >
-                <EyeIcon size={12} />
-                <span>Aperçu</span>
+                <EyeIcon size={14} />
+                Aperçu
               </button>
             </div>
           ) : onToggleEditorMode ? (
@@ -439,56 +342,20 @@ export default function EditorHeader({
             </button>
           ) : null}
 
-          {/* Historique des versions : action fréquente, gardée visible avec son libellé */}
+          {/* Historique et Exporter : actions fréquentes, gardées visibles avec leur libellé */}
           {onOpenHistory && (
-            <button
-              className="hv-background-color-element-bg-hover hv-color-text-strong"
-              onClick={onOpenHistory}
-              title="Historique des versions"
-              style={{
-                background: 'transparent',
-                border: '1px solid var(--border-color)',
-                color: 'var(--text-secondary)',
-                cursor: 'pointer',
-                padding: '0 10px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                height: '28px',
-                fontSize: 'var(--fs-sm)',
-                boxSizing: 'border-box',
-                transition: 'background-color 0.15s, color 0.15s'
-              }}
-            >
-              <ClockIcon size={13} />
-              <span>Historique</span>
+            <button className="eh-btn" onClick={onOpenHistory} title="Historique des versions">
+              <ClockIcon size={14} />
+              Historique
             </button>
           )}
-
-          {/* Exporter (PDF, Word, HTML) : bouton principal de l'en-tête */}
           {onOpenExport && (
             <button
+              className="eh-btn"
               onClick={onOpenExport}
               title="Exporter la note (PDF, Word, HTML)"
-              style={{
-                background: 'var(--accent-strong)',
-                border: '1px solid transparent',
-                color: '#ffffff',
-                cursor: 'pointer',
-                padding: '0 12px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                height: '28px',
-                fontSize: 'var(--fs-sm)',
-                fontWeight: 600,
-                boxSizing: 'border-box',
-                transition: 'filter 0.15s'
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.12)')}
-              onMouseLeave={(e) => (e.currentTarget.style.filter = 'none')}
             >
+              <ShareIcon size={14} />
               Exporter
             </button>
           )}
@@ -502,25 +369,7 @@ export default function EditorHeader({
               aria-label="Plus d'actions"
               aria-haspopup="menu"
               aria-expanded={moreMenuOpen}
-              style={{
-                background: moreMenuOpen ? 'var(--element-bg)' : 'transparent',
-                border: 'none',
-                color: moreMenuOpen ? 'var(--text-strong)' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                padding: '6px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '28px',
-                width: '28px',
-                boxSizing: 'border-box',
-                transition: 'all 0.15s'
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg)')}
-              onMouseLeave={(e) => {
-                if (!moreMenuOpen) e.currentTarget.style.backgroundColor = 'transparent'
-              }}
+              className="eh-icon"
             >
               <MoreHorizontalIcon size={15} />
             </button>
@@ -628,72 +477,26 @@ export default function EditorHeader({
             )}
           </div>
 
-          {/* Assistant AI Toggle - Dynamic Branding */}
+          {/* Assistant : ouvre le panneau IA du fournisseur choisi */}
           {(() => {
-            const aiData = {
-              agent: { name: 'Agent IA', color: '#10b981', icon: <SparklesIcon size={15} color="#10b981" /> },
-              claude: { name: 'Claude', color: '#D97757', icon: <ClaudeIcon size={15} color="#D97757" /> },
-              chatgpt: {
-                name: 'ChatGPT',
-                color: '#ffffff',
-                icon: <ChatGPTIcon size={15} style={{ color: 'var(--text-strong)' }} />
-              },
-              gemini: { name: 'Gemini', color: '#4285f4', icon: <GeminiIcon size={15} style={{ color: '#4285f4' }} /> }
-            }[activeAI] || { name: 'Agent IA', color: '#10b981', icon: <SparklesIcon size={15} color="#10b981" /> }
-
+            const ai = {
+              agent: { name: 'Agent local', icon: <SparklesIcon size={14} /> },
+              claude: { name: 'Claude', icon: <ClaudeIcon size={14} /> },
+              chatgpt: { name: 'ChatGPT', icon: <ChatGPTIcon size={14} /> },
+              gemini: { name: 'Gemini', icon: <GeminiIcon size={14} /> }
+            }[activeAI] || { name: 'Agent local', icon: <SparklesIcon size={14} /> }
             return (
               <button
+                className="eh-btn eh-assistant"
+                aria-pressed={showAIWorkspace}
                 onClick={onToggleAIWorkspace}
-                title={showAIWorkspace ? `Masquer ${aiData.name}` : `Ouvrir ${aiData.name}`}
-                style={{
-                  height: '28px',
-                  padding: '0 10px',
-                  borderRadius: '6px',
-                  backgroundColor: showAIWorkspace ? `${aiData.color}33` : `${aiData.color}14`,
-                  border: showAIWorkspace ? `1px solid ${aiData.color}99` : `1px solid ${aiData.color}40`,
-                  color: 'var(--text-strong)',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: 'var(--fs-md)',
-                  fontWeight: 600,
-                  boxShadow: showAIWorkspace ? `0 0 10px ${aiData.color}40` : 'none',
-                  transition: 'all 0.15s ease',
-                  boxSizing: 'border-box'
-                }}
-                onMouseEnter={(e) => {
-                  if (!showAIWorkspace) {
-                    e.currentTarget.style.backgroundColor = `${aiData.color}29`
-                    e.currentTarget.style.borderColor = `${aiData.color}73`
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!showAIWorkspace) {
-                    e.currentTarget.style.backgroundColor = `${aiData.color}14`
-                    e.currentTarget.style.borderColor = `${aiData.color}40`
-                  }
-                }}
+                title={showAIWorkspace ? `Masquer ${ai.name}` : `Ouvrir ${ai.name}`}
               >
-                {aiData.icon}
-                <span style={{ color: 'var(--text-strong)', letterSpacing: '0.2px' }}>
-                  {aiData.name}
-                </span>
-                {showAIWorkspace && (
-                  <span
-                    style={{
-                      width: '5px',
-                      height: '5px',
-                      borderRadius: '50%',
-                      backgroundColor: aiData.color,
-                      boxShadow: `0 0 6px ${aiData.color}`
-                    }}
-                  />
-                )}
+                {ai.icon}
+                Assistant
               </button>
             )
           })()}
-
         </div>
       </div>
 

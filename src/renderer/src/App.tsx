@@ -41,6 +41,8 @@ import { expandSnippet, filterSnippets, SnippetSession } from './utils/snippetEn
 import { generateDynamicSnippets } from './utils/dynamicSnippets'
 import { SnippetPalette } from './components/SnippetPalette'
 import { SettingsModal } from './components/SettingsModal'
+import NoteStatusBar, { type SaveStatus } from './components/NoteStatusBar'
+import { countWords } from '../../shared/wordCount'
 import WelcomeTour from './components/WelcomeTour'
 import { HistoryModal } from './components/HistoryModal'
 import { ExportModal } from './components/ExportModal'
@@ -265,6 +267,7 @@ function App() {
   }, [selectedFiles])
 
   const [fileContent, setFileContent] = useState<string>('')
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [files, setFiles] = useState<string[]>([])
   const [treeNodes, setTreeNodes] = useState<TreeNode[]>([])
   const [favorites, setFavorites] = useState<string[]>([])
@@ -1252,6 +1255,8 @@ function App() {
       saved.file !== null &&
       saved.file === activeLoadedFileRef.current &&
       fileContentRef.current !== saved.content
+    // Barre d'état : React ignore une valeur identique, pas de rendu en trop
+    setSaveStatus(lastSaveErrorRef.current ? 'error' : unsaved ? 'pending' : 'saved')
     if (unsaved === unsavedReportedRef.current) return
     unsavedReportedRef.current = unsaved
     window.api.setUnsavedChanges(unsaved).catch((err) => console.error('[Fermeture]', err))
@@ -1630,6 +1635,7 @@ function App() {
     selectedFiles.length === 1 && selectedFiles[0] !== '__claude_code__' ? selectedFiles[0] : ''
   const isHtml = currentFile.endsWith('.html') || currentFile.endsWith('.htm')
   const isPdf = currentFile.toLowerCase().endsWith('.pdf')
+  const noteWordCount = useMemo(() => countWords(fileContent, isHtml), [fileContent, isHtml])
 
   // Synchroniser le dossier actif pour que les téléchargements (HTML, PDF, etc.) y aillent automatiquement
   useEffect(() => {
@@ -4915,6 +4921,11 @@ function App() {
                               )}
                             </>
                           )}
+                          <NoteStatusBar
+                            status={saveStatus}
+                            kind={isHtml ? 'HTML' : 'Markdown'}
+                            words={noteWordCount}
+                          />
                         </>
                       )}
                     </div>

@@ -842,3 +842,23 @@ export function InfoIcon({ size = 15, strokeWidth = 1.8, ...props }: IconProps):
     </svg>
   )
 }
+
+/** Nouvelle séance de cours */
+export function CapIcon({ size = 15, strokeWidth = 1.8, ...props }: IconProps): React.JSX.Element {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="m2 9 10-5 10 5-10 5z" />
+      <path d="M6 11v5c3 2 9 2 12 0v-5" />
+    </svg>
+  )
+}

@@ -26,11 +26,11 @@ import {
   PdfIcon,
   YouTubeIcon,
   ColumnsIcon,
-  getFileIcon
+  DownloadIcon,
+  FileTextIcon,
+  CapIcon
 } from './Icons'
 
-// Trait rouge de marge à gauche de la vue active (seul accent de marque de l'interface)
-const ACTIVE_MARK = 'inset 3px 0 0 var(--accent-marge)'
 
 interface SidebarProps {
   onSelectFiles: (files: string[]) => void
@@ -486,42 +486,17 @@ export default function Sidebar({
               paddingRight: '10px',
               paddingTop: '5px',
               paddingBottom: '5px',
-              margin: '1px 6px',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: 'var(--fs-md)',
-              color: isSelected
-                ? 'var(--text-strong)'
-                : isFolder
-                  ? 'var(--text-primary)'
-                  : 'var(--text-secondary)',
-              backgroundColor: isFolder && dragOverFolder === node.relativePath
+              // Couleurs, survol et sélection : .tree-row (main.css) ; seul le dépôt en cours reste ici
+              backgroundColor:
+                isFolder && dragOverFolder === node.relativePath
                   ? 'color-mix(in srgb, var(--accent-color) 15%, transparent)'
-                : isSelected ? 'var(--element-active)' : 'transparent',
-              fontWeight: isSelected ? 500 : 400,
-              boxShadow: isFolder && dragOverFolder === node.relativePath
-                ? '0 0 10px rgba(56, 189, 248, 0.3)'
-                : isSelected ? '0 1px 4px rgba(0, 0, 0, 0.25)' : 'none',
-              border: isFolder && dragOverFolder === node.relativePath
-                  ? '1px solid var(--accent-color)'
-                : '1px solid transparent',
-              transition: 'background-color 0.15s, color 0.15s, border-color 0.1s',
+                  : undefined,
+              borderColor:
+                isFolder && dragOverFolder === node.relativePath
+                  ? 'var(--accent-color)'
+                  : undefined,
               opacity: draggingPath === node.relativePath ? 0.35 : 1,
               ...({ WebkitUserDrag: 'element' } as React.CSSProperties)
-            }}
-            onMouseEnter={(e) => {
-              if (!isSelected) {
-                e.currentTarget.style.backgroundColor = 'var(--element-bg)'
-                e.currentTarget.style.color = 'var(--text-primary)'
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isSelected) {
-                e.currentTarget.style.backgroundColor = 'transparent'
-                e.currentTarget.style.color = isFolder
-                  ? 'var(--text-primary)'
-                  : 'var(--text-secondary)'
-              }
             }}
           >
             {/* Folder chevron */}
@@ -549,7 +524,7 @@ export default function Sidebar({
                 display: 'inline-flex',
                 alignItems: 'center',
                 marginRight: '7px',
-                color: isSelected ? 'var(--text-strong)' : 'var(--text-secondary)'
+                color: 'inherit'
               }}
             >
               {isFolder ? (
@@ -565,11 +540,15 @@ export default function Sidebar({
                       <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
                     </svg>
                   </span>
+                ) : isOpen ? (
+                  <FolderOpenIcon size={14} />
                 ) : (
-                  isOpen ? <FolderOpenIcon size={14} style={{ color: '#e0af68' }} /> : <FolderIcon size={14} style={{ color: '#e0af68' }} />
+                  <FolderIcon size={14} />
                 )
+              ) : /\.pdf$/i.test(node.name) ? (
+                <PdfIcon size={14} />
               ) : (
-                getFileIcon(node.name, 14, isSelected)
+                <FileTextIcon size={14} />
               )}
             </span>
 
@@ -606,7 +585,13 @@ export default function Sidebar({
                   whiteSpace: 'nowrap'
                 }}
               >
-                {isFolder ? node.name : node.name.replace(/\.(html|htm|md)$/i, '')}
+                {isFolder ? node.name : node.name.replace(/\.(html|htm|md|pdf)$/i, '')}
+              </span>
+            )}
+            {/* Type seulement pour les exceptions (les notes sont en HTML par défaut) */}
+            {!isFolder && !isEditing && /\.(md|markdown|pdf)$/i.test(node.name) && (
+              <span className={'sb-ext' + (/\.pdf$/i.test(node.name) ? ' pdf' : '')}>
+                .{node.name.split('.').pop()?.toLowerCase()}
               </span>
             )}
 
@@ -623,7 +608,7 @@ export default function Sidebar({
                         onOpenNewSession(node.relativePath)
                       }}
                     >
-                      <span style={{ fontSize: 'var(--fs-xs)', lineHeight: 1 }}>🎓</span>
+                      <CapIcon size={12} />
                     </button>
                   )}
                   <button
@@ -733,441 +718,115 @@ export default function Sidebar({
         style={{ display: 'none' }}
         onChange={handleFileInputChange}
       />
-      {/* Top Window Dots & Toggle Bar */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '14px 16px 10px 16px',
-          borderBottom: '1px solid var(--border-subtle)'
-        }}
-      >
-        {/* Nom de l'app (le choix de l'IA se fait par les onglets du panneau IA) */}
-        <span
-          style={{
-            fontFamily: 'var(--font-title)',
-            fontStyle: 'italic',
-            fontSize: 'var(--fs-2xl)',
-            lineHeight: 1,
-            color: 'var(--text-primary)'
-          }}
+      {/* En-tête : recherche (Ctrl+P) et masquage de la barre */}
+      <div className="sb-head">
+        <button
+          className="sb-search"
+          onClick={onOpenSearch}
+          aria-label="Rechercher dans les notes (Ctrl+P)"
         >
-          NOTE-APP
-        </span>
-
-        {/* Sidebar Toggle button */}
+          <SearchIcon size={15} />
+          <span>Rechercher</span>
+          <kbd>Ctrl P</kbd>
+        </button>
         {onToggleSidebar && (
           <button
-            className="hv-color-text-strong"
+            className="sb-icon-btn"
             onClick={onToggleSidebar}
             title="Masquer la barre latérale (Ctrl+B)"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              padding: '4px',
-              borderRadius: '4px',
-              display: 'flex',
-              alignItems: 'center'
-            }}
+            aria-label="Masquer la barre latérale"
           >
             <SidebarToggleIcon size={16} />
           </button>
         )}
       </div>
 
-      {/* Main scrollable navigation body */}
-      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '10px 6px' }}>
-        
-        {/* Recherche (présentée comme un champ) puis création : les deux gestes les plus fréquents */}
-        <button
-          onClick={onOpenSearch}
-          aria-label="Rechercher dans les notes (Ctrl+P)"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            width: 'calc(100% - 8px)',
-            margin: '0 4px 6px',
-            padding: '7px 10px',
-            borderRadius: '6px',
-            background: 'var(--app-bg)',
-            border: '1px solid var(--border-strong)',
-            color: 'var(--text-muted)',
-            fontSize: 'var(--fs-md)',
-            cursor: 'text',
-            textAlign: 'left'
-          }}
-        >
-          <SearchIcon size={14} />
-          <span style={{ flex: 1 }}>Rechercher…</span>
-          <kbd>Ctrl+P</kbd>
-        </button>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', margin: '0 4px 14px' }}>
+      {/* Corps défilant : création, vues, favoris, arbre */}
+      <div className="sb-body">
+        <div className="sb-quick">
           <button
-            className="hv-background-color-element-bg"
+            className="sb-btn"
             onClick={(e) => handleStartCreate('', 'file', e)}
-            style={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '7px 6px',
-              borderRadius: '6px',
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-primary)',
-              fontSize: 'var(--fs-md)',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'background-color 0.15s'
-            }}
+            title="Nouvelle note (Ctrl+N)"
           >
-            <PlusIcon size={15} style={{ color: 'var(--accent-marge)' }} />
-            <span style={{ flex: 1, textAlign: 'left' }}>Nouvelle note</span>
-            <kbd>Ctrl+N</kbd>
+            <PlusIcon size={15} />
+            Note
           </button>
-          <button
-            className="hv-background-color-element-bg"
-            onClick={() => handleImportPdf('')}
-            title="Importer un PDF"
-            aria-label="Importer un PDF"
-            style={{
-              width: '32px',
-              height: '32px',
-              flexShrink: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '6px',
-              background: 'transparent',
-              border: '1px solid var(--border-color)',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              transition: 'background-color 0.15s'
-            }}
-          >
-            <PdfIcon size={15} />
+          <button className="sb-btn" onClick={() => handleImportPdf('')}>
+            <DownloadIcon size={15} />
+            Importer un PDF
           </button>
         </div>
 
-        {/* Vues : Récentes, puis Tableau, YouTube, Brouillons, Corbeille */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '2px' }}>
-          <button
-            onClick={() => setActiveView && setActiveView(activeView === 'recent' ? 'all' : 'recent')}
-            aria-current={activeView === 'recent' ? 'page' : undefined}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '7px 10px',
-              borderRadius: '6px',
-              background: activeView === 'recent' ? 'var(--element-active)' : 'transparent',
-              boxShadow: activeView === 'recent' ? ACTIVE_MARK : 'none',
-              border: 'none',
-              color: activeView === 'recent' ? 'var(--text-strong)' : 'var(--text-primary)',
-              fontSize: 'var(--fs-md)',
-              cursor: 'pointer',
-              transition: 'background-color 0.15s'
-            }}
-            onMouseEnter={(e) => {
-              if (activeView !== 'recent') e.currentTarget.style.backgroundColor = 'var(--element-bg)'
-            }}
-            onMouseLeave={(e) => {
-              if (activeView !== 'recent') e.currentTarget.style.backgroundColor = 'transparent'
-            }}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ClockIcon
-                size={15}
-                style={{
-                  color: activeView === 'recent' ? 'var(--accent-marge)' : 'var(--text-secondary)'
-                }}
-              />
-              <span>Récentes</span>
-            </span>
-            <kbd>Ctrl+R</kbd>
-          </button>
-        </div>
-
-        {/* System Views (Workflow, Drafts, Deleted) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '18px', paddingBottom: '12px', borderBottom: '1px solid var(--border-subtle)' }}>
-          <button
-            onClick={() => setActiveView && setActiveView('workflow')}
-            aria-current={activeView === 'workflow' ? 'page' : undefined}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '6px 10px',
-              borderRadius: '6px',
-              background: activeView === 'workflow' ? 'var(--element-active)' : 'transparent',
-              boxShadow: activeView === 'workflow' ? ACTIVE_MARK : 'none',
-              border: 'none',
-              color: activeView === 'workflow' ? 'var(--text-strong)' : 'var(--text-secondary)',
-              fontSize: 'var(--fs-md)',
-              cursor: 'pointer',
-              transition: 'background-color 0.15s'
-            }}
-            onMouseEnter={(e) => {
-              if (activeView !== 'workflow') e.currentTarget.style.backgroundColor = 'var(--element-bg)'
-            }}
-            onMouseLeave={(e) => {
-              if (activeView !== 'workflow') e.currentTarget.style.backgroundColor = 'transparent'
-            }}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <KanbanIcon
-                size={15}
-                style={{ color: activeView === 'workflow' ? 'var(--accent-marge)' : 'inherit' }}
-              />
-              <span>Tableau</span>
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveView && setActiveView('youtube')}
-            aria-current={activeView === 'youtube' ? 'page' : undefined}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '6px 10px',
-              borderRadius: '6px',
-              background: activeView === 'youtube' ? 'var(--element-active)' : 'transparent',
-              boxShadow: activeView === 'youtube' ? ACTIVE_MARK : 'none',
-              border: 'none',
-              color: activeView === 'youtube' ? 'var(--text-strong)' : 'var(--text-secondary)',
-              fontSize: 'var(--fs-md)',
-              cursor: 'pointer',
-              transition: 'background-color 0.15s'
-            }}
-            onMouseEnter={(e) => {
-              if (activeView !== 'youtube') e.currentTarget.style.backgroundColor = 'var(--element-bg)'
-            }}
-            onMouseLeave={(e) => {
-              if (activeView !== 'youtube') e.currentTarget.style.backgroundColor = 'transparent'
-            }}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <YouTubeIcon size={16} />
-              <span>YouTube</span>
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveView && setActiveView('drafts')}
-            aria-current={activeView === 'drafts' ? 'page' : undefined}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '6px 10px',
-              borderRadius: '6px',
-              background: activeView === 'drafts' ? 'var(--element-active)' : 'transparent',
-              boxShadow: activeView === 'drafts' ? ACTIVE_MARK : 'none',
-              border: 'none',
-              color: activeView === 'drafts' ? 'var(--text-strong)' : 'var(--text-secondary)',
-              fontSize: 'var(--fs-md)',
-              cursor: 'pointer',
-              transition: 'background-color 0.15s'
-            }}
-            onMouseEnter={(e) => {
-              if (activeView !== 'drafts') e.currentTarget.style.backgroundColor = 'var(--element-bg)'
-            }}
-            onMouseLeave={(e) => {
-              if (activeView !== 'drafts') e.currentTarget.style.backgroundColor = 'transparent'
-            }}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <DraftsIcon size={15} />
-              <span>Brouillons</span>
-            </span>
-            {draftsCount > 0 && (
-              <span
-                style={{
-                  fontSize: 'var(--fs-xs)',
-                  color: 'var(--text-muted)',
-                  background: 'var(--element-bg)',
-                  padding: '1px 6px',
-                  borderRadius: '10px'
-                }}
-              >
-                {draftsCount}
-              </span>
-            )}
-          </button>
-
-          {/* <div> et non <button> : contient le bouton « Vider » ; rendu accessible au clavier */}
-          <div
-            role="button"
-            tabIndex={0}
-            aria-current={activeView === 'deleted' ? 'page' : undefined}
-            onClick={() => setActiveView && setActiveView('deleted')}
-            onKeyDown={(e) => {
-              if (e.target !== e.currentTarget) return
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                setActiveView?.('deleted')
-              }
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '6px 10px',
-              borderRadius: '6px',
-              background: activeView === 'deleted' ? 'var(--element-active)' : 'transparent',
-              boxShadow: activeView === 'deleted' ? ACTIVE_MARK : 'none',
-              color: activeView === 'deleted' ? 'var(--text-strong)' : 'var(--text-secondary)',
-              fontSize: 'var(--fs-md)',
-              cursor: 'pointer',
-              transition: 'background-color 0.15s'
-            }}
-            onMouseEnter={(e) => {
-              if (activeView !== 'deleted') e.currentTarget.style.backgroundColor = 'var(--element-bg)'
-            }}
-            onMouseLeave={(e) => {
-              if (activeView !== 'deleted') e.currentTarget.style.backgroundColor = 'transparent'
-            }}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <TrashIcon size={15} />
-              <span>Corbeille</span>
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {deletedCount > 0 && onEmptyTrash && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onEmptyTrash()
-                  }}
-                  title="Vider la corbeille"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer',
-                    fontSize: 'var(--fs-xs)',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    transition: 'all 0.15s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = 'var(--danger-strong)'
-                    e.currentTarget.style.backgroundColor =
-                      'color-mix(in srgb, var(--danger-strong) 15%, transparent)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = 'var(--text-muted)'
-                    e.currentTarget.style.backgroundColor = 'transparent'
-                  }}
-                >
-                  Vider
-                </button>
-              )}
-              {deletedCount > 0 && (
-                <span
-                  style={{
-                    fontSize: 'var(--fs-xs)',
-                    color: 'var(--text-muted)',
-                    background: 'var(--element-bg)',
-                    padding: '1px 6px',
-                    borderRadius: '10px'
-                  }}
-                >
-                  {deletedCount}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
+        {/* Vues */}
+        <button
+          className="sb-row"
+          aria-current={activeView === 'recent' ? 'page' : undefined}
+          onClick={() => setActiveView && setActiveView(activeView === 'recent' ? 'all' : 'recent')}
+          title="Récentes (Ctrl+R)"
+        >
+          <ClockIcon size={16} />
+          <span className="sb-label">Récentes</span>
+        </button>
+        <button
+          className="sb-row"
+          aria-current={activeView === 'drafts' ? 'page' : undefined}
+          onClick={() => setActiveView && setActiveView('drafts')}
+        >
+          <DraftsIcon size={16} />
+          <span className="sb-label">Brouillons</span>
+          {draftsCount > 0 && <span className="sb-count">{draftsCount}</span>}
+        </button>
+        <button
+          className="sb-row"
+          aria-current={activeView === 'workflow' ? 'page' : undefined}
+          onClick={() => setActiveView && setActiveView('workflow')}
+        >
+          <KanbanIcon size={16} />
+          <span className="sb-label">Tableau</span>
+        </button>
+        <button
+          className="sb-row"
+          aria-current={activeView === 'youtube' ? 'page' : undefined}
+          onClick={() => setActiveView && setActiveView('youtube')}
+        >
+          <YouTubeIcon size={16} />
+          <span className="sb-label">YouTube</span>
+        </button>
 
         {/* Favourites Section */}
         {favorites.length > 0 && (
-          <div style={{ marginBottom: '18px' }}>
-            <div
-              role="button"
-              tabIndex={0}
-              aria-expanded={favouritesOpen}
-              onClick={() => setFavouritesOpen(!favouritesOpen)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  setFavouritesOpen(!favouritesOpen)
-                }
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '4px 8px',
-                fontSize: 'var(--fs-md)',
-                fontWeight: 600,
-                color: 'var(--text-secondary)',
-                cursor: 'pointer'
-              }}
-            >
-              <span>Favoris</span>
-              <span style={{ opacity: 0.7 }}>
+          <div>
+            <div className="sb-section">
+              <button
+                className="sb-section-toggle"
+                aria-expanded={favouritesOpen}
+                onClick={() => setFavouritesOpen(!favouritesOpen)}
+              >
                 {favouritesOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-              </span>
+                Favoris
+              </button>
             </div>
 
             {favouritesOpen && (
-              <div style={{ marginTop: '4px' }}>
+              <div>
                 {favorites.map((favPath) => {
                   const isSelected = selectedFiles.includes(favPath)
                   const cleanName = favPath.split('/').pop()?.replace(/\.(html|htm|md|markdown)$/i, '') || favPath
 
                   return (
-                    <div
+                    <button
                       key={favPath}
-                      role="button"
-                      tabIndex={0}
+                      className="sb-row"
                       aria-current={isSelected ? 'true' : undefined}
                       onClick={() => {
                         if (setActiveView) setActiveView('all')
                         onSelectFiles([favPath])
                       }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault()
-                          if (setActiveView) setActiveView('all')
-                          onSelectFiles([favPath])
-                        }
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '5px 10px',
-                        margin: '1px 4px',
-                        borderRadius: '6px',
-                        fontSize: 'var(--fs-md)',
-                        cursor: 'pointer',
-                        color: isSelected ? 'var(--text-strong)' : 'var(--text-primary)',
-                        backgroundColor: isSelected ? 'var(--element-active)' : 'transparent',
-                        transition: 'background-color 0.15s'
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--element-bg)'
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'
-                      }}
                     >
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                        {getFileIcon(favPath, 13, isSelected)}
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {cleanName}
-                        </span>
-                      </span>
-                    </div>
+                      <PinIcon size={14} />
+                      <span className="sb-label">{cleanName}</span>
+                    </button>
                   )
                 })}
               </div>
@@ -1177,91 +836,32 @@ export default function Sidebar({
 
         {/* My Folders Explorer Section */}
         <div>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '4px 8px',
-              fontSize: 'var(--fs-md)',
-              fontWeight: 600,
-              color: 'var(--text-secondary)'
-            }}
-          >
-            <div
-              role="button"
-              tabIndex={0}
+          <div className="sb-section">
+            <button
+              className="sb-section-toggle"
               aria-expanded={foldersOpen}
               onClick={() => setFoldersOpen(!foldersOpen)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  setFoldersOpen(!foldersOpen)
-                }
-              }}
-              style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}
             >
-              <span>{foldersOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</span>
-              <span>Mes notes</span>
-            </div>
-
-            {/* Create root file and folder buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <TreeSortMenu sort={treeSort} onChange={handleTreeSortChange} />
-              <button
-                className="hv-color-text-strong"
-                onClick={(e) => handleStartCreate('', 'file', e)}
-                title="Nouvelle note à la racine (.html par défaut, .md pour du Markdown)"
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  padding: '2px 4px',
-                  borderRadius: '4px',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                <PlusIcon size={13} />
-              </button>
-
-              <button
-                className="hv-color-text-strong"
-                onClick={(e) => handleStartCreate('', 'folder', e)}
-                title="Nouveau dossier racine"
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  padding: '2px 4px',
-                  borderRadius: '4px',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                <FolderPlusIcon size={13} />
-              </button>
-
-              <button
-                className="hv-color-danger-strong"
-                onClick={() => handleImportPdf('')}
-                title="Importer un fichier PDF"
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  padding: '2px 4px',
-                  borderRadius: '4px',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                <PdfIcon size={13} />
-              </button>
-            </div>
+              {foldersOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              Mes notes
+            </button>
+            <TreeSortMenu sort={treeSort} onChange={handleTreeSortChange} />
+            <button
+              className="sb-icon-btn sm"
+              onClick={(e) => handleStartCreate('', 'file', e)}
+              title="Nouvelle note à la racine (.html par défaut, .md pour du Markdown)"
+              aria-label="Nouvelle note à la racine"
+            >
+              <PlusIcon size={14} />
+            </button>
+            <button
+              className="sb-icon-btn sm"
+              onClick={(e) => handleStartCreate('', 'folder', e)}
+              title="Nouveau dossier racine"
+              aria-label="Nouveau dossier racine"
+            >
+              <FolderPlusIcon size={14} />
+            </button>
           </div>
 
           {/* Root inline creation input */}
@@ -1393,57 +993,51 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Pinned Bottom Footer (Settings & Help) */}
-      <div
-        style={{
-          borderTop: '1px solid var(--border-subtle)',
-          padding: '8px 10px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '2px'
-        }}
-      >
-        <button
-          className="hv-background-color-element-bg hv-color-text-strong"
-          onClick={onOpenSettings}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '7px 10px',
-            borderRadius: '6px',
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            fontSize: 'var(--fs-md)',
-            cursor: 'pointer',
-            textAlign: 'left'
+      {/* Pied : Corbeille, Paramètres, Aide */}
+      <div className="sb-foot">
+        {/* <div> et non <button> : contient le bouton « Vider » ; rendu accessible au clavier */}
+        <div
+          className="sb-row"
+          role="button"
+          tabIndex={0}
+          aria-current={activeView === 'deleted' ? 'page' : undefined}
+          onClick={() => setActiveView && setActiveView('deleted')}
+          onKeyDown={(e) => {
+            if (e.target !== e.currentTarget) return
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              setActiveView?.('deleted')
+            }
           }}
         >
-          <SettingsIcon size={15} />
-          <span>Paramètres</span>
+          <TrashIcon size={16} />
+          <span className="sb-label">Corbeille</span>
+          {deletedCount > 0 && onEmptyTrash && (
+            <button
+              type="button"
+              className="sb-empty-trash"
+              onClick={(e) => {
+                e.stopPropagation()
+                onEmptyTrash()
+              }}
+              title="Vider la corbeille"
+            >
+              Vider
+            </button>
+          )}
+          {deletedCount > 0 && <span className="sb-count">{deletedCount}</span>}
+        </div>
+        <button className="sb-row" onClick={onOpenSettings}>
+          <SettingsIcon size={16} />
+          <span className="sb-label">Paramètres</span>
         </button>
-
         <button
-          className="hv-background-color-element-bg hv-color-text-strong"
+          className="sb-row"
           onClick={() => window.dispatchEvent(new Event('nf-open-tour'))}
           title="Relancer la visite guidée"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '7px 10px',
-            borderRadius: '6px',
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            fontSize: 'var(--fs-md)',
-            cursor: 'pointer',
-            textAlign: 'left'
-          }}
         >
-          <HelpCircleIcon size={15} />
-          <span>Aide</span>
+          <HelpCircleIcon size={16} />
+          <span className="sb-label">Aide</span>
         </button>
       </div>
 

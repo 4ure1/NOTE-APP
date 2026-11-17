@@ -289,6 +289,8 @@ kbd {
 .st-search input { flex: 1; min-width: 0; background: none; border: none; outline: none; color: var(--text-primary); font-size: var(--fs-md); }
 .st-search input::placeholder { color: var(--text-muted); }
 .st-search:focus-within { box-shadow: 0 0 0 2px var(--accent-color); }
+/* Le cadre de focus est porté par le champ entier : pas de second contour sur l’input */
+.st-search input:focus-visible { outline: none !important; }
 .st-group-label { height: 28px; line-height: 28px; margin-top: 8px; padding: 0 8px; font-size: var(--fs-sm); color: var(--text-muted); }
 .st-item { position: relative; display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 8px; border: none; border-radius: 6px; background: transparent; color: var(--text-secondary); font-size: var(--fs-md); text-align: left; cursor: pointer; }
 .st-item:hover { background: var(--element-bg-hover); color: var(--text-primary); }
@@ -346,3 +348,64 @@ kbd {
 .st-dot.ok { background: var(--success-color); }
 .st-status { display: flex; align-items: center; gap: 8px; font-size: var(--fs-md); color: var(--text-secondary); flex: none; }
 .st-about-list { margin: 0; padding: 12px 16px 14px 34px; font-size: var(--fs-md); line-height: 1.6; color: var(--text-secondary); }
+
+/* ---------- Barre latérale (Sidebar.tsx) ---------- */
+.sb-head { display: flex; align-items: center; gap: 6px; height: 44px; padding: 0 8px; border-bottom: 1px solid var(--border-color); flex: none; }
+.sb-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 8px; border: none; border-radius: 6px; background: var(--surface-control); color: var(--text-muted); font-size: var(--fs-md); text-align: left; cursor: text; }
+.sb-search span { flex: 1; }
+.sb-search:hover { color: var(--text-secondary); }
+.sb-icon-btn { display: grid; place-items: center; width: 28px; height: 28px; flex: none; border: none; border-radius: 6px; background: transparent; color: var(--text-muted); cursor: pointer; }
+.sb-icon-btn.sm { width: 24px; height: 24px; }
+.sb-icon-btn:hover { background: var(--element-bg-hover); color: var(--text-strong); }
+.sb-body { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 8px; }
+.sb-quick { display: grid; grid-template-columns: auto 1fr; gap: 6px; margin-bottom: 8px; }
+.sb-btn { display: flex; align-items: center; justify-content: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid var(--border-color); border-radius: 6px; background: transparent; color: var(--text-secondary); font-size: var(--fs-sm); white-space: nowrap; cursor: pointer; }
+.sb-btn:hover { background: var(--element-bg-hover); color: var(--text-strong); }
+.sb-row { position: relative; display: flex; align-items: center; gap: 8px; width: 100%; height: 28px; padding: 0 8px; border: none; border-radius: 6px; background: transparent; color: var(--text-secondary); font-size: var(--fs-md); text-align: left; cursor: pointer; }
+.sb-row:hover { background: var(--element-bg-hover); color: var(--text-primary); }
+.sb-row[aria-current='page'],
+.sb-row[aria-current='true'] { background: var(--element-active); color: var(--text-strong); }
+.sb-row[aria-current='page']::before,
+.sb-row[aria-current='true']::before { content: ''; position: absolute; left: -8px; top: 6px; bottom: 6px; width: 2px; border-radius: 0 2px 2px 0; background: var(--accent-marge); }
+.sb-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-count { font-size: var(--fs-xs); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.sb-empty-trash { padding: 1px 6px; border: none; border-radius: 4px; background: none; color: var(--text-muted); font-size: var(--fs-xs); cursor: pointer; }
+.sb-empty-trash:hover { background: var(--danger-bg-hover); color: var(--danger-color); }
+.sb-section { display: flex; align-items: center; gap: 2px; height: 28px; margin-top: 12px; padding: 0 0 0 8px; font-size: var(--fs-sm); color: var(--text-muted); }
+.sb-section-toggle { flex: 1; display: flex; align-items: center; gap: 4px; padding: 0; border: none; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.sb-section-toggle:hover { color: var(--text-secondary); }
+.sb-foot { flex: none; padding: 6px 8px; border-top: 1px solid var(--border-color); }
+.sb-ext { margin-left: 6px; flex: none; font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-muted); }
+.sb-ext.pdf { color: color-mix(in srgb, var(--danger-color) 75%, var(--text-muted)); }
+
+/* Lignes de l'arbre : sélection marquée du trait rouge, comme les vues */
+.tree-row { position: relative; margin: 1px 0; border: 1px solid transparent; border-radius: 6px; color: var(--text-secondary); font-size: var(--fs-md); cursor: pointer; }
+.tree-row:hover:not([aria-selected='true']) { background: var(--element-bg-hover); color: var(--text-primary); }
+.tree-row[aria-selected='true'] { background: var(--element-active); color: var(--text-strong); font-weight: 500; }
+.tree-row[aria-selected='true']::before { content: ''; position: absolute; left: -8px; top: 5px; bottom: 5px; width: 2px; border-radius: 0 2px 2px 0; background: var(--accent-marge); }
+
+/* ---------- Barre de la note (EditorHeader.tsx) et barre d'état (NoteStatusBar.tsx) ---------- */
+.eh-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 40px; padding: 0 10px 0 16px; border-bottom: 1px solid var(--border-color); background: var(--editor-bg); flex: none; }
+.eh-path { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; font-size: var(--fs-md); color: var(--text-muted); white-space: nowrap; }
+.eh-crumb { flex: none; }
+.eh-sep { flex: none; opacity: 0.6; }
+.eh-file { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--text-strong); font-weight: 500; }
+.eh-actions { position: relative; display: flex; align-items: center; gap: 4px; flex: none; }
+.eh-seg { display: flex; gap: 2px; padding: 2px; margin-right: 6px; border-radius: 6px; background: var(--surface-control); }
+.eh-seg button { display: flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border: none; border-radius: 4px; background: transparent; color: var(--text-muted); font-size: var(--fs-sm); white-space: nowrap; cursor: pointer; }
+.eh-seg button:hover { color: var(--text-primary); }
+.eh-seg button[aria-pressed='true'] { background: var(--element-active); color: var(--text-strong); }
+.eh-btn { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 9px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text-secondary); font-size: var(--fs-sm); white-space: nowrap; cursor: pointer; }
+.eh-btn:hover { background: var(--element-bg-hover); color: var(--text-strong); }
+.eh-assistant { margin-left: 4px; border-color: var(--border-color); }
+.eh-assistant[aria-pressed='true'] { background: var(--element-active); color: var(--text-strong); border-color: transparent; }
+.eh-icon { display: grid; place-items: center; width: 28px; height: 28px; border: none; border-radius: 6px; background: transparent; color: var(--text-muted); cursor: pointer; }
+.eh-icon:hover, .eh-icon[aria-expanded='true'] { background: var(--element-bg-hover); color: var(--text-strong); }
+
+.ns-bar { display: flex; align-items: center; gap: 16px; height: 26px; padding: 0 12px; border-top: 1px solid var(--border-color); background: var(--sidebar-bg); color: var(--text-muted); font-size: var(--fs-xs); white-space: nowrap; flex: none; }
+.ns-state { display: flex; align-items: center; gap: 6px; }
+.ns-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success-color); }
+.ns-state.pending .ns-dot { background: var(--text-secondary); }
+.ns-state.error { color: var(--danger-color); }
+.ns-state.error .ns-dot { background: var(--danger-color); }
+.ns-right { margin-left: auto; display: flex; gap: 16px; font-variant-numeric: tabular-nums; }
