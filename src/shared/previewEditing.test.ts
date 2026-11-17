@@ -381,3 +381,88 @@ describe('couleur reprise par Entrée', () => {
     expect(editing.dropCarry(document, document.querySelector('span')!)).toBe(false)
   })
 })
+
+describe('keepEmptyFormat : effacer le texte d’une couleur la garde', () => {
+  it('Retour arrière sur le dernier caractère : élément vide gardé, curseur dedans', () => {
+    document.body.innerHTML = '<p>a <span class="o">x</span></p>'
+    setCaret(textNode('span'), 1)
+    expect(editing.keepEmptyFormat(document, false)).toBe(true)
+    const span = document.querySelector('span')!
+    expect(span.outerHTML).toBe('<span class="o" data-nf-carry="">' + ZWSP + '</span>')
+    expect(caret().node).toBe(span.firstChild)
+  })
+
+  it('second Retour arrière : l’élément part', () => {
+    document.body.innerHTML = '<p>a <span class="o">x</span></p>'
+    setCaret(textNode('span'), 1)
+    editing.keepEmptyFormat(document, false)
+    expect(editing.keepEmptyFormat(document, false)).toBe(true)
+    expect(document.body.innerHTML).toBe('<p>a </p>')
+  })
+
+  it('ligne qui ne contenait que la couleur : elle garde un <br> après le second effacement', () => {
+    document.body.innerHTML = '<p><span class="o">x</span></p>'
+    setCaret(textNode('span'), 1)
+    editing.keepEmptyFormat(document, false)
+    editing.keepEmptyFormat(document, false)
+    expect(document.body.innerHTML).toBe('<p><br></p>')
+  })
+
+  it('Suppr devant le dernier caractère, et sélection de tout le texte', () => {
+    document.body.innerHTML = '<p><code>x</code> <kbd>Ctrl</kbd></p>'
+    setCaret(textNode('code'), 0)
+    expect(editing.keepEmptyFormat(document, true)).toBe(true)
+    const t = textNode('kbd')
+    const r = document.createRange()
+    r.setStart(t, 0)
+    r.setEnd(t, 4)
+    document.getSelection()!.removeAllRanges()
+    document.getSelection()!.addRange(r)
+    expect(editing.keepEmptyFormat(document, false)).toBe(true)
+    expect(document.querySelectorAll('[data-nf-carry]')).toHaveLength(2)
+  })
+
+  it('plage visée par le navigateur (curseur juste après l’élément)', () => {
+    document.body.innerHTML = '<p><span class="o">x</span>y</p>'
+    const after = document.querySelector('p')!.lastChild!
+    setCaret(after, 0)
+    const target = document.createRange()
+    target.setStart(textNode('span'), 0)
+    target.setEnd(textNode('span'), 1)
+    expect(editing.keepEmptyFormat(document, false, target)).toBe(true)
+    expect(document.querySelector('span')!.hasAttribute('data-nf-carry')).toBe(true)
+  })
+
+  it('laisse faire le navigateur s’il reste du texte ou hors élément en ligne', () => {
+    document.body.innerHTML = '<p><span class="o">xy</span> z</p><pre><code>k</code></pre>'
+    setCaret(textNode('span'), 2)
+    expect(editing.keepEmptyFormat(document, false)).toBe(false)
+    setCaret(document.querySelector('p')!.lastChild!, 2)
+    expect(editing.keepEmptyFormat(document, false)).toBe(false)
+    setCaret(textNode('code'), 1)
+    expect(editing.keepEmptyFormat(document, false)).toBe(false)
+  })
+
+  it('couleurs imbriquées : l’extérieure reste aussi, puis part au troisième effacement', () => {
+    document.body.innerHTML = '<p><strong class="gb"><span class="o">x</span></strong></p>'
+    setCaret(textNode('span'), 1)
+    editing.keepEmptyFormat(document, false)
+    expect(document.querySelector('strong')!.hasAttribute('data-nf-carry')).toBe(true)
+    editing.keepEmptyFormat(document, false)
+    expect(document.querySelector('span')).toBeNull()
+    expect(document.querySelector('strong')).not.toBeNull()
+    editing.keepEmptyFormat(document, false)
+    expect(document.body.innerHTML).toBe('<p><br></p>')
+  })
+
+  it('la frappe suivante s’écrit dans l’élément gardé', () => {
+    document.body.innerHTML = '<p><span class="o">x</span></p>'
+    setCaret(textNode('span'), 1)
+    editing.keepEmptyFormat(document, false)
+    const holder = document.querySelector('span')!.firstChild as Text
+    holder.data = ZWSP + 'y'
+    setCaret(holder, 2)
+    editing.settleCarry(document)
+    expect(document.body.innerHTML).toBe('<p><span class="o">y</span></p>')
+  })
+})

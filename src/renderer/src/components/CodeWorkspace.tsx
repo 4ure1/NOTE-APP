@@ -1829,6 +1829,17 @@ export const prepareHtmlPreview = (
             if (type === 'historyUndo' ? undoHistory.undo() : undoHistory.redo()) emitDocChange();
             return;
           }
+          // Effacer tout le texte d'une couleur (ou d'un code, d'une touche…) la garde vide, halo compris ;
+          // un second effacement la retire (src/shared/previewEditing.ts)
+          if (!snippetSession && /^delete(Content|Word)(Backward|Forward)$/.test(type)) {
+            var targets = e.getTargetRanges ? e.getTargetRanges() : [];
+            if (previewEditing.keepEmptyFormat(document, type.indexOf('Forward') !== -1, targets.length ? targets[0] : null)) {
+              e.preventDefault();
+              updateEditingColorOutline();
+              emitDocChange();
+              return;
+            }
+          }
           // Toute saisie peut faire inventer à Chrome des <span style> (fusion de blocs, frappe sur un
           // élément stylé supprimé) : retirés après coup s'ils sont nouveaux
           styledBeforeEdit = previewEditing.snapshotStyled(document);

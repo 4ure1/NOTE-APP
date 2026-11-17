@@ -5,6 +5,8 @@
  *   le nouveau bloc, qui reprend l'indentation de son voisin dans le code. Au bout d'un texte coloré
  *   (<span class="o">…), la nouvelle ligne reçoit sa propre copie de la coloration (data-nf-carry, tenue
  *   par une espace de largeur nulle) : la couleur continue, ligne par ligne, jusqu'à Tab.
+ * - Effacer tout le texte d'une coloration (ou d'un autre élément en ligne : code, touche, étiquette…)
+ *   la garde vide, curseur dedans ; un second effacement la retire.
  * - Sortie d'une coloration : la frappe juste après un <span>/<strong>… s'écrit hors de lui ;
  *   Flèche droite au bout d'un texte coloré « sort » de la coloration.
  * - Après un effacement, les <span style="…"> / <font> que Chrome invente en fusionnant deux blocs
@@ -33,6 +35,12 @@ export interface PreviewEditing {
   settleCarry(doc: Document): number
   /** Tab sur une coloration reprise encore vide : elle est retirée, le curseur reste sur la ligne. */
   dropCarry(doc: Document, el: Element): boolean
+  /**
+   * Effacement (Retour arrière ou Suppr) : true si géré (l'appelant annule l'action du navigateur).
+   * Le dernier texte d'un élément en ligne est effacé sans retirer l'élément ; s'il est déjà vide, il
+   * est retiré. `target` : la plage que le navigateur allait effacer (getTargetRanges), si connue.
+   */
+  keepEmptyFormat(doc: Document, forward: boolean, target?: AbstractRange | null): boolean
   /** Éléments stylés présents avant un effacement. */
   snapshotStyled(doc: Document): Set<Element>
   /** Retire les éléments stylés apparus depuis snapshotStyled ; renvoie leur nombre. */
@@ -91,6 +99,8 @@ export function createPreviewEditing(): PreviewEditing {
   ]
   // Mises en forme reprises par Entrée sur la ligne suivante (pas les liens ni le code en ligne)
   const CARRY_TAGS = ['B', 'EM', 'FONT', 'I', 'MARK', 'S', 'SMALL', 'SPAN', 'STRONG', 'U']
+  // Éléments en ligne gardés vides quand on efface tout leur texte (snippets /h…, /g…, /code, /kbd…)
+  const KEEP_TAGS = CARRY_TAGS.concat(['CODE', 'KBD', 'SUB', 'SUP'])
   const CARRY = 'data-nf-carry'
   const ZWSP = String.fromCharCode(8203)
   const TEXT_BLOCKS = ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI']
@@ -354,22 +364,32 @@ export function createPreviewEditing(): PreviewEditing {
     return settled
   }
 
-  function dropCarry(doc: Document, el: Element): boolean {
-    if (!el.hasAttribute(CARRY) || hasRealText(el) || !el.parentNode) return false
+  function isKeepable(n: Node | null): n is Element {
+    return (
+      !!n &&
+      isElement(n) &&
+      KEEP_TAGS.indexOf(n.nodeName.toUpperCase()) !== -1 &&
+      !n.hasAttribute('data-nf-field') &&
+      !n.hasAttribute('data-nf-final') &&
+      !n.hasAttribute('data-injected-preview-helpers')
+    )
+  }
+
+  /** Retire un élément en ligne resté vide ; un parent lui aussi vide garde le curseur (et reste). */
+  function removeEmpty(doc: Document, el: Element): boolean {
     const parent = el.parentNode
+    if (!parent) return false
     const ref = el.nextSibling
-    if (isElement(parent) && parent.hasAttribute(CARRY)) {
+    parent.removeChild(el)
+    if (isKeepable(parent) && !hasRealText(parent)) {
       // Coloration imbriquée : seule l'intérieure s'arrête, l'extérieure garde le curseur
-      parent.removeChild(el)
-      let holder = parent.lastChild
-      if (!holder || holder.nodeType !== TEXT) {
-        holder = doc.createTextNode(ZWSP)
-        parent.appendChild(holder)
-      }
-      placeCaret(doc, holder, (holder.textContent || '').length)
+      while (parent.firstChild) parent.removeChild(parent.firstChild)
+      const holder = doc.createTextNode(ZWSP)
+      parent.appendChild(holder)
+      parent.setAttribute(CARRY, '')
+      placeCaret(doc, holder, 1)
       return true
     }
-    parent.removeChild(el)
     if (isElement(parent) && isEmptyContent(parent)) {
       ensureNotEmpty(parent)
       placeCaret(doc, parent, 0)
@@ -382,6 +402,92 @@ export function createPreviewEditing(): PreviewEditing {
     } else {
       placeCaret(doc, parent, parent.childNodes.length)
     }
+    return true
+  }
+
+  function dropCarry(doc: Document, el: Element): boolean {
+    if (!el.hasAttribute(CARRY) || hasRealText(el)) return false
+    return removeEmpty(doc, el)
+  }
+
+  /** Nombre de caractères visibles (sans espace de largeur nulle) d'une plage. */
+  function realLength(r: AbstractRange, doc: Document): number {
+    const live = doc.createRange()
+    live.setStart(r.startContainer, r.startOffset)
+    live.setEnd(r.endContainer, r.endOffset)
+    return live.toString().split(ZWSP).join('').length
+  }
+
+  /** Vide l'élément (curseur dedans, tenu par une espace de largeur nulle) au lieu de le retirer. */
+  function emptyKeeping(doc: Document, el: Element): void {
+    while (el.firstChild) el.removeChild(el.firstChild)
+    const holder = doc.createTextNode(ZWSP)
+    el.appendChild(holder)
+    el.setAttribute(CARRY, '')
+    // Les mises en forme qui l'entourent et n'ont plus de texte restent aussi
+    let up = el.parentNode
+    while (isKeepable(up) && !hasRealText(up)) {
+      up.setAttribute(CARRY, '')
+      up = up.parentNode
+    }
+    placeCaret(doc, holder, 1)
+  }
+
+  /** Élément en ligne le plus intérieur autour de node, hors code <pre> et zones non éditables. */
+  function keepableAround(node: Node, body: Node): Element | null {
+    let found: Element | null = null
+    let n: Node | null = node
+    while (n && n !== body) {
+      if (isElement(n)) {
+        if (n.nodeName === 'PRE' || n.getAttribute('contenteditable') === 'false') return null
+        if (!found && isKeepable(n)) found = n
+        else if (!found && !isInline(n)) return null
+      }
+      n = n.parentNode
+    }
+    return n === body ? found : null
+  }
+
+  function keepEmptyFormat(
+    doc: Document,
+    forward: boolean,
+    target?: AbstractRange | null
+  ): boolean {
+    const sel = doc.getSelection()
+    const body = doc.body
+    if (!sel || !sel.rangeCount || !body) return false
+    const range = sel.getRangeAt(0)
+    if (!body.contains(range.startContainer)) return false
+    let el = keepableAround(range.startContainer, body)
+    // Déjà vide : ce second effacement le retire
+    if (el && range.collapsed && !hasRealText(el)) return removeEmpty(doc, el)
+    // Curseur juste à côté de l'élément : la plage visée par le navigateur dit lequel
+    if (
+      target &&
+      (!el || !el.contains(target.startContainer) || !el.contains(target.endContainer))
+    ) {
+      el = keepableAround(target.startContainer, body)
+      if (!el || !el.contains(target.endContainer)) return false
+    }
+    if (!el) return false
+    if (!target && !el.contains(range.endContainer)) return false
+
+    const total = (el.textContent || '').split(ZWSP).join('').length
+    let removed: number
+    if (target) {
+      removed = realLength(target, doc)
+    } else if (!range.collapsed) {
+      removed = realLength(range, doc)
+    } else {
+      const head = doc.createRange()
+      head.setStart(el, 0)
+      head.setEnd(range.startContainer, range.startOffset)
+      const before = head.toString().split(ZWSP).join('').length
+      // Un caractère de chaque côté du curseur
+      removed = forward ? (before < total ? 1 : 0) : before > 0 ? 1 : 0
+    }
+    if (removed === 0 || removed < total) return false
+    emptyKeeping(doc, el)
     return true
   }
 
@@ -921,6 +1027,7 @@ export function createPreviewEditing(): PreviewEditing {
     disarm,
     settleCarry,
     dropCarry,
+    keepEmptyFormat,
     snapshotStyled,
     unwrapNewStyled
   }
