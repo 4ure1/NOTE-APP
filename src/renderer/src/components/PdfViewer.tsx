@@ -334,7 +334,7 @@ function PdfPageCanvas({
             alignItems: 'center',
             justifyContent: 'center',
             color: 'var(--text-secondary)',
-            fontSize: '12px',
+            fontSize: 'var(--fs-sm)',
             fontFamily: 'sans-serif'
           }}
         >
@@ -1014,7 +1014,7 @@ export default function PdfViewer({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span
                 style={{
-                  fontSize: '13px',
+                  fontSize: 'var(--fs-md)',
                   fontWeight: 600,
                   color: 'var(--text-primary)',
                   overflow: 'hidden',
@@ -1028,7 +1028,7 @@ export default function PdfViewer({
               </span>
               <span
                 style={{
-                  fontSize: '9.5px',
+                  fontSize: 'var(--fs-xs)',
                   fontWeight: 700,
                   padding: '1px 5px',
                   borderRadius: '8px',
@@ -1043,7 +1043,7 @@ export default function PdfViewer({
                 <span
                   title={`${annotations.length} passage(s) surligné(s)`}
                   style={{
-                    fontSize: '9.5px',
+                    fontSize: 'var(--fs-xs)',
                     fontWeight: 600,
                     padding: '1px 6px',
                     borderRadius: '8px',
@@ -1061,7 +1061,7 @@ export default function PdfViewer({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '5px',
-                fontSize: '10.5px',
+                fontSize: 'var(--fs-xs)',
                 color: 'var(--text-muted)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
@@ -1094,7 +1094,7 @@ export default function PdfViewer({
                 backgroundColor: 'rgba(255, 255, 255, 0.05)',
                 padding: '2px 6px',
                 borderRadius: '6px',
-                fontSize: '12px',
+                fontSize: 'var(--fs-sm)',
                 color: 'var(--text-secondary)'
               }}
             >
@@ -1109,7 +1109,7 @@ export default function PdfViewer({
                   cursor: currentPage <= 1 ? 'default' : 'pointer',
                   padding: '2px 4px',
                   borderRadius: '4px',
-                  fontSize: '11px',
+                  fontSize: 'var(--fs-xs)',
                   fontWeight: 700,
                   flexShrink: 0
                 }}
@@ -1141,7 +1141,7 @@ export default function PdfViewer({
                   cursor: currentPage >= numPages ? 'default' : 'pointer',
                   padding: '2px 4px',
                   borderRadius: '4px',
-                  fontSize: '11px',
+                  fontSize: 'var(--fs-xs)',
                   fontWeight: 700,
                   flexShrink: 0
                 }}
@@ -1163,6 +1163,7 @@ export default function PdfViewer({
             }}
           >
             <button
+              className="hv-color-text-strong"
               onClick={(): void =>
                 setScale((prev) => Math.max(parseFloat((prev - 0.15).toFixed(2)), 0.25))
               }
@@ -1179,12 +1180,6 @@ export default function PdfViewer({
                 borderRadius: '4px',
                 cursor: 'pointer'
               }}
-              onMouseEnter={(e): void => {
-                e.currentTarget.style.color = 'var(--text-strong)'
-              }}
-              onMouseLeave={(e): void => {
-                e.currentTarget.style.color = 'var(--text-secondary)'
-              }}
             >
               <ZoomOutIcon size={14} />
             </button>
@@ -1193,7 +1188,7 @@ export default function PdfViewer({
               onClick={handleFitWidth}
               title="Cliquer pour ajuster à la largeur (ou zoomez avec pincement)"
               style={{
-                fontSize: '11.5px',
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 600,
                 color: 'var(--text-primary)',
                 minWidth: '42px',
@@ -1207,6 +1202,7 @@ export default function PdfViewer({
             </span>
 
             <button
+              className="hv-color-text-strong"
               onClick={(): void =>
                 setScale((prev) => Math.min(parseFloat((prev + 0.15).toFixed(2)), 4.5))
               }
@@ -1223,18 +1219,13 @@ export default function PdfViewer({
                 borderRadius: '4px',
                 cursor: 'pointer'
               }}
-              onMouseEnter={(e): void => {
-                e.currentTarget.style.color = 'var(--text-strong)'
-              }}
-              onMouseLeave={(e): void => {
-                e.currentTarget.style.color = 'var(--text-secondary)'
-              }}
             >
               <ZoomInIcon size={14} />
             </button>
 
             {/* Bouton Ajuster Largeur */}
             <button
+              className="hv-color-text-strong"
               onClick={handleFitWidth}
               title="Ajuster à la largeur de l'écran"
               style={{
@@ -1243,16 +1234,10 @@ export default function PdfViewer({
                 background: 'transparent',
                 border: 'none',
                 color: 'var(--text-muted)',
-                fontSize: '11px',
+                fontSize: 'var(--fs-xs)',
                 fontWeight: 600,
                 cursor: 'pointer',
                 borderRadius: '4px'
-              }}
-              onMouseEnter={(e): void => {
-                e.currentTarget.style.color = 'var(--text-strong)'
-              }}
-              onMouseLeave={(e): void => {
-                e.currentTarget.style.color = 'var(--text-muted)'
               }}
             >
               Largeur
@@ -1261,6 +1246,7 @@ export default function PdfViewer({
 
           {/* Rotation 90° */}
           <button
+            className="hv-color-text-strong"
             onClick={handleRotate}
             title="Pivoter de 90°"
             style={{
@@ -1274,12 +1260,6 @@ export default function PdfViewer({
               borderRadius: '6px',
               color: 'var(--text-secondary)',
               cursor: 'pointer'
-            }}
-            onMouseEnter={(e): void => {
-              e.currentTarget.style.color = 'var(--text-strong)'
-            }}
-            onMouseLeave={(e): void => {
-              e.currentTarget.style.color = 'var(--text-secondary)'
             }}
           >
             <RotateCwIcon size={13} />
@@ -1324,7 +1304,7 @@ export default function PdfViewer({
               border: '1px solid var(--border-strong)',
               borderRadius: '6px',
               color: 'var(--text-secondary)',
-              fontSize: '11.5px',
+              fontSize: 'var(--fs-sm)',
               fontWeight: 500,
               cursor: 'pointer'
             }}
@@ -1343,6 +1323,7 @@ export default function PdfViewer({
 
           {/* Révéler dossier */}
           <button
+            className="hv-color-text-strong"
             onClick={handleShowInFolder}
             title="Afficher dans l'explorateur Windows"
             style={{
@@ -1356,12 +1337,6 @@ export default function PdfViewer({
               borderRadius: '6px',
               color: 'var(--text-secondary)',
               cursor: 'pointer'
-            }}
-            onMouseEnter={(e): void => {
-              e.currentTarget.style.color = 'var(--text-strong)'
-            }}
-            onMouseLeave={(e): void => {
-              e.currentTarget.style.color = 'var(--text-secondary)'
             }}
           >
             <FolderIcon size={14} />
@@ -1405,7 +1380,7 @@ export default function PdfViewer({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                fontSize: '12px',
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 600,
                 boxShadow: showAIWorkspace ? `0 0 10px ${aiData.color}40` : 'none'
               }}
@@ -1429,7 +1404,7 @@ export default function PdfViewer({
             backgroundColor: 'rgba(234, 179, 8, 0.1)',
             borderBottom: '1px solid rgba(234, 179, 8, 0.25)',
             color: '#facc15',
-            fontSize: '12px',
+            fontSize: 'var(--fs-sm)',
             flexShrink: 0
           }}
         >
@@ -1482,7 +1457,7 @@ export default function PdfViewer({
                 animation: 'spin 0.8s linear infinite'
               }}
             />
-            <span style={{ fontSize: '13px' }}>Chargement du document PDF...</span>
+            <span style={{ fontSize: 'var(--fs-md)' }}>Chargement du document PDF...</span>
           </div>
         )}
 
@@ -1505,20 +1480,24 @@ export default function PdfViewer({
             }}
           >
             <PdfIcon size={36} />
-            <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+            <span
+              style={{ fontSize: 'var(--fs-lg)', fontWeight: 600, color: 'var(--text-primary)' }}
+            >
               Impossible de charger le document PDF
             </span>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{loadError}</span>
+            <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' }}>
+              {loadError}
+            </span>
             <button
               onClick={handleOpenExternal}
               style={{
                 marginTop: '10px',
                 padding: '8px 16px',
-                backgroundColor: 'var(--danger-strong)',
+                backgroundColor: 'var(--danger-solid)',
                 color: 'var(--text-strong)',
                 border: 'none',
                 borderRadius: '6px',
-                fontSize: '13px',
+                fontSize: 'var(--fs-md)',
                 fontWeight: 600,
                 cursor: 'pointer'
               }}
@@ -1627,7 +1606,7 @@ export default function PdfViewer({
               color: 'var(--accent-color)',
               borderRadius: '5px',
               padding: '3px 8px',
-              fontSize: '11.5px',
+              fontSize: 'var(--fs-sm)',
               fontWeight: 600,
               cursor: 'pointer'
             }}
@@ -1659,7 +1638,7 @@ export default function PdfViewer({
               color: 'var(--text-secondary)',
               borderRadius: '5px',
               padding: '3px 7px',
-              fontSize: '11.5px',
+              fontSize: 'var(--fs-sm)',
               cursor: 'pointer'
             }}
             onMouseEnter={(e): void => {
@@ -1742,7 +1721,7 @@ export default function PdfViewer({
               backgroundColor: 'transparent',
               border: 'none',
               color: 'var(--accent-color)',
-              fontSize: '11px',
+              fontSize: 'var(--fs-xs)',
               fontWeight: 600,
               cursor: 'pointer',
               padding: '2px 6px'
@@ -1764,7 +1743,7 @@ export default function PdfViewer({
               backgroundColor: 'transparent',
               border: 'none',
               color: 'var(--text-secondary)',
-              fontSize: '11px',
+              fontSize: 'var(--fs-xs)',
               cursor: 'pointer',
               padding: '2px 6px'
             }}
@@ -1821,7 +1800,7 @@ export default function PdfViewer({
             <h3
               style={{
                 margin: 0,
-                fontSize: '15px',
+                fontSize: 'var(--fs-lg)',
                 fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
@@ -1838,7 +1817,7 @@ export default function PdfViewer({
                 border: 'none',
                 color: 'var(--text-secondary)',
                 cursor: 'pointer',
-                fontSize: '16px'
+                fontSize: 'var(--fs-lg)'
               }}
             >
               ✕
@@ -1854,7 +1833,7 @@ export default function PdfViewer({
               backgroundColor: 'rgba(255, 255, 255, 0.04)',
               borderLeft: '3px solid var(--accent-color)',
               borderRadius: '4px',
-              fontSize: '12px',
+              fontSize: 'var(--fs-sm)',
               fontStyle: 'italic',
               color: 'var(--text-primary)',
               lineHeight: 1.5
@@ -1868,7 +1847,7 @@ export default function PdfViewer({
             <label
               style={{
                 display: 'block',
-                fontSize: '12px',
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 500,
                 color: 'var(--text-secondary)',
                 marginBottom: '6px'
@@ -1890,14 +1869,14 @@ export default function PdfViewer({
                   border: '1px solid color-mix(in srgb, var(--accent-color) 35%, transparent)',
                   borderRadius: '6px',
                   color: 'var(--accent-color)',
-                  fontSize: '12.5px',
+                  fontSize: 'var(--fs-md)',
                   fontWeight: 600,
                   cursor: 'pointer',
                   marginBottom: '10px'
                 }}
               >
                 <span>📌 Insérer dans la note active : {lastActiveNote.split('/').pop()}</span>
-                <span style={{ fontSize: '11px', opacity: 0.8 }}>Entrée ↵</span>
+                <span style={{ fontSize: 'var(--fs-xs)', opacity: 0.8 }}>Entrée ↵</span>
               </button>
             )}
 
@@ -1911,7 +1890,7 @@ export default function PdfViewer({
                 border: '1px solid var(--border-strong)',
                 borderRadius: '6px',
                 padding: '7px 10px',
-                fontSize: '12px',
+                fontSize: 'var(--fs-sm)',
                 boxSizing: 'border-box'
               }}
             >
@@ -1937,7 +1916,11 @@ export default function PdfViewer({
               />
               <label
                 htmlFor="create-new-toggle"
-                style={{ fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                style={{
+                  fontSize: 'var(--fs-sm)',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer'
+                }}
               >
                 Créer une nouvelle note pour cet extrait
               </label>
@@ -1956,7 +1939,7 @@ export default function PdfViewer({
                   border: '1px solid var(--border-strong)',
                   borderRadius: '6px',
                   padding: '7px 10px',
-                  fontSize: '12px',
+                  fontSize: 'var(--fs-sm)',
                   marginTop: '4px'
                 }}
               />
@@ -1968,7 +1951,7 @@ export default function PdfViewer({
             <label
               style={{
                 display: 'block',
-                fontSize: '12px',
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 500,
                 color: 'var(--text-secondary)',
                 marginBottom: '4px'
@@ -1989,7 +1972,7 @@ export default function PdfViewer({
                 border: '1px solid var(--border-strong)',
                 borderRadius: '6px',
                 padding: '7px 10px',
-                fontSize: '12px'
+                fontSize: 'var(--fs-sm)'
               }}
             />
           </div>
@@ -2006,7 +1989,7 @@ export default function PdfViewer({
                 border: '1px solid var(--border-strong)',
                 borderRadius: '6px',
                 color: 'var(--text-secondary)',
-                fontSize: '12px',
+                fontSize: 'var(--fs-sm)',
                 cursor: 'pointer'
               }}
             >
@@ -2020,7 +2003,7 @@ export default function PdfViewer({
                 border: 'none',
                 borderRadius: '6px',
                 color: 'var(--surface-sunken)',
-                fontSize: '12px',
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 600,
                 cursor: 'pointer'
               }}

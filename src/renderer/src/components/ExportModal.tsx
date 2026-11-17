@@ -96,10 +96,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span aria-hidden="true" style={{ fontSize: '18px' }}>
+          <span aria-hidden="true" style={{ fontSize: 'var(--fs-xl)' }}>
             🚀
           </span>
-          <h3 id={titleId} style={{ margin: 0, fontSize: '15px', color: 'var(--text-strong)' }}>
+          <h3
+            id={titleId}
+            style={{ margin: 0, fontSize: 'var(--fs-lg)', color: 'var(--text-strong)' }}
+          >
             Exporter la note
           </h3>
         </div>
@@ -111,7 +114,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             background: 'transparent',
             border: 'none',
             color: 'var(--text-secondary)',
-            fontSize: '18px',
+            fontSize: 'var(--fs-xl)',
             cursor: 'pointer'
           }}
         >
@@ -127,7 +130,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             htmlFor={docTitleId}
             style={{
               display: 'block',
-              fontSize: '12px',
+              fontSize: 'var(--fs-sm)',
               color: 'var(--text-secondary)',
               marginBottom: '6px'
             }}
@@ -146,7 +149,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               borderRadius: '6px',
               padding: '8px 12px',
               color: 'var(--text-strong)',
-              fontSize: '13px',
+              fontSize: 'var(--fs-md)',
               outline: 'none',
               boxSizing: 'border-box'
             }}
@@ -157,7 +160,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         <label
           style={{
             display: 'block',
-            fontSize: '12px',
+            fontSize: 'var(--fs-sm)',
             color: 'var(--text-secondary)',
             marginBottom: '8px'
           }}
@@ -185,7 +188,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   transition: 'all 0.15s ease'
                 }}
               >
-                <span aria-hidden="true" style={{ fontSize: '24px' }}>
+                <span aria-hidden="true" style={{ fontSize: 'var(--fs-2xl)' }}>
                   {f.icon}
                 </span>
                 <div style={{ flex: 1 }}>
@@ -199,7 +202,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   >
                     <span
                       style={{
-                        fontSize: '13px',
+                        fontSize: 'var(--fs-md)',
                         fontWeight: 600,
                         color: isSelected ? 'var(--accent-color)' : 'var(--text-primary)'
                       }}
@@ -208,7 +211,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     </span>
                     <span
                       style={{
-                        fontSize: '10px',
+                        fontSize: 'var(--fs-xs)',
                         padding: '1px 6px',
                         borderRadius: '10px',
                         backgroundColor: isSelected
@@ -220,7 +223,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                       {f.badge}
                     </span>
                   </div>
-                  <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                  <div
+                    style={{
+                      fontSize: 'var(--fs-sm)',
+                      color: 'var(--text-muted)',
+                      lineHeight: 1.4
+                    }}
+                  >
                     {f.desc}
                   </div>
                 </div>
@@ -244,7 +253,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             style={{
               padding: '8px 12px',
               borderRadius: '6px',
-              fontSize: '12px',
+              fontSize: 'var(--fs-sm)',
               marginBottom: '16px',
               backgroundColor: exportMessage.error
                 ? 'color-mix(in srgb, var(--danger-strong) 15%, transparent)'
@@ -268,7 +277,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               border: '1px solid var(--border-color)',
               borderRadius: '6px',
               padding: '8px 16px',
-              fontSize: '12.5px',
+              fontSize: 'var(--fs-md)',
               cursor: 'pointer'
             }}
           >
@@ -283,7 +292,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               border: 'none',
               borderRadius: '6px',
               padding: '8px 20px',
-              fontSize: '12.5px',
+              fontSize: 'var(--fs-md)',
               fontWeight: 600,
               cursor: 'pointer',
               display: 'flex',

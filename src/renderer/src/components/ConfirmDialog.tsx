@@ -48,13 +48,13 @@ export function ConfirmHost(): ReactNode {
       overlayStyle={{ zIndex: 100000 }}
       panelStyle={{ maxWidth: '420px', padding: '20px 22px' }}
     >
-      <h3 id={titleId} style={{ margin: 0, fontSize: '15px', fontWeight: 600 }}>
+      <h3 id={titleId} style={{ margin: 0, fontSize: 'var(--fs-lg)', fontWeight: 600 }}>
         {request.title}
       </h3>
       <p
         style={{
           margin: '8px 0 18px',
-          fontSize: '13px',
+          fontSize: 'var(--fs-md)',
           lineHeight: 1.5,
           color: 'var(--text-secondary)'
         }}
@@ -71,7 +71,7 @@ export function ConfirmHost(): ReactNode {
             border: '1px solid var(--border-strong)',
             background: 'transparent',
             color: 'var(--text-primary)',
-            fontSize: '12.5px',
+            fontSize: 'var(--fs-md)',
             cursor: 'pointer'
           }}
         >
@@ -83,9 +83,9 @@ export function ConfirmHost(): ReactNode {
             padding: '7px 14px',
             borderRadius: '6px',
             border: 'none',
-            background: request.danger ? 'var(--danger-strong)' : 'var(--accent-strong)',
+            background: request.danger ? 'var(--danger-solid)' : 'var(--accent-strong)',
             color: '#ffffff',
-            fontSize: '12.5px',
+            fontSize: 'var(--fs-md)',
             fontWeight: 600,
             cursor: 'pointer'
           }}

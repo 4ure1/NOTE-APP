@@ -255,7 +255,16 @@ export default function EditorHeader({
         }}
       >
         {/* Breadcrumb links with icons and slash separators */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)', overflow: 'hidden' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: 'var(--fs-md)',
+            color: 'var(--text-secondary)',
+            overflow: 'hidden'
+          }}
+        >
           {folders.map((folder, idx) => {
             const isFirst = idx === 0
             const isAgency = folder.toLowerCase().includes('equal')
@@ -266,7 +275,7 @@ export default function EditorHeader({
                     <span
                       style={{
                         color: 'var(--success-color)',
-                        fontSize: '12px',
+                        fontSize: 'var(--fs-sm)',
                         display: 'inline-flex',
                         alignItems: 'center'
                       }}
@@ -282,7 +291,9 @@ export default function EditorHeader({
                     {folder}
                   </span>
                 </span>
-                <span style={{ color: 'rgba(255, 255, 255, 0.25)', fontSize: '12px' }}>/</span>
+                <span style={{ color: 'rgba(255, 255, 255, 0.25)', fontSize: 'var(--fs-sm)' }}>
+                  /
+                </span>
               </React.Fragment>
             )
           })}
@@ -306,7 +317,7 @@ export default function EditorHeader({
                 color: 'var(--text-strong)',
                 padding: '6px 12px',
                 borderRadius: '8px',
-                fontSize: '12px',
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 500,
                 display: 'flex',
                 alignItems: 'center',
@@ -347,7 +358,7 @@ export default function EditorHeader({
                   cursor: 'pointer',
                   padding: '3px 7px',
                   borderRadius: '4px',
-                  fontSize: '11.5px',
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: editorMode === 'edit' ? 600 : 400,
                   display: 'flex',
                   alignItems: 'center',
@@ -368,7 +379,7 @@ export default function EditorHeader({
                   cursor: 'pointer',
                   padding: '3px 7px',
                   borderRadius: '4px',
-                  fontSize: '11.5px',
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: editorMode === 'live' ? 600 : 400,
                   whiteSpace: 'nowrap',
                   display: 'flex',
@@ -377,7 +388,7 @@ export default function EditorHeader({
                   transition: 'all 0.15s'
                 }}
               >
-                <span style={{ fontSize: '11px', lineHeight: 1 }}>◫</span>
+                <span style={{ fontSize: 'var(--fs-xs)', lineHeight: 1 }}>◫</span>
                 <span>Côte à côte</span>
               </button>
               <button
@@ -390,7 +401,7 @@ export default function EditorHeader({
                   cursor: 'pointer',
                   padding: '3px 7px',
                   borderRadius: '4px',
-                  fontSize: '11.5px',
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: editorMode === 'preview' ? 600 : 400,
                   display: 'flex',
                   alignItems: 'center',
@@ -404,6 +415,7 @@ export default function EditorHeader({
             </div>
           ) : onToggleEditorMode ? (
             <button
+              className="hv-background-color-element-bg-hover"
               onClick={onToggleEditorMode}
               title={editorMode === 'preview' ? 'Passer en mode édition' : 'Passer en mode aperçu'}
               style={{
@@ -413,19 +425,13 @@ export default function EditorHeader({
                 cursor: 'pointer',
                 padding: '4px 9px',
                 borderRadius: '6px',
-                fontSize: '11.5px',
+                fontSize: 'var(--fs-sm)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '5px',
                 height: '28px',
                 boxSizing: 'border-box',
                 transition: 'all 0.15s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'
               }}
             >
               {editorMode === 'preview' ? <EditIcon size={12} /> : <EyeIcon size={12} />}
@@ -436,6 +442,7 @@ export default function EditorHeader({
           {/* Historique des versions : action fréquente, gardée visible avec son libellé */}
           {onOpenHistory && (
             <button
+              className="hv-background-color-element-bg-hover hv-color-text-strong"
               onClick={onOpenHistory}
               title="Historique des versions"
               style={{
@@ -449,17 +456,9 @@ export default function EditorHeader({
                 alignItems: 'center',
                 gap: '6px',
                 height: '28px',
-                fontSize: '12px',
+                fontSize: 'var(--fs-sm)',
                 boxSizing: 'border-box',
                 transition: 'background-color 0.15s, color 0.15s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)'
-                e.currentTarget.style.color = 'var(--text-strong)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent'
-                e.currentTarget.style.color = 'var(--text-secondary)'
               }}
             >
               <ClockIcon size={13} />
@@ -482,7 +481,7 @@ export default function EditorHeader({
                 display: 'flex',
                 alignItems: 'center',
                 height: '28px',
-                fontSize: '12px',
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 600,
                 boxSizing: 'border-box',
                 transition: 'filter 0.15s'
@@ -554,7 +553,7 @@ export default function EditorHeader({
                     padding: '6px 10px 8px',
                     borderBottom: '1px solid var(--border-color)',
                     marginBottom: '4px',
-                    fontSize: '12px',
+                    fontSize: 'var(--fs-sm)',
                     color: 'var(--text-muted)',
                     display: 'flex',
                     gap: '12px'
@@ -599,7 +598,7 @@ export default function EditorHeader({
                         background: 'transparent',
                         border: 'none',
                         color: entry.danger ? 'var(--danger-strong)' : 'var(--text-primary)',
-                        fontSize: '12.5px',
+                        fontSize: 'var(--fs-md)',
                         cursor: 'pointer',
                         textAlign: 'left'
                       }}
@@ -618,7 +617,7 @@ export default function EditorHeader({
                       </span>
                       <span style={{ flex: 1 }}>{entry.label}</span>
                       {entry.hint && (
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
                           {entry.hint}
                         </span>
                       )}
@@ -657,7 +656,7 @@ export default function EditorHeader({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  fontSize: '12.5px',
+                  fontSize: 'var(--fs-md)',
                   fontWeight: 600,
                   boxShadow: showAIWorkspace ? `0 0 10px ${aiData.color}40` : 'none',
                   transition: 'all 0.15s ease',
@@ -719,7 +718,7 @@ export default function EditorHeader({
                       color: currentCol.color,
                       borderRadius: '6px',
                       padding: '3px 10px',
-                      fontSize: '11.5px',
+                      fontSize: 'var(--fs-sm)',
                       fontWeight: 600,
                       cursor: 'pointer',
                       outline: 'none',
@@ -736,7 +735,7 @@ export default function EditorHeader({
                       }}
                     />
                     <span>{currentCol.label}</span>
-                    <span style={{ fontSize: '9px', opacity: 0.7 }}>▼</span>
+                    <span style={{ fontSize: 'var(--fs-xs)', opacity: 0.7 }}>▼</span>
                   </button>
                 )
               })()}
@@ -771,7 +770,7 @@ export default function EditorHeader({
                         padding: '6px 10px',
                         borderRadius: '6px',
                         cursor: 'pointer',
-                        fontSize: '12px',
+                        fontSize: 'var(--fs-sm)',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
@@ -806,6 +805,7 @@ export default function EditorHeader({
             <span key={tag} className={`tag-pill ${getTagColorClass(idx)}`}>
               <span>{tag}</span>
               <button
+                className="hv-opacity-1"
                 onClick={() => onRemoveTag(tag)}
                 title="Supprimer ce tag"
                 style={{
@@ -815,14 +815,12 @@ export default function EditorHeader({
                   cursor: 'pointer',
                   marginLeft: '6px',
                   padding: 0,
-                  fontSize: '13px',
+                  fontSize: 'var(--fs-md)',
                   lineHeight: 1,
                   opacity: 0.6,
                   display: 'inline-flex',
                   alignItems: 'center'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-                onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.6')}
               >
                 &times;
               </button>
@@ -846,7 +844,7 @@ export default function EditorHeader({
                 color: 'var(--text-strong)',
                 borderRadius: '6px',
                 padding: '3px 10px',
-                fontSize: '11.5px',
+                fontSize: 'var(--fs-sm)',
                 outline: 'none'
               }}
             />
@@ -862,7 +860,7 @@ export default function EditorHeader({
                 color: 'var(--text-muted)',
                 borderRadius: '6px',
                 padding: '3px 10px',
-                fontSize: '11.5px',
+                fontSize: 'var(--fs-sm)',
                 cursor: 'pointer',
                 transition: 'all 0.15s'
               }}
@@ -902,7 +900,15 @@ export default function EditorHeader({
         />
 
         {/* Metadata timestamps matching mockup */}
-        <div style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div
+          style={{
+            fontSize: 'var(--fs-md)',
+            color: 'var(--text-muted)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
           <span>Created {createdAt}</span>
           <span style={{ opacity: 0.5 }}>•</span>
           <span>Last modified {modifiedAt}</span>

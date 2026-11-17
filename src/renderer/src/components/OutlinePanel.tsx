@@ -100,7 +100,7 @@ export default function OutlinePanel({
               : 'transparent',
             borderLeft: isActive ? '2px solid var(--accent-color)' : '2px solid transparent',
             color: isActive ? 'var(--accent-color)' : 'var(--text-secondary, var(--text-primary))',
-            fontSize: node.level === 1 ? '12.5px' : '12px',
+            fontSize: node.level === 1 ? 'var(--fs-md)' : 'var(--fs-sm)',
             fontWeight: node.level === 1 ? 600 : node.level === 2 ? 500 : 400,
             gap: '6px',
             transition: 'background-color 0.12s, color 0.12s, border-left-color 0.12s',
@@ -156,7 +156,7 @@ export default function OutlinePanel({
           {/* Badge discret H1..H6 */}
           <span
             style={{
-              fontSize: '9.5px',
+              fontSize: 'var(--fs-xs)',
               fontWeight: 700,
               padding: '1px 3.5px',
               borderRadius: '3px',
@@ -229,7 +229,7 @@ export default function OutlinePanel({
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
           <span
             style={{
-              fontSize: '12px',
+              fontSize: 'var(--fs-sm)',
               fontWeight: 600,
               color: 'var(--text-strong)',
               whiteSpace: 'nowrap'
@@ -239,7 +239,7 @@ export default function OutlinePanel({
           </span>
           <span
             style={{
-              fontSize: '10px',
+              fontSize: 'var(--fs-xs)',
               fontWeight: 600,
               padding: '1px 5px',
               borderRadius: '10px',
@@ -265,7 +265,7 @@ export default function OutlinePanel({
                 cursor: 'pointer',
                 padding: '4px 6px',
                 borderRadius: '4px',
-                fontSize: '12px',
+                fontSize: 'var(--fs-sm)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -295,7 +295,7 @@ export default function OutlinePanel({
               cursor: 'pointer',
               padding: '4px 6px',
               borderRadius: '4px',
-              fontSize: '12px',
+              fontSize: 'var(--fs-sm)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -361,16 +361,16 @@ export default function OutlinePanel({
               padding: '32px 14px',
               textAlign: 'center',
               color: 'var(--text-muted)',
-              fontSize: '12px',
+              fontSize: 'var(--fs-sm)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               gap: '10px'
             }}
           >
-            <span style={{ fontSize: '20px' }}>📑</span>
+            <span style={{ fontSize: 'var(--fs-2xl)' }}>📑</span>
             <span>Aucun titre dans cette note</span>
-            <span style={{ fontSize: '11px', color: '#475569', lineHeight: 1.4 }}>
+            <span style={{ fontSize: 'var(--fs-xs)', color: '#475569', lineHeight: 1.4 }}>
               Ajoutez des balises &lt;h1&gt; à &lt;h6&gt; ou des dièses (#) en Markdown pour générer
               automatiquement le plan.
             </span>

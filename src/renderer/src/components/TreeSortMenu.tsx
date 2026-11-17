@@ -123,6 +123,7 @@ export default function TreeSortMenu({ sort, onChange }: TreeSortMenuProps): Rea
             const active = option.key === sort.key
             return (
               <button
+                className="hv-background-color-surface-input"
                 key={option.key}
                 role="menuitemradio"
                 aria-checked={active}
@@ -138,14 +139,10 @@ export default function TreeSortMenu({ sort, onChange }: TreeSortMenuProps): Rea
                   borderRadius: '5px',
                   background: 'transparent',
                   color: 'var(--text-primary)',
-                  fontSize: '12.5px',
+                  fontSize: 'var(--fs-md)',
                   textAlign: 'left',
                   cursor: 'pointer'
                 }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = 'var(--surface-input)')
-                }
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
                 <span
                   aria-hidden="true"
@@ -155,7 +152,7 @@ export default function TreeSortMenu({ sort, onChange }: TreeSortMenuProps): Rea
                 </span>
                 <span style={{ flex: 1 }}>{option.label}</span>
                 {active && (
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
                     {sort.descending ? option.desc : option.asc}
                   </span>
                 )}

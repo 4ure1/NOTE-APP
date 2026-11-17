@@ -182,14 +182,17 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span aria-hidden="true" style={{ fontSize: '18px' }}>
+          <span aria-hidden="true" style={{ fontSize: 'var(--fs-xl)' }}>
             ⏳
           </span>
           <div>
-            <h3 id={titleId} style={{ margin: 0, fontSize: '15px', color: 'var(--text-strong)' }}>
+            <h3
+              id={titleId}
+              style={{ margin: 0, fontSize: 'var(--fs-lg)', color: 'var(--text-strong)' }}
+            >
               Historique des versions
             </h3>
-            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+            <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}>
               {currentFilePath}
             </span>
           </div>
@@ -202,7 +205,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
             background: 'transparent',
             border: 'none',
             color: 'var(--text-secondary)',
-            fontSize: '18px',
+            fontSize: 'var(--fs-xl)',
             cursor: 'pointer'
           }}
         >
@@ -226,7 +229,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
           <div
             style={{
               padding: '10px 14px',
-              fontSize: '11px',
+              fontSize: 'var(--fs-xs)',
               fontWeight: 600,
               color: 'var(--text-muted)',
               textTransform: 'uppercase',
@@ -242,7 +245,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                 padding: '20px',
                 textAlign: 'center',
                 color: 'var(--text-muted)',
-                fontSize: '12px'
+                fontSize: 'var(--fs-sm)'
               }}
             >
               Chargement de l'historique...
@@ -253,7 +256,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                 padding: '24px 16px',
                 textAlign: 'center',
                 color: 'var(--text-muted)',
-                fontSize: '12.5px'
+                fontSize: 'var(--fs-md)'
               }}
             >
               Aucun instantané disponible pour cette note. Continuez à taper, les versions
@@ -290,7 +293,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                 >
                   <div
                     style={{
-                      fontSize: '13px',
+                      fontSize: 'var(--fs-md)',
                       fontWeight: 600,
                       color: isSelected ? 'var(--accent-color)' : 'var(--text-primary)',
                       marginBottom: '4px'
@@ -302,7 +305,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                     style={{
                       display: 'flex',
                       gap: '8px',
-                      fontSize: '11px',
+                      fontSize: 'var(--fs-xs)',
                       color: 'var(--text-muted)'
                     }}
                   >
@@ -336,7 +339,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
               backgroundColor: 'var(--surface-control)'
             }}
           >
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+            <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}>
               <span style={{ color: 'var(--success-color)' }}>+ Vert : Ajouts actuels</span>
               <span style={{ margin: '0 8px' }}>|</span>
               <span style={{ color: 'var(--danger-color)' }}>
@@ -354,7 +357,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                   border: 'none',
                   borderRadius: '6px',
                   padding: '6px 14px',
-                  fontSize: '12px',
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: 600,
                   cursor: 'pointer',
                   display: 'flex',
@@ -374,7 +377,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
               overflowY: 'auto',
               padding: '14px',
               fontFamily: "Consolas, 'Cascadia Code', monospace",
-              fontSize: '12.5px',
+              fontSize: 'var(--fs-md)',
               lineHeight: '20px',
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-all'

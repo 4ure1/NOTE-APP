@@ -28,7 +28,7 @@ export default function ExternalChangeBar({
     border: '1px solid var(--border-color)',
     background: 'var(--element-bg)',
     color: 'var(--text-primary)',
-    fontSize: '12.5px',
+    fontSize: 'var(--fs-md)',
     cursor: isBusy ? 'default' : 'pointer',
     opacity: isBusy ? 0.6 : 1
   }
@@ -53,7 +53,7 @@ export default function ExternalChangeBar({
         gap: '10px'
       }}
     >
-      <span style={{ fontSize: '13px' }}>
+      <span style={{ fontSize: 'var(--fs-md)' }}>
         {message} Tes modifications ne sont pas enregistrées tant que tu n&apos;as pas choisi.
       </span>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>

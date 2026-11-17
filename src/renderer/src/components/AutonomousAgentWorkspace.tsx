@@ -542,7 +542,7 @@ export default function AutonomousAgentWorkspace({
         height: '100%',
         backgroundColor: 'var(--surface-panel)',
         color: 'var(--text-primary)',
-        fontSize: '13px',
+        fontSize: 'var(--fs-md)',
         position: 'relative',
         border: isDragging ? '2px dashed var(--success-strong)' : 'none'
       }}
@@ -600,7 +600,7 @@ export default function AutonomousAgentWorkspace({
             <div
               style={{
                 fontWeight: 700,
-                fontSize: '13px',
+                fontSize: 'var(--fs-md)',
                 color: 'var(--text-strong)',
                 display: 'flex',
                 alignItems: 'center',
@@ -610,7 +610,7 @@ export default function AutonomousAgentWorkspace({
               Agent IA Autonome
               <span
                 style={{
-                  fontSize: '10px',
+                  fontSize: 'var(--fs-xs)',
                   padding: '1px 6px',
                   borderRadius: '4px',
                   backgroundColor: toolsEnabled
@@ -625,7 +625,7 @@ export default function AutonomousAgentWorkspace({
             </div>
             <div
               style={{
-                fontSize: '11px',
+                fontSize: 'var(--fs-xs)',
                 color: 'var(--text-secondary)',
                 display: 'flex',
                 alignItems: 'center',
@@ -653,7 +653,7 @@ export default function AutonomousAgentWorkspace({
                     ? 'color-mix(in srgb, var(--accent-color) 12%, transparent)'
                     : 'rgba(255, 255, 255, 0.08)',
                   color: currentFilePath ? 'var(--accent-color)' : 'var(--text-secondary)',
-                  fontSize: '10px',
+                  fontSize: 'var(--fs-xs)',
                   fontWeight: 500
                 }}
               >
@@ -691,7 +691,7 @@ export default function AutonomousAgentWorkspace({
                   : '1px solid transparent',
               color:
                 selectedEngine === 'ollama' ? 'var(--success-strong)' : 'var(--text-secondary)',
-              fontSize: '11px',
+              fontSize: 'var(--fs-xs)',
               fontWeight: selectedEngine === 'ollama' ? 700 : 500,
               cursor: 'pointer',
               display: 'flex',
@@ -710,7 +710,7 @@ export default function AutonomousAgentWorkspace({
               backgroundColor: selectedEngine === 'claude' ? 'rgba(217, 119, 87, 0.22)' : 'transparent',
               border: selectedEngine === 'claude' ? '1px solid rgba(217, 119, 87, 0.4)' : '1px solid transparent',
               color: selectedEngine === 'claude' ? 'var(--danger-color)' : 'var(--text-secondary)',
-              fontSize: '11px',
+              fontSize: 'var(--fs-xs)',
               fontWeight: selectedEngine === 'claude' ? 700 : 500,
               cursor: 'pointer'
             }}
@@ -732,7 +732,7 @@ export default function AutonomousAgentWorkspace({
                   ? '1px solid color-mix(in srgb, var(--accent-color) 40%, transparent)'
                   : '1px solid transparent',
               color: selectedEngine === 'chatgpt' ? 'var(--accent-color)' : 'var(--text-secondary)',
-              fontSize: '11px',
+              fontSize: 'var(--fs-xs)',
               fontWeight: selectedEngine === 'chatgpt' ? 700 : 500,
               cursor: 'pointer'
             }}
@@ -757,7 +757,7 @@ export default function AutonomousAgentWorkspace({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Modèle :</span>
+            <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>Modèle :</span>
             <select
               value={agentModel}
               onChange={(e) => setAgentModel(e.target.value)}
@@ -767,7 +767,7 @@ export default function AutonomousAgentWorkspace({
                 border: '1px solid var(--border-strong)',
                 borderRadius: '6px',
                 padding: '2px 8px',
-                fontSize: '11px',
+                fontSize: 'var(--fs-xs)',
                 outline: 'none',
                 cursor: 'pointer'
               }}
@@ -794,7 +794,7 @@ export default function AutonomousAgentWorkspace({
                     : 'var(--border-strong)'),
                 borderRadius: '6px',
                 padding: '2px 8px',
-                fontSize: '11px',
+                fontSize: 'var(--fs-xs)',
                 cursor: 'pointer'
               }}
             >
@@ -819,7 +819,7 @@ export default function AutonomousAgentWorkspace({
                     : 'var(--border-strong)'),
                 borderRadius: '6px',
                 padding: '2px 8px',
-                fontSize: '11px',
+                fontSize: 'var(--fs-xs)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -828,12 +828,12 @@ export default function AutonomousAgentWorkspace({
             >
               <span>⚙️ Clé Web</span>
               {ollamaApiKey ? (
-                <span style={{ color: 'var(--success-strong)', fontSize: '9px' }}>●</span>
+                <span style={{ color: 'var(--success-strong)', fontSize: 'var(--fs-xs)' }}>●</span>
               ) : null}
             </button>
           </div>
 
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
             <span>Contexte : <strong>16 384 tokens</strong></span>
           </div>
         </div>
@@ -864,11 +864,11 @@ export default function AutonomousAgentWorkspace({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '16px' }}>⚙️</span>
+              <span style={{ fontSize: 'var(--fs-lg)' }}>⚙️</span>
               <h3
                 style={{
                   margin: 0,
-                  fontSize: '14px',
+                  fontSize: 'var(--fs-lg)',
                   fontWeight: 600,
                   color: 'var(--text-strong)'
                 }}
@@ -883,7 +883,7 @@ export default function AutonomousAgentWorkspace({
                 border: 'none',
                 color: 'var(--text-secondary)',
                 cursor: 'pointer',
-                fontSize: '16px'
+                fontSize: 'var(--fs-lg)'
               }}
             >
               ✕
@@ -892,7 +892,7 @@ export default function AutonomousAgentWorkspace({
 
           <p
             style={{
-              fontSize: '12px',
+              fontSize: 'var(--fs-sm)',
               color: 'var(--text-secondary)',
               margin: '0 0 14px 0',
               lineHeight: 1.5
@@ -908,7 +908,7 @@ export default function AutonomousAgentWorkspace({
             <label
               style={{
                 display: 'block',
-                fontSize: '11px',
+                fontSize: 'var(--fs-xs)',
                 fontWeight: 600,
                 color: 'var(--text-primary)',
                 marginBottom: '6px'
@@ -929,7 +929,7 @@ export default function AutonomousAgentWorkspace({
                   border: '1px solid var(--border-strong)',
                   borderRadius: '6px',
                   color: 'var(--text-strong)',
-                  fontSize: '12px',
+                  fontSize: 'var(--fs-sm)',
                   fontFamily: 'monospace',
                   outline: 'none'
                 }}
@@ -944,7 +944,7 @@ export default function AutonomousAgentWorkspace({
                   borderRadius: '6px',
                   color: 'var(--text-secondary)',
                   cursor: 'pointer',
-                  fontSize: '11px'
+                  fontSize: 'var(--fs-xs)'
                 }}
               >
                 {showKeySecret ? 'Masquer' : 'Afficher'}
@@ -962,7 +962,7 @@ export default function AutonomousAgentWorkspace({
                 border: '1px solid var(--border-strong)',
                 borderRadius: '6px',
                 color: 'var(--text-primary)',
-                fontSize: '12px',
+                fontSize: 'var(--fs-sm)',
                 cursor: 'pointer'
               }}
             >
@@ -973,11 +973,11 @@ export default function AutonomousAgentWorkspace({
               onClick={() => handleSaveApiKey(tempApiKey)}
               style={{
                 padding: '6px 14px',
-                backgroundColor: 'var(--success-strong)',
+                backgroundColor: 'var(--success-solid)',
                 border: 'none',
                 borderRadius: '6px',
                 color: 'var(--text-strong)',
-                fontSize: '12px',
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 600,
                 cursor: 'pointer'
               }}
@@ -996,7 +996,7 @@ export default function AutonomousAgentWorkspace({
             backgroundColor: 'color-mix(in srgb, var(--accent-amber) 12%, transparent)',
             borderBottom: '1px solid color-mix(in srgb, var(--accent-amber) 25%, transparent)',
             color: '#fbbf24',
-            fontSize: '11px',
+            fontSize: 'var(--fs-xs)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between'
@@ -1015,7 +1015,7 @@ export default function AutonomousAgentWorkspace({
                 padding: '2px 6px',
                 borderRadius: '4px',
                 cursor: 'pointer',
-                fontSize: '10px'
+                fontSize: 'var(--fs-xs)'
               }}
             >
               Basculer sur {ollamaInfo.models[0]}
@@ -1043,7 +1043,7 @@ export default function AutonomousAgentWorkspace({
             backgroundColor: 'color-mix(in srgb, var(--success-strong) 15%, transparent)',
             border: '1px solid color-mix(in srgb, var(--success-strong) 30%, transparent)',
             color: 'var(--success-strong)',
-            fontSize: '11px',
+            fontSize: 'var(--fs-xs)',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
             display: 'flex',
@@ -1062,7 +1062,7 @@ export default function AutonomousAgentWorkspace({
             backgroundColor: 'color-mix(in srgb, var(--accent-color) 12%, transparent)',
             border: '1px solid color-mix(in srgb, var(--accent-color) 25%, transparent)',
             color: 'var(--accent-color)',
-            fontSize: '11px',
+            fontSize: 'var(--fs-xs)',
             cursor: 'pointer',
             whiteSpace: 'nowrap'
           }}
@@ -1078,7 +1078,7 @@ export default function AutonomousAgentWorkspace({
             backgroundColor: 'color-mix(in srgb, var(--success-strong) 12%, transparent)',
             border: '1px solid color-mix(in srgb, var(--success-strong) 25%, transparent)',
             color: 'var(--success-strong)',
-            fontSize: '11px',
+            fontSize: 'var(--fs-xs)',
             cursor: 'pointer',
             whiteSpace: 'nowrap'
           }}
@@ -1094,7 +1094,7 @@ export default function AutonomousAgentWorkspace({
             backgroundColor: 'rgba(168, 85, 247, 0.12)',
             border: '1px solid rgba(168, 85, 247, 0.25)',
             color: '#c084fc',
-            fontSize: '11px',
+            fontSize: 'var(--fs-xs)',
             cursor: 'pointer',
             whiteSpace: 'nowrap'
           }}
@@ -1118,7 +1118,7 @@ export default function AutonomousAgentWorkspace({
             borderRadius: '8px',
             boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
             zIndex: 100,
-            fontSize: '12px'
+            fontSize: 'var(--fs-sm)'
           }}
         >
           {undoToast}
@@ -1140,12 +1140,12 @@ export default function AutonomousAgentWorkspace({
           >
             <div
               style={{
-                backgroundColor: m.sender === 'user' ? 'var(--success-strong)' : '#1e1e24',
+                backgroundColor: m.sender === 'user' ? 'var(--success-solid)' : '#1e1e24',
                 color: m.sender === 'user' ? 'var(--text-strong)' : 'var(--text-primary)',
                 padding: '10px 14px',
                 borderRadius: m.sender === 'user' ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
                 lineHeight: 1.5,
-                fontSize: '12.5px',
+                fontSize: 'var(--fs-md)',
                 border: m.sender === 'user' ? 'none' : '1px solid var(--border-color)',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
                 wordBreak: 'break-word',
@@ -1166,7 +1166,7 @@ export default function AutonomousAgentWorkspace({
                         borderRadius: '6px',
                         backgroundColor: 'rgba(0, 0, 0, 0.25)',
                         border: '1px solid var(--border-strong)',
-                        fontSize: '11px',
+                        fontSize: 'var(--fs-xs)',
                         color: 'var(--text-primary)'
                       }}
                     >
@@ -1208,7 +1208,7 @@ export default function AutonomousAgentWorkspace({
                             : act.status === 'error'
                               ? 'var(--danger-color)'
                               : 'var(--accent-color)',
-                        fontSize: '11.5px'
+                        fontSize: 'var(--fs-sm)'
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
@@ -1216,7 +1216,13 @@ export default function AutonomousAgentWorkspace({
                         <span>{act.text}</span>
                       </div>
                       {act.details && (
-                        <div style={{ fontSize: '10px', opacity: 0.8, fontFamily: 'monospace' }}>
+                        <div
+                          style={{
+                            fontSize: 'var(--fs-xs)',
+                            opacity: 0.8,
+                            fontFamily: 'monospace'
+                          }}
+                        >
                           {act.details.slice(0, 160)}
                         </div>
                       )}
@@ -1236,7 +1242,7 @@ export default function AutonomousAgentWorkspace({
                     gap: '8px',
                     color: 'var(--text-secondary)',
                     fontStyle: 'italic',
-                    fontSize: '12px'
+                    fontSize: 'var(--fs-sm)'
                   }}
                 >
                   <span style={{ display: 'inline-block', animation: 'spin 1.5s linear infinite' }}>⚙️</span>
@@ -1264,7 +1270,7 @@ export default function AutonomousAgentWorkspace({
                       border: '1px solid color-mix(in srgb, var(--accent-color) 35%, transparent)',
                       color: 'var(--accent-color)',
                       borderRadius: '6px',
-                      fontSize: '11px',
+                      fontSize: 'var(--fs-xs)',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -1281,7 +1287,7 @@ export default function AutonomousAgentWorkspace({
                       border: '1px solid color-mix(in srgb, var(--danger-strong) 35%, transparent)',
                       color: 'var(--danger-color)',
                       borderRadius: '6px',
-                      fontSize: '11px',
+                      fontSize: 'var(--fs-xs)',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -1295,7 +1301,7 @@ export default function AutonomousAgentWorkspace({
             </div>
             <span
               style={{
-                fontSize: '10px',
+                fontSize: 'var(--fs-xs)',
                 color: 'var(--text-muted)',
                 marginTop: '3px',
                 padding: '0 4px'
@@ -1329,7 +1335,7 @@ export default function AutonomousAgentWorkspace({
                 display: 'inline-block'
               }}
             />
-            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+            <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}>
               {statusText} {elapsedSeconds > 0 ? `(${elapsedSeconds}s)` : ''}
             </span>
           </div>
@@ -1361,14 +1367,16 @@ export default function AutonomousAgentWorkspace({
                 backgroundColor: 'color-mix(in srgb, var(--success-strong) 15%, transparent)',
                 border: '1px solid color-mix(in srgb, var(--success-strong) 30%, transparent)',
                 color: 'var(--success-strong)',
-                fontSize: '11.5px'
+                fontSize: 'var(--fs-sm)'
               }}
             >
               <PdfIcon size={13} style={{ color: 'var(--danger-color)' }} />
               <span style={{ maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {att.name}
               </span>
-              {att.pageCount && <span style={{ fontSize: '10px', opacity: 0.8 }}>({att.pageCount} p.)</span>}
+              {att.pageCount && (
+                <span style={{ fontSize: 'var(--fs-xs)', opacity: 0.8 }}>({att.pageCount} p.)</span>
+              )}
               <button
                 onClick={() => removeAttachment(att.id)}
                 style={{
@@ -1441,7 +1449,7 @@ export default function AutonomousAgentWorkspace({
               borderRadius: '8px',
               padding: '8px 12px',
               color: 'var(--text-strong)',
-              fontSize: '12.5px',
+              fontSize: 'var(--fs-md)',
               outline: 'none'
             }}
           />
@@ -1454,12 +1462,12 @@ export default function AutonomousAgentWorkspace({
               style={{
                 padding: '0 12px',
                 height: '34px',
-                backgroundColor: 'var(--danger-strong)',
+                backgroundColor: 'var(--danger-solid)',
                 border: 'none',
                 borderRadius: '8px',
                 color: 'var(--text-strong)',
                 cursor: 'pointer',
-                fontSize: '11px',
+                fontSize: 'var(--fs-xs)',
                 fontWeight: 600
               }}
             >
@@ -1475,7 +1483,7 @@ export default function AutonomousAgentWorkspace({
                 backgroundColor:
                   !inputValue.trim() && attachments.length === 0
                     ? 'var(--border-strong)'
-                    : 'var(--success-strong)',
+                    : 'var(--success-solid)',
                 border: 'none',
                 borderRadius: '8px',
                 color: 'var(--text-strong)',

@@ -211,11 +211,22 @@ export default function WorkflowView({
           </div>
           <div>
             <h1
-              style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--text-strong)' }}
+              style={{
+                margin: 0,
+                fontSize: 'var(--fs-xl)',
+                fontWeight: 600,
+                color: 'var(--text-strong)'
+              }}
             >
               Workflow
             </h1>
-            <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
+            <p
+              style={{
+                margin: '2px 0 0 0',
+                fontSize: 'var(--fs-sm)',
+                color: 'var(--text-secondary)'
+              }}
+            >
               Tableau Kanban des notes et avancement des projets
             </p>
           </div>
@@ -235,7 +246,7 @@ export default function WorkflowView({
               borderRadius: '8px',
               padding: '6px 12px',
               color: 'var(--text-strong)',
-              fontSize: '13px',
+              fontSize: 'var(--fs-md)',
               outline: 'none',
               width: '180px',
               transition: 'border-color 0.15s'
@@ -258,7 +269,7 @@ export default function WorkflowView({
                 borderRadius: '8px',
                 padding: '6px 10px',
                 color: 'var(--text-primary)',
-                fontSize: '12.5px',
+                fontSize: 'var(--fs-md)',
                 outline: 'none',
                 cursor: 'pointer'
               }}
@@ -275,6 +286,7 @@ export default function WorkflowView({
 
           {/* New note button */}
           <button
+            className="hv-background-color-border-strong"
             onClick={() => onCreateNote()}
             style={{
               backgroundColor: 'var(--surface-input)',
@@ -282,7 +294,7 @@ export default function WorkflowView({
               color: 'var(--text-strong)',
               borderRadius: '8px',
               padding: '7px 14px',
-              fontSize: '12.5px',
+              fontSize: 'var(--fs-md)',
               fontWeight: 500,
               cursor: 'pointer',
               display: 'flex',
@@ -290,8 +302,6 @@ export default function WorkflowView({
               gap: '6px',
               transition: 'background-color 0.15s'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--border-strong)')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-input)')}
           >
             <PlusIcon size={14} />
             <span>Nouvelle note</span>
@@ -355,7 +365,11 @@ export default function WorkflowView({
                     }}
                   />
                   <span
-                    style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-strong)' }}
+                    style={{
+                      fontSize: 'var(--fs-md)',
+                      fontWeight: 600,
+                      color: 'var(--text-strong)'
+                    }}
                   >
                     {col.label}
                   </span>
@@ -367,7 +381,7 @@ export default function WorkflowView({
                     color: col.color,
                     padding: '1px 8px',
                     borderRadius: '12px',
-                    fontSize: '11px',
+                    fontSize: 'var(--fs-xs)',
                     fontWeight: 600
                   }}
                 >
@@ -424,7 +438,7 @@ export default function WorkflowView({
                         </span>
                         <span
                           style={{
-                            fontSize: '13px',
+                            fontSize: 'var(--fs-md)',
                             fontWeight: 500,
                             color: 'var(--text-strong)',
                             lineHeight: '1.4',
@@ -450,7 +464,7 @@ export default function WorkflowView({
                         {folderPath ? (
                           <span
                             style={{
-                              fontSize: '11px',
+                              fontSize: 'var(--fs-xs)',
                               color: 'var(--text-secondary)',
                               backgroundColor: 'rgba(255, 255, 255, 0.04)',
                               padding: '2px 6px',
@@ -468,7 +482,7 @@ export default function WorkflowView({
                             <span>{folderPath}</span>
                           </span>
                         ) : (
-                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
                             Racine
                           </span>
                         )}
@@ -477,6 +491,7 @@ export default function WorkflowView({
                         <div style={{ display: 'flex', gap: '4px' }}>
                           {col.id !== 'backlog' && (
                             <button
+                              className="hv-color-text-strong"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 moveCard(file, 'prev')
@@ -493,20 +508,15 @@ export default function WorkflowView({
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 cursor: 'pointer',
-                                fontSize: '11px'
+                                fontSize: 'var(--fs-xs)'
                               }}
-                              onMouseEnter={(e) =>
-                                (e.currentTarget.style.color = 'var(--text-strong)')
-                              }
-                              onMouseLeave={(e) =>
-                                (e.currentTarget.style.color = 'var(--text-secondary)')
-                              }
                             >
                               ←
                             </button>
                           )}
                           {col.id !== 'done' && (
                             <button
+                              className="hv-color-text-strong"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 moveCard(file, 'next')
@@ -523,14 +533,8 @@ export default function WorkflowView({
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 cursor: 'pointer',
-                                fontSize: '11px'
+                                fontSize: 'var(--fs-xs)'
                               }}
-                              onMouseEnter={(e) =>
-                                (e.currentTarget.style.color = 'var(--text-strong)')
-                              }
-                              onMouseLeave={(e) =>
-                                (e.currentTarget.style.color = 'var(--text-secondary)')
-                              }
                             >
                               →
                             </button>
@@ -547,7 +551,7 @@ export default function WorkflowView({
                       padding: '24px 12px',
                       textAlign: 'center',
                       color: '#52525b',
-                      fontSize: '12px',
+                      fontSize: 'var(--fs-sm)',
                       border: '1px dashed var(--border-color)',
                       borderRadius: '8px',
                       marginTop: '6px'

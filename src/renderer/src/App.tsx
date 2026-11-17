@@ -1937,7 +1937,7 @@ function App() {
           setUndoRenameBanner(null)
         }, 15000)
       } else {
-        alert(res.error || 'Erreur lors du renommage.')
+        notifyApiError('Renommage', new Error(res.error || 'erreur inconnue'))
       }
     } catch (err) {
       notifyApiError('Renommage', err)
@@ -1972,7 +1972,7 @@ function App() {
           }
         }
       } else {
-        alert(res.error || 'Impossible d’annuler le renommage.')
+        notifyApiError('Annulation du renommage', new Error(res.error || 'erreur inconnue'))
       }
     } catch (err) {
       notifyApiError('Annulation du renommage', err)
@@ -1986,7 +1986,12 @@ function App() {
       console.log('[MoveItem] Moving:', sourcePath, '->', targetFolderPath)
       const plan = await window.api.prepareRenameOrMove(sourcePath, targetFolderPath, false, true)
       if (plan.hasCollision) {
-        alert(plan.collisionError || 'Un élément du même nom existe déjà dans le dossier cible.')
+        notifyApiError(
+          'Déplacement',
+          new Error(
+            plan.collisionError || 'un élément du même nom existe déjà dans le dossier cible.'
+          )
+        )
         return
       }
 
@@ -2071,7 +2076,10 @@ function App() {
             false
           )
           if (plan.hasCollision) {
-            alert(plan.collisionError || 'Un élément du même nom existe déjà.')
+            notifyApiError(
+              'Renommage',
+              new Error(plan.collisionError || 'un élément du même nom existe déjà.')
+            )
             setEditingFile(null)
             setEditValue('')
             return
@@ -3883,7 +3891,7 @@ function App() {
                   >
                     <h2
                       style={{
-                        fontSize: '24px',
+                        fontSize: 'var(--fs-2xl)',
                         fontWeight: 700,
                         margin: 0,
                         color: 'var(--text-primary)'
@@ -3907,7 +3915,7 @@ function App() {
                           border:
                             '1px solid color-mix(in srgb, var(--danger-strong) 30%, transparent)',
                           fontWeight: 600,
-                          fontSize: '12px',
+                          fontSize: 'var(--fs-sm)',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease'
                         }}
@@ -3930,7 +3938,7 @@ function App() {
                   <p
                     style={{
                       color: 'var(--text-secondary)',
-                      fontSize: '13px',
+                      fontSize: 'var(--fs-md)',
                       marginBottom: '24px'
                     }}
                   >
@@ -3964,7 +3972,7 @@ function App() {
                             {getFileIcon(item.name, 15)}
                             <span
                               style={{
-                                fontSize: '14px',
+                                fontSize: 'var(--fs-lg)',
                                 fontWeight: 500,
                                 color: 'var(--text-strong)',
                                 overflow: 'hidden',
@@ -3977,7 +3985,7 @@ function App() {
                           </div>
                           <div
                             style={{
-                              fontSize: '11px',
+                              fontSize: 'var(--fs-xs)',
                               color: 'var(--text-muted)',
                               marginTop: '3px'
                             }}
@@ -4002,7 +4010,7 @@ function App() {
                               color: '#111',
                               border: 'none',
                               fontWeight: 600,
-                              fontSize: '12px',
+                              fontSize: 'var(--fs-sm)',
                               cursor: 'pointer'
                             }}
                           >
@@ -4042,7 +4050,7 @@ function App() {
                       </div>
                     ))}
                     {deletedNotes.length === 0 && (
-                      <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-md)' }}>
                         La corbeille est vide.
                       </div>
                     )}
@@ -4067,7 +4075,13 @@ function App() {
                       maxWidth: '700px'
                     }}
                   >
-                    <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    <h2
+                      style={{
+                        fontSize: 'var(--fs-2xl)',
+                        fontWeight: 700,
+                        color: 'var(--text-primary)'
+                      }}
+                    >
                       Brouillons
                     </h2>
                     <button
@@ -4079,7 +4093,7 @@ function App() {
                         color: '#111',
                         border: 'none',
                         fontWeight: 600,
-                        fontSize: '12px',
+                        fontSize: 'var(--fs-sm)',
                         cursor: 'pointer'
                       }}
                     >
@@ -4089,7 +4103,7 @@ function App() {
                   <p
                     style={{
                       color: 'var(--text-secondary)',
-                      fontSize: '13px',
+                      fontSize: 'var(--fs-md)',
                       marginBottom: '24px'
                     }}
                   >
@@ -4106,6 +4120,7 @@ function App() {
                   >
                     {draftFiles.map((file) => (
                       <div
+                        className="hv-background-color-element-bg-hover"
                         key={file}
                         onClick={() => {
                           setActiveView('all')
@@ -4122,19 +4137,13 @@ function App() {
                           cursor: 'pointer',
                           transition: 'background-color 0.15s'
                         }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.backgroundColor = 'var(--element-bg)')
-                        }
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           {getFileIcon(file, 16)}
                           <div>
                             <div
                               style={{
-                                fontSize: '14px',
+                                fontSize: 'var(--fs-lg)',
                                 fontWeight: 500,
                                 color: 'var(--text-strong)'
                               }}
@@ -4146,7 +4155,7 @@ function App() {
                             </div>
                             <div
                               style={{
-                                fontSize: '11px',
+                                fontSize: 'var(--fs-xs)',
                                 color: 'var(--text-muted)',
                                 marginTop: '3px'
                               }}
@@ -4170,7 +4179,7 @@ function App() {
                             backgroundColor: 'rgba(255, 255, 255, 0.08)',
                             color: 'var(--text-primary)',
                             border: '1px solid var(--border-color)',
-                            fontSize: '12px',
+                            fontSize: 'var(--fs-sm)',
                             cursor: 'pointer'
                           }}
                         >
@@ -4179,7 +4188,7 @@ function App() {
                       </div>
                     ))}
                     {draftFiles.length === 0 && (
-                      <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-md)' }}>
                         Aucun brouillon trouvé.
                       </div>
                     )}
@@ -4207,7 +4216,7 @@ function App() {
                     <div>
                       <h2
                         style={{
-                          fontSize: '24px',
+                          fontSize: 'var(--fs-2xl)',
                           fontWeight: 700,
                           color: 'var(--text-primary)',
                           display: 'flex',
@@ -4218,7 +4227,7 @@ function App() {
                         <span>Notes & Documents récents</span>
                         <span
                           style={{
-                            fontSize: '11px',
+                            fontSize: 'var(--fs-xs)',
                             fontWeight: 600,
                             padding: '2px 8px',
                             borderRadius: '12px',
@@ -4235,7 +4244,7 @@ function App() {
                       <p
                         style={{
                           color: 'var(--text-secondary)',
-                          fontSize: '13px',
+                          fontSize: 'var(--fs-md)',
                           marginTop: '4px'
                         }}
                       >
@@ -4306,7 +4315,7 @@ function App() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                   <span
                                     style={{
-                                      fontSize: '14px',
+                                      fontSize: 'var(--fs-lg)',
                                       fontWeight: 600,
                                       color: 'var(--text-strong)',
                                       overflow: 'hidden',
@@ -4322,7 +4331,7 @@ function App() {
                                   {isPdfFile && (
                                     <span
                                       style={{
-                                        fontSize: '9.5px',
+                                        fontSize: 'var(--fs-xs)',
                                         fontWeight: 700,
                                         padding: '1px 5px',
                                         borderRadius: '6px',
@@ -4339,7 +4348,7 @@ function App() {
                                   {isHtmlFile && (
                                     <span
                                       style={{
-                                        fontSize: '9.5px',
+                                        fontSize: 'var(--fs-xs)',
                                         fontWeight: 700,
                                         padding: '1px 5px',
                                         borderRadius: '6px',
@@ -4357,7 +4366,7 @@ function App() {
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '8px',
-                                    fontSize: '11px',
+                                    fontSize: 'var(--fs-xs)',
                                     color: 'var(--text-muted)',
                                     marginTop: '3px'
                                   }}
@@ -4394,7 +4403,7 @@ function App() {
                                 backgroundColor: 'rgba(255, 255, 255, 0.08)',
                                 color: 'var(--text-primary)',
                                 border: '1px solid var(--border-color)',
-                                fontSize: '12px',
+                                fontSize: 'var(--fs-sm)',
                                 fontWeight: 500,
                                 cursor: 'pointer',
                                 flexShrink: 0
@@ -4406,7 +4415,7 @@ function App() {
                         )
                       })}
                     {files.filter((f) => f !== '__claude_code__').length === 0 && (
-                      <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-md)' }}>
                         Aucun fichier récent trouvé.
                       </div>
                     )}
@@ -4444,7 +4453,11 @@ function App() {
                       <line x1="9" y1="11" x2="15" y2="11" />
                     </svg>
                     <div
-                      style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)' }}
+                      style={{
+                        fontSize: 'var(--fs-xl)',
+                        fontWeight: 600,
+                        color: 'var(--text-primary)'
+                      }}
                     >
                       {selectedFiles.length} notes sélectionnées
                     </div>
@@ -4456,7 +4469,7 @@ function App() {
                         border: '1px solid var(--danger-color)',
                         borderRadius: '8px',
                         padding: '8px 16px',
-                        fontSize: '13px',
+                        fontSize: 'var(--fs-md)',
                         fontWeight: 'bold',
                         cursor: 'pointer',
                         transition: 'all 0.2s'
@@ -4531,7 +4544,7 @@ function App() {
                               '1px solid color-mix(in srgb, var(--danger-strong) 30%, transparent)',
                             color: 'var(--danger-color)',
                             padding: '6px 16px',
-                            fontSize: '12px',
+                            fontSize: 'var(--fs-sm)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
@@ -4546,7 +4559,7 @@ function App() {
                               border: 'none',
                               color: 'var(--danger-color)',
                               cursor: 'pointer',
-                              fontSize: '13px',
+                              fontSize: 'var(--fs-md)',
                               padding: '0 6px'
                             }}
                           >
@@ -4712,7 +4725,7 @@ function App() {
                                     style={{
                                       padding: '8px',
                                       borderBottom: '1px solid var(--border-subtle)',
-                                      fontSize: '12px',
+                                      fontSize: 'var(--fs-sm)',
                                       color: 'var(--text-secondary)'
                                     }}
                                   >
@@ -4726,6 +4739,7 @@ function App() {
                                       const name = f.replace('.md', '')
                                       return (
                                         <div
+                                          className="hv-background-color-element-bg-hover"
                                           key={f}
                                           onClick={() => insertLink(name)}
                                           style={{
@@ -4734,13 +4748,6 @@ function App() {
                                             borderBottom: '1px solid var(--border-subtle)',
                                             transition: 'background-color 0.2s'
                                           }}
-                                          onMouseEnter={(e) =>
-                                            (e.currentTarget.style.backgroundColor =
-                                              'var(--element-bg-hover)')
-                                          }
-                                          onMouseLeave={(e) =>
-                                            (e.currentTarget.style.backgroundColor = 'transparent')
-                                          }
                                         >
                                           {name}
                                         </div>
@@ -4750,19 +4757,13 @@ function App() {
                                     f.toLowerCase().includes(autocompleteQuery.toLowerCase())
                                   ).length === 0 && (
                                     <div
+                                      className="hv-background-color-element-bg-hover"
                                       onClick={() => insertLink(autocompleteQuery)}
                                       style={{
                                         padding: '8px',
                                         cursor: 'pointer',
                                         color: 'var(--accent-color)'
                                       }}
-                                      onMouseEnter={(e) =>
-                                        (e.currentTarget.style.backgroundColor =
-                                          'var(--element-bg-hover)')
-                                      }
-                                      onMouseLeave={(e) =>
-                                        (e.currentTarget.style.backgroundColor = 'transparent')
-                                      }
                                     >
                                       Créer "{autocompleteQuery}"
                                     </div>
@@ -4983,7 +4984,7 @@ function App() {
                     <p
                       style={{
                         margin: '6px 0 0',
-                        fontSize: '14px',
+                        fontSize: 'var(--fs-lg)',
                         color: 'var(--text-secondary)'
                       }}
                     >
@@ -5023,7 +5024,7 @@ function App() {
                                   position: 'absolute',
                                   right: 'calc(100% + 48px)',
                                   top: '20px',
-                                  fontSize: '13px',
+                                  fontSize: 'var(--fs-md)',
                                   color: 'var(--text-muted)',
                                   whiteSpace: 'nowrap'
                                 }}
@@ -5059,7 +5060,7 @@ function App() {
                                 <span
                                   style={{
                                     fontFamily: 'var(--font-title)',
-                                    fontSize: '21px',
+                                    fontSize: 'var(--fs-2xl)',
                                     whiteSpace: 'nowrap',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
@@ -5071,7 +5072,7 @@ function App() {
                                 <span
                                   style={{
                                     flex: 1,
-                                    fontSize: '13px',
+                                    fontSize: 'var(--fs-md)',
                                     color: 'var(--text-muted)',
                                     whiteSpace: 'nowrap',
                                     overflow: 'hidden',
@@ -5080,7 +5081,9 @@ function App() {
                                 >
                                   {folder}
                                 </span>
-                                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                <span
+                                  style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' }}
+                                >
                                   {ext}
                                 </span>
                               </button>
@@ -5104,7 +5107,7 @@ function App() {
                           border: '1px solid transparent',
                           backgroundColor: 'var(--text-primary)',
                           color: '#1c1c1d',
-                          fontSize: '13px',
+                          fontSize: 'var(--fs-md)',
                           fontWeight: 700,
                           cursor: 'pointer'
                         }}
@@ -5115,6 +5118,7 @@ function App() {
                         </kbd>
                       </button>
                       <button
+                        className="hv-background-color-element-bg-hover"
                         onClick={() => setIsSearchOpen(true)}
                         style={{
                           display: 'flex',
@@ -5125,16 +5129,10 @@ function App() {
                           border: '1px solid var(--border-strong)',
                           backgroundColor: 'transparent',
                           color: 'var(--text-primary)',
-                          fontSize: '13px',
+                          fontSize: 'var(--fs-md)',
                           fontWeight: 700,
                           cursor: 'pointer'
                         }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.backgroundColor = 'transparent')
-                        }
                       >
                         Rechercher
                         <kbd>Ctrl+P</kbd>
@@ -5311,7 +5309,7 @@ function App() {
                           // Onglet courant souligné du rouge de marge, comme les modes de l'éditeur
                           boxShadow: isActive ? 'inset 0 -2px 0 var(--accent-marge)' : 'none',
                           cursor: 'pointer',
-                          fontSize: '11px',
+                          fontSize: 'var(--fs-xs)',
                           fontWeight: isActive ? 600 : 400,
                           transition: 'all 0.15s ease'
                         }}
@@ -5364,7 +5362,7 @@ function App() {
                 {claudeNotification && (
                   <div
                     style={{
-                      fontSize: '11px',
+                      fontSize: 'var(--fs-xs)',
                       fontWeight: 500,
                       color: 'var(--success-color)',
                       backgroundColor: 'rgba(74, 222, 128, 0.1)',
@@ -5684,7 +5682,7 @@ function App() {
                           : activeAI === 'chatgpt'
                             ? 'var(--text-strong)'
                             : '#60a5fa',
-                      fontSize: '11.5px',
+                      fontSize: 'var(--fs-sm)',
                       fontWeight: 500,
                       cursor: isSendingToClaude ? 'wait' : 'pointer',
                       display: 'flex',
@@ -5955,7 +5953,7 @@ function App() {
             <h3
               style={{
                 margin: 0,
-                fontSize: '17px',
+                fontSize: 'var(--fs-xl)',
                 fontWeight: 600,
                 color: 'var(--text-strong)'
               }}
@@ -5975,7 +5973,7 @@ function App() {
           <p
             style={{
               margin: '0 0 24px 0',
-              fontSize: '13.5px',
+              fontSize: 'var(--fs-md)',
               color: 'var(--text-secondary)',
               lineHeight: '1.6'
             }}
@@ -5994,6 +5992,7 @@ function App() {
           {/* Action Buttons */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
             <button
+              className="hv-background-color-border-strong"
               onClick={() => setNotesToDelete([])}
               style={{
                 backgroundColor: 'var(--surface-input)',
@@ -6001,35 +6000,32 @@ function App() {
                 color: 'var(--text-primary)',
                 borderRadius: '8px',
                 padding: '8px 18px',
-                fontSize: '13px',
+                fontSize: 'var(--fs-md)',
                 fontWeight: 500,
                 cursor: 'pointer',
                 outline: 'none',
                 transition: 'background-color 0.15s'
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--border-strong)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-input)')}
             >
               Annuler
             </button>
             <button
+              className="hv-background-color-danger-solid-hover"
               autoFocus
               data-autofocus
               onClick={confirmDeleteNotes}
               style={{
-                backgroundColor: 'var(--danger-strong)',
+                backgroundColor: 'var(--danger-solid)',
                 color: 'var(--text-strong)',
                 border: 'none',
                 borderRadius: '8px',
                 padding: '8px 18px',
-                fontSize: '13px',
+                fontSize: 'var(--fs-md)',
                 fontWeight: 600,
                 cursor: 'pointer',
                 outline: 'none',
                 transition: 'background-color 0.15s'
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--danger-strong)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--danger-strong)')}
             >
               {notesToDelete.length > 1
                 ? 'Supprimer les notes'
@@ -6086,7 +6082,7 @@ function App() {
             <h2
               style={{
                 margin: 0,
-                fontSize: '17px',
+                fontSize: 'var(--fs-xl)',
                 fontWeight: 600,
                 color: 'var(--text-strong)'
               }}
@@ -6102,7 +6098,7 @@ function App() {
               padding: '12px 14px',
               borderRadius: '10px',
               border: '1px solid var(--border-color)',
-              fontSize: '12.5px',
+              fontSize: 'var(--fs-md)',
               color: 'var(--text-secondary)',
               maxHeight: '120px',
               overflowY: 'auto'
@@ -6113,7 +6109,7 @@ function App() {
                 color: 'var(--accent-amber)',
                 marginBottom: '6px',
                 fontWeight: 600,
-                fontSize: '11px',
+                fontSize: 'var(--fs-xs)',
                 textTransform: 'uppercase'
               }}
             >
@@ -6141,7 +6137,7 @@ function App() {
                 alignItems: 'center',
                 gap: '10px',
                 cursor: 'pointer',
-                fontSize: '13.5px',
+                fontSize: 'var(--fs-md)',
                 color: 'var(--text-primary)'
               }}
             >
@@ -6170,7 +6166,7 @@ function App() {
                   outline: 'none',
                   width: 'calc(100% - 26px)',
                   boxSizing: 'border-box',
-                  fontSize: '13px'
+                  fontSize: 'var(--fs-md)'
                 }}
               />
             )}
@@ -6181,7 +6177,7 @@ function App() {
                 alignItems: 'center',
                 gap: '10px',
                 cursor: 'pointer',
-                fontSize: '13.5px',
+                fontSize: 'var(--fs-md)',
                 color: 'var(--text-primary)'
               }}
             >
@@ -6208,7 +6204,7 @@ function App() {
                   width: 'calc(100% - 26px)',
                   boxSizing: 'border-box',
                   cursor: 'pointer',
-                  fontSize: '13px'
+                  fontSize: 'var(--fs-md)'
                 }}
               >
                 {files.filter((f) => f !== '__claude_code__').length === 0 && (
@@ -6240,7 +6236,7 @@ function App() {
                 alignItems: 'center',
                 gap: '10px',
                 cursor: 'pointer',
-                fontSize: '12.5px',
+                fontSize: 'var(--fs-md)',
                 color: 'var(--text-secondary)'
               }}
             >
@@ -6259,6 +6255,7 @@ function App() {
             style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}
           >
             <button
+              className="hv-background-color-border-strong"
               onClick={() => setCodeToSave(null)}
               style={{
                 backgroundColor: 'var(--surface-input)',
@@ -6266,13 +6263,11 @@ function App() {
                 color: 'var(--text-primary)',
                 padding: '8px 18px',
                 borderRadius: '8px',
-                fontSize: '13px',
+                fontSize: 'var(--fs-md)',
                 fontWeight: 500,
                 cursor: 'pointer',
                 transition: 'background-color 0.15s'
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--border-strong)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-input)')}
             >
               Annuler
             </button>
@@ -6289,7 +6284,7 @@ function App() {
                 padding: '8px 20px',
                 borderRadius: '8px',
                 cursor: 'pointer',
-                fontSize: '13px',
+                fontSize: 'var(--fs-md)',
                 fontWeight: 600,
                 opacity:
                   saveActionType === 'append' &&
@@ -6368,12 +6363,12 @@ function App() {
                 border: 'none',
                 outline: 'none',
                 color: 'var(--text-strong)',
-                fontSize: '14px'
+                fontSize: 'var(--fs-lg)'
               }}
             />
             <span
               style={{
-                fontSize: '11px',
+                fontSize: 'var(--fs-xs)',
                 color: 'var(--text-secondary)',
                 backgroundColor: 'var(--surface-input)',
                 border: '1px solid var(--border-color)',
@@ -6411,7 +6406,7 @@ function App() {
                       padding: '10px 14px',
                       borderRadius: '8px',
                       cursor: 'pointer',
-                      fontSize: '13px',
+                      fontSize: 'var(--fs-md)',
                       color: 'var(--text-strong)',
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -6429,7 +6424,7 @@ function App() {
                     </span>
                     <span
                       style={{
-                        fontSize: '11px',
+                        fontSize: 'var(--fs-xs)',
                         color: 'var(--text-secondary)',
                         backgroundColor: 'rgba(255, 255, 255, 0.04)',
                         padding: '2px 6px',
@@ -6448,7 +6443,7 @@ function App() {
                   padding: '24px 16px',
                   textAlign: 'center',
                   color: 'var(--text-muted)',
-                  fontSize: '13px'
+                  fontSize: 'var(--fs-md)'
                 }}
               >
                 Aucune note trouvée.
@@ -6526,7 +6521,7 @@ function App() {
                 color: 'var(--text-primary)',
                 borderRadius: '6px',
                 padding: '6px 10px',
-                fontSize: '12px',
+                fontSize: 'var(--fs-sm)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -6779,7 +6774,7 @@ function App() {
             color: 'var(--text-strong)',
             padding: '8px 18px',
             borderRadius: '24px',
-            fontSize: '13px',
+            fontSize: 'var(--fs-md)',
             fontWeight: 600,
             zIndex: 100000005,
             pointerEvents: 'none',
@@ -6800,6 +6795,7 @@ function App() {
       {/* Floating Zen Mode exit button */}
       {isZenMode && (
         <button
+          className="hv-background-color-surface-input"
           onClick={() => setIsZenMode(false)}
           style={{
             position: 'fixed',
@@ -6811,7 +6807,7 @@ function App() {
             color: '#c084fc',
             borderRadius: '20px',
             padding: '5px 14px',
-            fontSize: '11.5px',
+            fontSize: 'var(--fs-sm)',
             fontWeight: 600,
             cursor: 'pointer',
             boxShadow: '0 4px 16px rgba(0,0,0,0.6)',
@@ -6820,13 +6816,11 @@ function App() {
             gap: '8px',
             transition: 'all 0.15s ease'
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-input)')}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-raised)')}
         >
           <span>🧘 Mode Zen actif</span>
           <kbd
             style={{
-              fontSize: '10px',
+              fontSize: 'var(--fs-xs)',
               opacity: 0.8,
               background: 'var(--surface-input)',
               padding: '1px 5px',
@@ -6937,7 +6931,7 @@ function App() {
             alignItems: 'center',
             gap: '14px',
             color: 'var(--text-strong)',
-            fontSize: '13.5px'
+            fontSize: 'var(--fs-md)'
           }}
         >
           <span>{undoRenameBanner.message}</span>
@@ -6949,7 +6943,7 @@ function App() {
               border: 'none',
               borderRadius: '5px',
               padding: '6px 14px',
-              fontSize: '12.5px',
+              fontSize: 'var(--fs-md)',
               fontWeight: 600,
               cursor: 'pointer'
             }}
@@ -6963,7 +6957,7 @@ function App() {
               border: 'none',
               color: 'var(--text-secondary)',
               cursor: 'pointer',
-              fontSize: '18px',
+              fontSize: 'var(--fs-xl)',
               lineHeight: 1
             }}
             title="Ignorer"

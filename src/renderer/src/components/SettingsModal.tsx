@@ -252,10 +252,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </svg>
           </div>
           <div>
-            <h2 id="settings-modal-title" style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>
+            <h2
+              id="settings-modal-title"
+              style={{ margin: 0, fontSize: 'var(--fs-lg)', fontWeight: 600 }}
+            >
               Paramètres & Aide
             </h2>
-            <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
+            <p style={{ margin: 0, fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}>
               Personnalisation de l'application, raccourcis et guide des snippets
             </p>
           </div>
@@ -271,7 +274,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             background: 'transparent',
             border: 'none',
             color: 'var(--text-secondary)',
-            fontSize: '20px',
+            fontSize: 'var(--fs-2xl)',
             cursor: 'pointer',
             borderRadius: '6px',
             width: '32px',
@@ -332,7 +335,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   border: 'none',
                   color: isActive ? 'var(--accent-color)' : 'var(--text-secondary)',
                   fontWeight: isActive ? 600 : 500,
-                  fontSize: '13px',
+                  fontSize: 'var(--fs-md)',
                   cursor: 'pointer',
                   textAlign: 'left',
                   transition: 'all 0.12s'
@@ -351,7 +354,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 {tab.badge !== undefined && (
                   <span
                     style={{
-                      fontSize: '11px',
+                      fontSize: 'var(--fs-xs)',
                       background: isActive
                         ? 'color-mix(in srgb, var(--accent-color) 25%, transparent)'
                         : 'var(--surface-input)',
@@ -377,12 +380,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
                 >
-                  <h3 style={{ margin: '0 0 4px', fontSize: '16px', color: 'var(--accent-color)' }}>
+                  <h3
+                    style={{
+                      margin: '0 0 4px',
+                      fontSize: 'var(--fs-lg)',
+                      color: 'var(--accent-color)'
+                    }}
+                  >
                     Catalogue des Snippets ({snippets.length})
                   </h3>
                   <span
                     style={{
-                      fontSize: '11px',
+                      fontSize: 'var(--fs-xs)',
                       background: 'var(--surface-input)',
                       color: 'var(--text-primary)',
                       padding: '3px 8px',
@@ -395,7 +404,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <p
                   style={{
                     margin: '0 0 12px',
-                    fontSize: '12.5px',
+                    fontSize: 'var(--fs-md)',
                     color: 'var(--text-secondary)',
                     lineHeight: 1.5
                   }}
@@ -432,7 +441,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     border: '1px solid color-mix(in srgb, var(--accent-color) 20%, transparent)',
                     borderRadius: '8px',
                     padding: '10px 14px',
-                    fontSize: '12px',
+                    fontSize: 'var(--fs-sm)',
                     color: '#bae6fd',
                     display: 'flex',
                     alignItems: 'center',
@@ -457,7 +466,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         color: 'var(--accent-color)',
                         padding: '4px 8px',
                         borderRadius: '4px',
-                        fontSize: '11px',
+                        fontSize: 'var(--fs-xs)',
                         cursor: 'pointer',
                         fontWeight: 500
                       }}
@@ -485,7 +494,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       borderRadius: '6px',
                       padding: '6px 12px',
                       color: 'var(--text-strong)',
-                      fontSize: '12.5px',
+                      fontSize: 'var(--fs-md)',
                       outline: 'none'
                     }}
                   />
@@ -514,7 +523,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           border: 'none',
                           padding: '4px 10px',
                           borderRadius: '4px',
-                          fontSize: '11.5px',
+                          fontSize: 'var(--fs-sm)',
                           fontWeight: 600,
                           cursor: 'pointer'
                         }}
@@ -534,7 +543,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       border: '1px solid var(--border-strong)',
                       borderRadius: '6px',
                       color: 'var(--text-secondary)',
-                      fontSize: '12px',
+                      fontSize: 'var(--fs-sm)',
                       padding: '6px 10px',
                       outline: 'none',
                       cursor: 'pointer'
@@ -566,7 +575,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       textAlign: 'center',
                       padding: '30px',
                       color: 'var(--text-muted)',
-                      fontSize: '13px'
+                      fontSize: 'var(--fs-md)'
                     }}
                   >
                     Aucun snippet ne correspond aux filtres.
@@ -618,7 +627,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 borderRadius: '4px',
                                 padding: '3px 8px',
                                 fontFamily: 'Consolas, monospace',
-                                fontSize: '12px',
+                                fontSize: 'var(--fs-sm)',
                                 fontWeight: 'bold',
                                 cursor: 'pointer',
                                 display: 'flex',
@@ -627,21 +636,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                               }}
                             >
                               /{s.prefix}
-                              {isCopied && <span style={{ fontSize: '10px' }}>✓</span>}
+                              {isCopied && <span style={{ fontSize: 'var(--fs-xs)' }}>✓</span>}
                             </button>
 
                             {/* Nom et description */}
                             <div style={{ minWidth: 0 }}>
                               <div
                                 style={{
-                                  fontSize: '13px',
+                                  fontSize: 'var(--fs-md)',
                                   fontWeight: 600,
                                   color: 'var(--text-strong)'
                                 }}
                               >
                                 {s.name}
                               </div>
-                              <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>
+                              <div
+                                style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}
+                              >
                                 {s.description}
                               </div>
                             </div>
@@ -651,7 +662,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             {/* Badge catégorie */}
                             <span
                               style={{
-                                fontSize: '10.5px',
+                                fontSize: 'var(--fs-xs)',
                                 color: catColor,
                                 background: `${catColor}18`,
                                 border: `1px solid ${catColor}40`,
@@ -666,7 +677,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             {/* Badge scope */}
                             <span
                               style={{
-                                fontSize: '10.5px',
+                                fontSize: 'var(--fs-xs)',
                                 color:
                                   s.scope === 'html'
                                     ? '#60a5fa'
@@ -689,7 +700,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 background: 'transparent',
                                 border: 'none',
                                 color: 'var(--text-secondary)',
-                                fontSize: '11px',
+                                fontSize: 'var(--fs-xs)',
                                 cursor: 'pointer',
                                 padding: '3px 6px',
                                 borderRadius: '4px'
@@ -709,7 +720,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                               border: '1px solid var(--border-color)',
                               borderRadius: '6px',
                               padding: '10px',
-                              fontSize: '11px',
+                              fontSize: 'var(--fs-xs)',
                               color: 'var(--text-primary)',
                               overflowX: 'auto',
                               maxHeight: '180px',
@@ -731,10 +742,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {activeTab === 'shortcuts' && (
             <div>
               <div style={{ marginBottom: '16px' }}>
-                <h3 style={{ margin: '0 0 4px', fontSize: '16px', color: 'var(--accent-color)' }}>
+                <h3
+                  style={{
+                    margin: '0 0 4px',
+                    fontSize: 'var(--fs-lg)',
+                    color: 'var(--accent-color)'
+                  }}
+                >
                   Raccourcis clavier
                 </h3>
-                <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+                <p style={{ margin: 0, fontSize: 'var(--fs-md)', color: 'var(--text-secondary)' }}>
                   Configurez vos touches d'accès rapide. Cliquez sur Modifier puis appuyez sur la
                   combinaison souhaitée.
                 </p>
@@ -781,7 +798,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         border: '1px solid var(--border-strong)',
                         borderRadius: '6px',
                         padding: '6px 10px',
-                        fontSize: '12.5px',
+                        fontSize: 'var(--fs-md)',
                         outline: 'none',
                         cursor: 'pointer'
                       }}
@@ -808,7 +825,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           borderRadius: '6px',
                           padding: '5px 12px',
                           fontFamily: 'monospace',
-                          fontSize: '12px',
+                          fontSize: 'var(--fs-sm)',
                           fontWeight: 'bold',
                           minWidth: '120px',
                           textAlign: 'center'
@@ -825,7 +842,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           border: '1px solid var(--border-color)',
                           borderRadius: '6px',
                           padding: '6px 12px',
-                          fontSize: '12px',
+                          fontSize: 'var(--fs-sm)',
                           cursor: 'pointer'
                         }}
                       >
@@ -848,7 +865,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             '1px solid color-mix(in srgb, var(--danger-strong) 30%, transparent)',
                           borderRadius: '6px',
                           padding: '6px 10px',
-                          fontSize: '12px',
+                          fontSize: 'var(--fs-sm)',
                           cursor: 'pointer'
                         }}
                         aria-label="Supprimer ce raccourci"
@@ -888,7 +905,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     border: '1px solid color-mix(in srgb, var(--accent-color) 30%, transparent)',
                     borderRadius: '6px',
                     padding: '8px 14px',
-                    fontSize: '12.5px',
+                    fontSize: 'var(--fs-md)',
                     fontWeight: 600,
                     cursor: 'pointer'
                   }}
@@ -915,7 +932,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     border: '1px solid var(--border-strong)',
                     borderRadius: '6px',
                     padding: '8px 14px',
-                    fontSize: '12.5px',
+                    fontSize: 'var(--fs-md)',
                     cursor: 'pointer'
                   }}
                 >
@@ -929,10 +946,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {activeTab === 'ai' && (
             <div>
               <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 4px', fontSize: '16px', color: 'var(--accent-color)' }}>
+                <h3
+                  style={{
+                    margin: '0 0 4px',
+                    fontSize: 'var(--fs-lg)',
+                    color: 'var(--accent-color)'
+                  }}
+                >
                   Intelligence Artificielle
                 </h3>
-                <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+                <p style={{ margin: 0, fontSize: 'var(--fs-md)', color: 'var(--text-secondary)' }}>
                   Configurez l'IA principale et les paramètres de votre agent local Ollama.
                 </p>
               </div>
@@ -950,7 +973,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <label
                   style={{
                     display: 'block',
-                    fontSize: '13px',
+                    fontSize: 'var(--fs-md)',
                     fontWeight: 600,
                     marginBottom: '8px',
                     color: 'var(--text-strong)'
@@ -987,8 +1010,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         color: activeAI === item.id ? 'var(--accent-color)' : 'var(--text-primary)'
                       }}
                     >
-                      <div style={{ fontWeight: 600, fontSize: '13px' }}>{item.label}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      <div style={{ fontWeight: 600, fontSize: 'var(--fs-md)' }}>{item.label}</div>
+                      <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
                         {item.desc}
                       </div>
                     </button>
@@ -1013,12 +1036,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     marginBottom: '12px'
                   }}
                 >
-                  <h4 style={{ margin: 0, fontSize: '14px', color: 'var(--text-strong)' }}>
+                  <h4 style={{ margin: 0, fontSize: 'var(--fs-lg)', color: 'var(--text-strong)' }}>
                     Backend Local Ollama
                   </h4>
                   <span
                     style={{
-                      fontSize: '11px',
+                      fontSize: 'var(--fs-xs)',
                       padding: '2px 8px',
                       borderRadius: '10px',
                       background: ollamaStatus?.online
@@ -1038,7 +1061,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     htmlFor="settings-ollama-model"
                     style={{
                       display: 'block',
-                      fontSize: '12px',
+                      fontSize: 'var(--fs-sm)',
                       color: 'var(--text-secondary)',
                       marginBottom: '4px'
                     }}
@@ -1058,7 +1081,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       borderRadius: '6px',
                       padding: '8px 12px',
                       color: 'var(--text-strong)',
-                      fontSize: '13px',
+                      fontSize: 'var(--fs-md)',
                       outline: 'none',
                       boxSizing: 'border-box'
                     }}
@@ -1071,7 +1094,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     htmlFor="settings-ollama-key"
                     style={{
                       display: 'block',
-                      fontSize: '12px',
+                      fontSize: 'var(--fs-sm)',
                       color: 'var(--text-secondary)',
                       marginBottom: '4px'
                     }}
@@ -1092,7 +1115,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         borderRadius: '6px',
                         padding: '8px 12px',
                         color: 'var(--text-strong)',
-                        fontSize: '13px',
+                        fontSize: 'var(--fs-md)',
                         outline: 'none'
                       }}
                     />
@@ -1105,7 +1128,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         borderRadius: '6px',
                         padding: '8px 16px',
                         fontWeight: 600,
-                        fontSize: '12.5px',
+                        fontSize: 'var(--fs-md)',
                         cursor: 'pointer',
                         transition: 'background 0.15s'
                       }}
@@ -1115,7 +1138,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
                   <span
                     style={{
-                      fontSize: '11px',
+                      fontSize: 'var(--fs-xs)',
                       color: 'var(--text-muted)',
                       marginTop: '4px',
                       display: 'block'
@@ -1133,10 +1156,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {activeTab === 'editor' && (
             <div>
               <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ margin: '0 0 4px', fontSize: '16px', color: 'var(--accent-color)' }}>
+                <h3
+                  style={{
+                    margin: '0 0 4px',
+                    fontSize: 'var(--fs-lg)',
+                    color: 'var(--accent-color)'
+                  }}
+                >
                   Éditeur & Coffre
                 </h3>
-                <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+                <p style={{ margin: 0, fontSize: 'var(--fs-md)', color: 'var(--text-secondary)' }}>
                   Préférences d'affichage et gestion des notes.
                 </p>
               </div>
@@ -1153,7 +1182,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               >
                 <div
                   id="settings-theme-label"
-                  style={{ fontSize: '13px', fontWeight: 600, marginBottom: '10px' }}
+                  style={{ fontSize: 'var(--fs-md)', fontWeight: 600, marginBottom: '10px' }}
                 >
                   Thème
                 </div>
@@ -1184,7 +1213,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             : '1px solid var(--border-strong)',
                           background: 'transparent',
                           color: 'var(--text-primary)',
-                          fontSize: '12.5px',
+                          fontSize: 'var(--fs-md)',
                           cursor: 'pointer'
                         }}
                       >
@@ -1203,7 +1232,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     )
                   })}
                 </div>
-                <p style={{ margin: '10px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+                <p
+                  style={{
+                    margin: '10px 0 0',
+                    fontSize: 'var(--fs-sm)',
+                    color: 'var(--text-muted)'
+                  }}
+                >
                   S&apos;applique à l&apos;app et à l&apos;aperçu. Vos fichiers de notes et leurs
                   exports ne changent pas.
                 </p>
@@ -1222,7 +1257,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <label
                   style={{
                     display: 'block',
-                    fontSize: '13px',
+                    fontSize: 'var(--fs-md)',
                     fontWeight: 600,
                     marginBottom: '8px',
                     color: 'var(--text-strong)'
@@ -1250,7 +1285,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         borderRadius: '6px',
                         color:
                           editorMode === mode.id ? 'var(--accent-color)' : 'var(--text-secondary)',
-                        fontSize: '12.5px',
+                        fontSize: 'var(--fs-md)',
                         fontWeight: editorMode === mode.id ? 600 : 500,
                         cursor: 'pointer'
                       }}
@@ -1275,10 +1310,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
                 >
                   <div>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-strong)' }}>
+                    <div
+                      style={{
+                        fontSize: 'var(--fs-md)',
+                        fontWeight: 600,
+                        color: 'var(--text-strong)'
+                      }}
+                    >
                       Niveau de zoom de l’éditeur
                     </div>
-                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                    <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' }}>
                       Actuel : {zoomLevel}%
                     </div>
                   </div>
@@ -1305,7 +1346,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         padding: '6px 12px',
                         borderRadius: '6px',
                         cursor: 'pointer',
-                        fontSize: '12px'
+                        fontSize: 'var(--fs-sm)'
                       }}
                     >
                       100%
@@ -1338,7 +1379,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               >
                 <div
                   style={{
-                    fontSize: '13px',
+                    fontSize: 'var(--fs-md)',
                     fontWeight: 600,
                     color: 'var(--text-strong)',
                     marginBottom: '4px'
@@ -1348,7 +1389,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
                 <div
                   style={{
-                    fontSize: '12px',
+                    fontSize: 'var(--fs-sm)',
                     color: 'var(--text-secondary)',
                     marginBottom: '12px'
                   }}
@@ -1374,7 +1415,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     color: 'var(--danger-strong)',
                     padding: '8px 14px',
                     borderRadius: '6px',
-                    fontSize: '12px',
+                    fontSize: 'var(--fs-sm)',
                     cursor: 'pointer',
                     fontWeight: 500
                   }}
@@ -1399,7 +1440,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '24px',
+                    fontSize: 'var(--fs-2xl)',
                     fontWeight: 'bold',
                     color: 'var(--surface-sunken)',
                     boxShadow: '0 8px 24px rgba(56, 189, 248, 0.35)'
@@ -1407,8 +1448,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 >
                   N
                 </div>
-                <h3 style={{ margin: '0 0 4px', fontSize: '18px' }}>NOTE-APP Desktop</h3>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                <h3 style={{ margin: '0 0 4px', fontSize: 'var(--fs-xl)' }}>NOTE-APP Desktop</h3>
+                <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' }}>
                   Version 1.0.0 (Production)
                 </div>
               </div>
@@ -1419,7 +1460,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   border: '1px solid var(--border-color)',
                   borderRadius: '8px',
                   padding: '16px',
-                  fontSize: '12.5px',
+                  fontSize: 'var(--fs-md)',
                   lineHeight: 1.6,
                   color: 'var(--text-primary)',
                   marginTop: '20px'
@@ -1457,7 +1498,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   style={{
                     borderTop: '1px solid var(--border-color)',
                     paddingTop: '10px',
-                    fontSize: '11.5px',
+                    fontSize: 'var(--fs-sm)',
                     color: 'var(--text-muted)'
                   }}
                 >
@@ -1483,7 +1524,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       >
         {/* Auteur et lien GitHub (src/shared/credits.ts) */}
         <div
-          style={{ fontSize: '11.5px', color: 'var(--text-muted)', display: 'flex', gap: '6px' }}
+          style={{
+            fontSize: 'var(--fs-sm)',
+            color: 'var(--text-muted)',
+            display: 'flex',
+            gap: '6px'
+          }}
         >
           <span>
             {APP_NAME} · {COPYRIGHT}
@@ -1500,7 +1546,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               border: 'none',
               padding: 0,
               color: 'var(--accent-color)',
-              fontSize: '11.5px',
+              fontSize: 'var(--fs-sm)',
               cursor: 'pointer',
               textDecoration: 'underline',
               textUnderlineOffset: '2px'
@@ -1519,7 +1565,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               border: 'none',
               padding: 0,
               color: 'var(--accent-color)',
-              fontSize: '11.5px',
+              fontSize: 'var(--fs-sm)',
               cursor: 'pointer',
               textDecoration: 'underline',
               textUnderlineOffset: '2px'
@@ -1529,6 +1575,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
         <button
+          className="hv-background-color-border-strong"
           onClick={() => {
             setRecordingUuid(null)
             onClose()
@@ -1540,11 +1587,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             borderRadius: '6px',
             padding: '7px 18px',
             fontWeight: 500,
-            fontSize: '12.5px',
+            fontSize: 'var(--fs-md)',
             cursor: 'pointer'
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--border-strong)')}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-input)')}
         >
           Fermer
         </button>

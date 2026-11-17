@@ -40,13 +40,21 @@ export default function UnreadableNotePanel({
           gap: '10px'
         }}
       >
-        <strong style={{ fontSize: '14px' }}>
+        <strong style={{ fontSize: 'var(--fs-lg)' }}>
           Note illisible : les modifications ne seront pas enregistrées
         </strong>
-        <span style={{ fontSize: '13px', color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
+        <span
+          style={{
+            fontSize: 'var(--fs-md)',
+            color: 'var(--text-secondary)',
+            wordBreak: 'break-all'
+          }}
+        >
           {filePath}
         </span>
-        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{errorMessage}</span>
+        <span style={{ fontSize: 'var(--fs-md)', color: 'var(--text-secondary)' }}>
+          {errorMessage}
+        </span>
         <div>
           <button
             type="button"
@@ -58,7 +66,7 @@ export default function UnreadableNotePanel({
               border: '1px solid var(--border-color)',
               background: 'var(--element-bg)',
               color: 'var(--text-primary)',
-              fontSize: '13px',
+              fontSize: 'var(--fs-md)',
               cursor: isRetrying ? 'default' : 'pointer',
               opacity: isRetrying ? 0.6 : 1
             }}

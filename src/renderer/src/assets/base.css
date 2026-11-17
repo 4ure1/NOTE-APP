@@ -36,9 +36,21 @@
 
   --text-strong: #f4f2ed;
   --accent-strong: #3a6fd8; /* bouton principal, texte blanc 4,7:1 */
-  --danger-strong: #e5484d;
+  --danger-strong: #e5484d; /* texte ou repère rouge ; pour un fond plein, --danger-solid */
+  --danger-solid: #c4313b; /* fond de bouton, texte --text-strong 4,9:1 */
+  --danger-solid-hover: #a3262f;
   --success-color: #4ade80;
-  --success-strong: #2fb67c;
+  --success-strong: #2fb67c; /* texte ou repère vert ; pour un fond plein, --success-solid */
+  --success-solid: #18774f; /* fond de bouton, texte --text-strong 5:1 */
+  --success-solid-hover: #13603f;
+
+  /* Tailles de texte de l'interface : 6 paliers, rien sous 11 px (le contenu des notes a les siennes) */
+  --fs-xs: 11px; /* méta, badges, raccourcis */
+  --fs-sm: 12px; /* libellés secondaires, arbre */
+  --fs-md: 13px; /* texte courant de l'interface, boutons */
+  --fs-lg: 15px; /* titres de section, champs mis en avant */
+  --fs-xl: 18px; /* titres de fenêtre */
+  --fs-2xl: 22px; /* grands titres (visite, écrans vides) */
 
   --font-ui: 'Atkinson Hyperlegible Next', 'Segoe UI', system-ui, sans-serif;
   --font-title: 'Newsreader', Georgia, serif;
@@ -265,4 +277,63 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Survols (classes .hv-*) : remplacent les onMouseEnter / onMouseLeave qui ne posaient qu'un style.
+   Aussi au clavier (:focus-visible) ; jamais sur un bouton désactivé. */
+.hv-background-color-border-strong:hover:not(:disabled),
+.hv-background-color-border-strong:focus-visible {
+  background-color: var(--border-strong) !important;
+}
+.hv-background-color-danger-bg-hover:hover:not(:disabled),
+.hv-background-color-danger-bg-hover:focus-visible {
+  background-color: var(--danger-bg-hover) !important;
+}
+.hv-background-color-danger-color:hover:not(:disabled),
+.hv-background-color-danger-color:focus-visible {
+  background-color: var(--danger-color) !important;
+}
+.hv-background-color-danger-solid:hover:not(:disabled),
+.hv-background-color-danger-solid:focus-visible {
+  background-color: var(--danger-solid) !important;
+}
+.hv-background-color-danger-solid-hover:hover:not(:disabled),
+.hv-background-color-danger-solid-hover:focus-visible {
+  background-color: var(--danger-solid-hover) !important;
+}
+.hv-background-color-element-bg:hover:not(:disabled),
+.hv-background-color-element-bg:focus-visible {
+  background-color: var(--element-bg) !important;
+}
+.hv-background-color-element-bg-hover:hover:not(:disabled),
+.hv-background-color-element-bg-hover:focus-visible {
+  background-color: var(--element-bg-hover) !important;
+}
+.hv-background-color-surface-input:hover:not(:disabled),
+.hv-background-color-surface-input:focus-visible {
+  background-color: var(--surface-input) !important;
+}
+.hv-color-accent-color:hover:not(:disabled),
+.hv-color-accent-color:focus-visible {
+  color: var(--accent-color) !important;
+}
+.hv-color-danger-color:hover:not(:disabled),
+.hv-color-danger-color:focus-visible {
+  color: var(--danger-color) !important;
+}
+.hv-color-danger-strong:hover:not(:disabled),
+.hv-color-danger-strong:focus-visible {
+  color: var(--danger-strong) !important;
+}
+.hv-color-text-primary:hover:not(:disabled),
+.hv-color-text-primary:focus-visible {
+  color: var(--text-primary) !important;
+}
+.hv-color-text-strong:hover:not(:disabled),
+.hv-color-text-strong:focus-visible {
+  color: var(--text-strong) !important;
+}
+.hv-opacity-1:hover:not(:disabled),
+.hv-opacity-1:focus-visible {
+  opacity: 1 !important;
 }

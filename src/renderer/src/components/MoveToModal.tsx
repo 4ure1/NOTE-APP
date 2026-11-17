@@ -33,7 +33,12 @@ export default function MoveToModal({
       <div style={{ padding: '14px 16px 10px' }}>
         <h3
           id={titleId}
-          style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: 'var(--text-strong)' }}
+          style={{
+            margin: 0,
+            fontSize: 'var(--fs-lg)',
+            fontWeight: 600,
+            color: 'var(--text-strong)'
+          }}
         >
           Déplacer « {itemName} »
         </h3>
@@ -56,7 +61,7 @@ export default function MoveToModal({
             border: '1px solid var(--border-input)',
             background: 'var(--surface-sunken)',
             color: 'var(--text-primary)',
-            fontSize: '13px',
+            fontSize: 'var(--fs-md)',
             boxSizing: 'border-box'
           }}
         />
@@ -66,13 +71,14 @@ export default function MoveToModal({
         {visible.length === 0 ? (
           <div
             role="status"
-            style={{ padding: '10px', fontSize: '12.5px', color: 'var(--text-muted)' }}
+            style={{ padding: '10px', fontSize: 'var(--fs-md)', color: 'var(--text-muted)' }}
           >
             Aucun dossier ne correspond.
           </div>
         ) : (
           visible.map((target) => (
             <button
+              className="hv-background-color-surface-input"
               key={target || '__root__'}
               onClick={() => onMove(target)}
               style={{
@@ -85,12 +91,10 @@ export default function MoveToModal({
                 borderRadius: '5px',
                 background: 'transparent',
                 color: 'var(--text-primary)',
-                fontSize: '13px',
+                fontSize: 'var(--fs-md)',
                 textAlign: 'left',
                 cursor: 'pointer'
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-input)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
               <FolderIcon size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

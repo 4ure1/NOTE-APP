@@ -131,19 +131,19 @@ export default function NewSessionModal({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span aria-hidden="true" style={{ fontSize: '18px' }}>
+          <span aria-hidden="true" style={{ fontSize: 'var(--fs-xl)' }}>
             🎓
           </span>
           <div>
             <div
               id={`${fid}-title`}
-              style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-strong)' }}
+              style={{ fontSize: 'var(--fs-lg)', fontWeight: 600, color: 'var(--text-strong)' }}
             >
               Nouvelle séance de cours
             </div>
             <div
               style={{
-                fontSize: '12px',
+                fontSize: 'var(--fs-sm)',
                 color: 'var(--text-secondary)',
                 display: 'flex',
                 alignItems: 'center',
@@ -208,7 +208,7 @@ export default function NewSessionModal({
               htmlFor={`${fid}-num`}
               style={{
                 display: 'block',
-                fontSize: '12px',
+                fontSize: 'var(--fs-sm)',
                 color: 'var(--text-secondary)',
                 marginBottom: '6px',
                 fontWeight: 500
@@ -229,7 +229,7 @@ export default function NewSessionModal({
                 borderRadius: '6px',
                 padding: '8px 10px',
                 color: 'var(--text-strong)',
-                fontSize: '13px',
+                fontSize: 'var(--fs-md)',
                 fontWeight: 600,
                 outline: 'none',
                 boxSizing: 'border-box'
@@ -242,7 +242,7 @@ export default function NewSessionModal({
               htmlFor={`${fid}-tpl`}
               style={{
                 display: 'block',
-                fontSize: '12px',
+                fontSize: 'var(--fs-sm)',
                 color: 'var(--text-secondary)',
                 marginBottom: '6px',
                 fontWeight: 500
@@ -261,7 +261,7 @@ export default function NewSessionModal({
                 borderRadius: '6px',
                 padding: '8px 10px',
                 color: 'var(--text-strong)',
-                fontSize: '13px',
+                fontSize: 'var(--fs-md)',
                 outline: 'none',
                 boxSizing: 'border-box',
                 cursor: 'pointer'
@@ -282,7 +282,7 @@ export default function NewSessionModal({
             htmlFor={`${fid}-file`}
             style={{
               display: 'block',
-              fontSize: '12px',
+              fontSize: 'var(--fs-sm)',
               color: 'var(--text-secondary)',
               marginBottom: '6px',
               fontWeight: 500
@@ -304,7 +304,7 @@ export default function NewSessionModal({
                 borderRadius: '6px',
                 padding: '8px 32px 8px 10px',
                 color: 'var(--text-strong)',
-                fontSize: '13px',
+                fontSize: 'var(--fs-md)',
                 fontFamily: "Consolas, 'Cascadia Code', monospace",
                 outline: 'none',
                 boxSizing: 'border-box'
@@ -328,7 +328,7 @@ export default function NewSessionModal({
             htmlFor={`${fid}-title-input`}
             style={{
               display: 'block',
-              fontSize: '12px',
+              fontSize: 'var(--fs-sm)',
               color: 'var(--text-secondary)',
               marginBottom: '6px',
               fontWeight: 500
@@ -349,7 +349,7 @@ export default function NewSessionModal({
               borderRadius: '6px',
               padding: '8px 10px',
               color: 'var(--text-strong)',
-              fontSize: '13px',
+              fontSize: 'var(--fs-md)',
               outline: 'none',
               boxSizing: 'border-box'
             }}
@@ -362,7 +362,7 @@ export default function NewSessionModal({
             htmlFor={`${fid}-tags`}
             style={{
               display: 'block',
-              fontSize: '12px',
+              fontSize: 'var(--fs-sm)',
               color: 'var(--text-secondary)',
               marginBottom: '6px',
               fontWeight: 500
@@ -383,7 +383,7 @@ export default function NewSessionModal({
               borderRadius: '6px',
               padding: '8px 10px',
               color: 'var(--text-strong)',
-              fontSize: '13px',
+              fontSize: 'var(--fs-md)',
               outline: 'none',
               boxSizing: 'border-box'
             }}
@@ -402,7 +402,7 @@ export default function NewSessionModal({
           backgroundColor: 'var(--surface-sunken)'
         }}
       >
-        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+        <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
           <span>Appuyez sur </span>
           <kbd
             style={{
@@ -427,7 +427,7 @@ export default function NewSessionModal({
               cursor: 'pointer',
               padding: '7px 14px',
               borderRadius: '6px',
-              fontSize: '12.5px',
+              fontSize: 'var(--fs-md)',
               transition: 'all 0.12s'
             }}
             onMouseEnter={(e) =>
@@ -449,7 +449,7 @@ export default function NewSessionModal({
               cursor: isSubmitting ? 'not-allowed' : 'pointer',
               padding: '7px 16px',
               borderRadius: '6px',
-              fontSize: '12.5px',
+              fontSize: 'var(--fs-md)',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',

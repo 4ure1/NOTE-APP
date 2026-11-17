@@ -489,7 +489,7 @@ export default function Sidebar({
               margin: '1px 6px',
               borderRadius: '6px',
               cursor: 'pointer',
-              fontSize: '13px',
+              fontSize: 'var(--fs-md)',
               color: isSelected
                 ? 'var(--text-strong)'
                 : isFolder
@@ -593,7 +593,7 @@ export default function Sidebar({
                   color: 'var(--text-strong)',
                   borderRadius: '4px',
                   padding: '1px 5px',
-                  fontSize: '13px',
+                  fontSize: 'var(--fs-md)',
                   outline: 'none'
                 }}
               />
@@ -623,7 +623,7 @@ export default function Sidebar({
                         onOpenNewSession(node.relativePath)
                       }}
                     >
-                      <span style={{ fontSize: '11px', lineHeight: 1 }}>🎓</span>
+                      <span style={{ fontSize: 'var(--fs-xs)', lineHeight: 1 }}>🎓</span>
                     </button>
                   )}
                   <button
@@ -697,7 +697,7 @@ export default function Sidebar({
                       color: 'var(--text-strong)',
                       borderRadius: '4px',
                       padding: '2px 6px',
-                      fontSize: '12px',
+                      fontSize: 'var(--fs-sm)',
                       outline: 'none'
                     }}
                   />
@@ -748,7 +748,7 @@ export default function Sidebar({
           style={{
             fontFamily: 'var(--font-title)',
             fontStyle: 'italic',
-            fontSize: '20px',
+            fontSize: 'var(--fs-2xl)',
             lineHeight: 1,
             color: 'var(--text-primary)'
           }}
@@ -759,6 +759,7 @@ export default function Sidebar({
         {/* Sidebar Toggle button */}
         {onToggleSidebar && (
           <button
+            className="hv-color-text-strong"
             onClick={onToggleSidebar}
             title="Masquer la barre latérale (Ctrl+B)"
             style={{
@@ -771,8 +772,6 @@ export default function Sidebar({
               display: 'flex',
               alignItems: 'center'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-strong)')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
           >
             <SidebarToggleIcon size={16} />
           </button>
@@ -797,7 +796,7 @@ export default function Sidebar({
             background: 'var(--app-bg)',
             border: '1px solid var(--border-strong)',
             color: 'var(--text-muted)',
-            fontSize: '13px',
+            fontSize: 'var(--fs-md)',
             cursor: 'text',
             textAlign: 'left'
           }}
@@ -809,6 +808,7 @@ export default function Sidebar({
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', margin: '0 4px 14px' }}>
           <button
+            className="hv-background-color-element-bg"
             onClick={(e) => handleStartCreate('', 'file', e)}
             style={{
               flex: 1,
@@ -820,19 +820,18 @@ export default function Sidebar({
               background: 'transparent',
               border: 'none',
               color: 'var(--text-primary)',
-              fontSize: '13px',
+              fontSize: 'var(--fs-md)',
               fontWeight: 600,
               cursor: 'pointer',
               transition: 'background-color 0.15s'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg)')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
             <PlusIcon size={15} style={{ color: 'var(--accent-marge)' }} />
             <span style={{ flex: 1, textAlign: 'left' }}>Nouvelle note</span>
             <kbd>Ctrl+N</kbd>
           </button>
           <button
+            className="hv-background-color-element-bg"
             onClick={() => handleImportPdf('')}
             title="Importer un PDF"
             aria-label="Importer un PDF"
@@ -850,8 +849,6 @@ export default function Sidebar({
               cursor: 'pointer',
               transition: 'background-color 0.15s'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg)')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
             <PdfIcon size={15} />
           </button>
@@ -872,7 +869,7 @@ export default function Sidebar({
               boxShadow: activeView === 'recent' ? ACTIVE_MARK : 'none',
               border: 'none',
               color: activeView === 'recent' ? 'var(--text-strong)' : 'var(--text-primary)',
-              fontSize: '13px',
+              fontSize: 'var(--fs-md)',
               cursor: 'pointer',
               transition: 'background-color 0.15s'
             }}
@@ -911,7 +908,7 @@ export default function Sidebar({
               boxShadow: activeView === 'workflow' ? ACTIVE_MARK : 'none',
               border: 'none',
               color: activeView === 'workflow' ? 'var(--text-strong)' : 'var(--text-secondary)',
-              fontSize: '13px',
+              fontSize: 'var(--fs-md)',
               cursor: 'pointer',
               transition: 'background-color 0.15s'
             }}
@@ -944,7 +941,7 @@ export default function Sidebar({
               boxShadow: activeView === 'youtube' ? ACTIVE_MARK : 'none',
               border: 'none',
               color: activeView === 'youtube' ? 'var(--text-strong)' : 'var(--text-secondary)',
-              fontSize: '13px',
+              fontSize: 'var(--fs-md)',
               cursor: 'pointer',
               transition: 'background-color 0.15s'
             }}
@@ -974,7 +971,7 @@ export default function Sidebar({
               boxShadow: activeView === 'drafts' ? ACTIVE_MARK : 'none',
               border: 'none',
               color: activeView === 'drafts' ? 'var(--text-strong)' : 'var(--text-secondary)',
-              fontSize: '13px',
+              fontSize: 'var(--fs-md)',
               cursor: 'pointer',
               transition: 'background-color 0.15s'
             }}
@@ -992,7 +989,7 @@ export default function Sidebar({
             {draftsCount > 0 && (
               <span
                 style={{
-                  fontSize: '11px',
+                  fontSize: 'var(--fs-xs)',
                   color: 'var(--text-muted)',
                   background: 'var(--element-bg)',
                   padding: '1px 6px',
@@ -1026,7 +1023,7 @@ export default function Sidebar({
               background: activeView === 'deleted' ? 'var(--element-active)' : 'transparent',
               boxShadow: activeView === 'deleted' ? ACTIVE_MARK : 'none',
               color: activeView === 'deleted' ? 'var(--text-strong)' : 'var(--text-secondary)',
-              fontSize: '13px',
+              fontSize: 'var(--fs-md)',
               cursor: 'pointer',
               transition: 'background-color 0.15s'
             }}
@@ -1055,7 +1052,7 @@ export default function Sidebar({
                     border: 'none',
                     color: 'var(--text-muted)',
                     cursor: 'pointer',
-                    fontSize: '11px',
+                    fontSize: 'var(--fs-xs)',
                     padding: '2px 6px',
                     borderRadius: '4px',
                     transition: 'all 0.15s'
@@ -1076,7 +1073,7 @@ export default function Sidebar({
               {deletedCount > 0 && (
                 <span
                   style={{
-                    fontSize: '11px',
+                    fontSize: 'var(--fs-xs)',
                     color: 'var(--text-muted)',
                     background: 'var(--element-bg)',
                     padding: '1px 6px',
@@ -1109,7 +1106,7 @@ export default function Sidebar({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '4px 8px',
-                fontSize: '12.5px',
+                fontSize: 'var(--fs-md)',
                 fontWeight: 600,
                 color: 'var(--text-secondary)',
                 cursor: 'pointer'
@@ -1151,7 +1148,7 @@ export default function Sidebar({
                         padding: '5px 10px',
                         margin: '1px 4px',
                         borderRadius: '6px',
-                        fontSize: '12.5px',
+                        fontSize: 'var(--fs-md)',
                         cursor: 'pointer',
                         color: isSelected ? 'var(--text-strong)' : 'var(--text-primary)',
                         backgroundColor: isSelected ? 'var(--element-active)' : 'transparent',
@@ -1186,7 +1183,7 @@ export default function Sidebar({
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '4px 8px',
-              fontSize: '12.5px',
+              fontSize: 'var(--fs-md)',
               fontWeight: 600,
               color: 'var(--text-secondary)'
             }}
@@ -1212,6 +1209,7 @@ export default function Sidebar({
             <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
               <TreeSortMenu sort={treeSort} onChange={handleTreeSortChange} />
               <button
+                className="hv-color-text-strong"
                 onClick={(e) => handleStartCreate('', 'file', e)}
                 title="Nouvelle note à la racine (.html par défaut, .md pour du Markdown)"
                 style={{
@@ -1224,13 +1222,12 @@ export default function Sidebar({
                   display: 'flex',
                   alignItems: 'center'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-strong)')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
               >
                 <PlusIcon size={13} />
               </button>
 
               <button
+                className="hv-color-text-strong"
                 onClick={(e) => handleStartCreate('', 'folder', e)}
                 title="Nouveau dossier racine"
                 style={{
@@ -1243,13 +1240,12 @@ export default function Sidebar({
                   display: 'flex',
                   alignItems: 'center'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-strong)')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
               >
                 <FolderPlusIcon size={13} />
               </button>
 
               <button
+                className="hv-color-danger-strong"
                 onClick={() => handleImportPdf('')}
                 title="Importer un fichier PDF"
                 style={{
@@ -1262,8 +1258,6 @@ export default function Sidebar({
                   display: 'flex',
                   alignItems: 'center'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--danger-strong)')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
               >
                 <PdfIcon size={13} />
               </button>
@@ -1306,7 +1300,7 @@ export default function Sidebar({
                   color: 'var(--text-strong)',
                   borderRadius: '4px',
                   padding: '3px 6px',
-                  fontSize: '12px',
+                  fontSize: 'var(--fs-sm)',
                   outline: 'none'
                 }}
               />
@@ -1336,7 +1330,13 @@ export default function Sidebar({
                   {renderTree(sortedTree)}
                 </div>
               ) : (
-                <div style={{ padding: '12px 14px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                <div
+                  style={{
+                    padding: '12px 14px',
+                    fontSize: 'var(--fs-sm)',
+                    color: 'var(--text-muted)'
+                  }}
+                >
                   Aucune note pour l’instant. Créez-en une avec Ctrl+N ou importez un PDF.
                 </div>
               )}
@@ -1379,7 +1379,7 @@ export default function Sidebar({
                         : 'rgba(255, 255, 255, 0.02)',
                     borderRadius: '6px',
                     textAlign: 'center',
-                    fontSize: '11px',
+                    fontSize: 'var(--fs-xs)',
                     fontWeight: 500,
                     color: dragOverFolder === '' ? 'var(--accent-color)' : 'var(--text-muted)',
                     transition: 'all 0.15s ease'
@@ -1404,6 +1404,7 @@ export default function Sidebar({
         }}
       >
         <button
+          className="hv-background-color-element-bg hv-color-text-strong"
           onClick={onOpenSettings}
           style={{
             display: 'flex',
@@ -1414,17 +1415,9 @@ export default function Sidebar({
             background: 'transparent',
             border: 'none',
             color: 'var(--text-secondary)',
-            fontSize: '13px',
+            fontSize: 'var(--fs-md)',
             cursor: 'pointer',
             textAlign: 'left'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--element-bg)'
-            e.currentTarget.style.color = 'var(--text-strong)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent'
-            e.currentTarget.style.color = 'var(--text-secondary)'
           }}
         >
           <SettingsIcon size={15} />
@@ -1432,6 +1425,7 @@ export default function Sidebar({
         </button>
 
         <button
+          className="hv-background-color-element-bg hv-color-text-strong"
           onClick={() => window.dispatchEvent(new Event('nf-open-tour'))}
           title="Relancer la visite guidée"
           style={{
@@ -1443,17 +1437,9 @@ export default function Sidebar({
             background: 'transparent',
             border: 'none',
             color: 'var(--text-secondary)',
-            fontSize: '13px',
+            fontSize: 'var(--fs-md)',
             cursor: 'pointer',
             textAlign: 'left'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--element-bg)'
-            e.currentTarget.style.color = 'var(--text-strong)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent'
-            e.currentTarget.style.color = 'var(--text-secondary)'
           }}
         >
           <HelpCircleIcon size={15} />
@@ -1498,17 +1484,16 @@ export default function Sidebar({
           {contextMenu.isFolder && (
             <>
               <div
+                className="hv-background-color-element-bg-hover"
                 role="menuitem"
                 tabIndex={-1}
                 style={{
                   padding: '6px 10px',
-                  fontSize: '12.5px',
+                  fontSize: 'var(--fs-md)',
                   color: 'var(--text-primary)',
                   cursor: 'pointer',
                   borderRadius: '4px'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 onClick={() => {
                   handleImportPdf(contextMenu.itemPath)
                   setContextMenu(null)
@@ -1522,7 +1507,7 @@ export default function Sidebar({
                   tabIndex={-1}
                   style={{
                     padding: '6px 10px',
-                    fontSize: '12.5px',
+                    fontSize: 'var(--fs-md)',
                     color: 'var(--accent-color)',
                     cursor: 'pointer',
                     borderRadius: '4px',
@@ -1546,17 +1531,16 @@ export default function Sidebar({
                 </div>
               )}
               <div
+                className="hv-background-color-element-bg-hover"
                 role="menuitem"
                 tabIndex={-1}
                 style={{
                   padding: '6px 10px',
-                  fontSize: '12.5px',
+                  fontSize: 'var(--fs-md)',
                   color: 'var(--text-primary)',
                   cursor: 'pointer',
                   borderRadius: '4px'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 onClick={(e) => {
                   handleStartCreate(contextMenu.itemPath, 'file', e)
                   setContextMenu(null)
@@ -1565,17 +1549,16 @@ export default function Sidebar({
                 Nouveau fichier
               </div>
               <div
+                className="hv-background-color-element-bg-hover"
                 role="menuitem"
                 tabIndex={-1}
                 style={{
                   padding: '6px 10px',
-                  fontSize: '12.5px',
+                  fontSize: 'var(--fs-md)',
                   color: 'var(--text-primary)',
                   cursor: 'pointer',
                   borderRadius: '4px'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 onClick={(e) => {
                   handleStartCreate(contextMenu.itemPath, 'folder', e)
                   setContextMenu(null)
@@ -1589,17 +1572,16 @@ export default function Sidebar({
           {!contextMenu.isFolder && contextMenu.itemPath.toLowerCase().endsWith('.pdf') && (
             <>
               <div
+                className="hv-background-color-element-bg-hover"
                 role="menuitem"
                 tabIndex={-1}
                 style={{
                   padding: '6px 10px',
-                  fontSize: '12.5px',
+                  fontSize: 'var(--fs-md)',
                   color: 'var(--text-primary)',
                   cursor: 'pointer',
                   borderRadius: '4px'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 onClick={() => {
                   if (window.api?.openInBrowser) {
                     window.api
@@ -1612,17 +1594,16 @@ export default function Sidebar({
                 Ouvrir en externe
               </div>
               <div
+                className="hv-background-color-element-bg-hover"
                 role="menuitem"
                 tabIndex={-1}
                 style={{
                   padding: '6px 10px',
-                  fontSize: '12.5px',
+                  fontSize: 'var(--fs-md)',
                   color: 'var(--text-primary)',
                   cursor: 'pointer',
                   borderRadius: '4px'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 onClick={() => {
                   if (window.api?.showItemInFolder) {
                     window.api
@@ -1639,11 +1620,12 @@ export default function Sidebar({
 
           {!contextMenu.isFolder && (
             <div
+              className="hv-background-color-element-bg-hover"
               role="menuitem"
               tabIndex={-1}
               style={{
                 padding: '6px 10px',
-                fontSize: '12.5px',
+                fontSize: 'var(--fs-md)',
                 color: 'var(--text-primary)',
                 cursor: 'pointer',
                 borderRadius: '4px',
@@ -1651,8 +1633,6 @@ export default function Sidebar({
                 alignItems: 'center',
                 gap: '8px'
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
               onClick={() => {
                 if (onOpenSideBySide) onOpenSideBySide(contextMenu.itemPath)
                 setContextMenu(null)
@@ -1665,17 +1645,16 @@ export default function Sidebar({
 
           {!contextMenu.isFolder && (
             <div
+              className="hv-background-color-element-bg-hover"
               role="menuitem"
               tabIndex={-1}
               style={{
                 padding: '6px 10px',
-                fontSize: '12.5px',
+                fontSize: 'var(--fs-md)',
                 color: 'var(--text-primary)',
                 cursor: 'pointer',
                 borderRadius: '4px'
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
               onClick={() => {
                 if (onToggleFavorite) onToggleFavorite(contextMenu.itemPath)
                 setContextMenu(null)
@@ -1686,17 +1665,16 @@ export default function Sidebar({
           )}
 
           <div
+            className="hv-background-color-element-bg-hover"
             role="menuitem"
             tabIndex={-1}
             style={{
               padding: '6px 10px',
-              fontSize: '12.5px',
+              fontSize: 'var(--fs-md)',
               color: 'var(--text-primary)',
               cursor: 'pointer',
               borderRadius: '4px'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             onClick={() => {
               setEditingFile(contextMenu.itemPath)
               setEditValue(contextMenu.itemPath.split('/').pop()?.replace(/\.(html|htm|md|markdown)$/i, '') || '')
@@ -1708,19 +1686,16 @@ export default function Sidebar({
 
           {onMoveItem && (
             <div
+              className="hv-background-color-element-bg-hover"
               role="menuitem"
               tabIndex={-1}
               style={{
                 padding: '6px 10px',
-                fontSize: '12.5px',
+                fontSize: 'var(--fs-md)',
                 color: 'var(--text-primary)',
                 cursor: 'pointer',
                 borderRadius: '4px'
               }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)')
-              }
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
               onClick={() => {
                 setMoveItemPath(contextMenu.itemPath)
                 setContextMenu(null)
@@ -1731,19 +1706,18 @@ export default function Sidebar({
           )}
 
           <div
+            className="hv-background-color-danger-bg-hover"
             role="menuitem"
             tabIndex={-1}
             style={{
               padding: '6px 10px',
-              fontSize: '12.5px',
+              fontSize: 'var(--fs-md)',
               color: 'var(--danger-color)',
               cursor: 'pointer',
               borderRadius: '4px',
               borderTop: '1px solid var(--border-subtle)',
               marginTop: '4px'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--danger-bg-hover)')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             onClick={() => {
               onDeleteNotes([contextMenu.itemPath])
               setContextMenu(null)

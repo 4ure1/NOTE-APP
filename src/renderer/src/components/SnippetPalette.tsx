@@ -62,7 +62,7 @@ export const SnippetPalette: React.FC<SnippetPaletteProps> = ({
         zIndex: 99999,
         overflowY: 'auto',
         fontFamily: "Consolas, 'Cascadia Code', 'Fira Code', monospace",
-        fontSize: '12px',
+        fontSize: 'var(--fs-sm)',
         color: '#cccccc',
         padding: '2px 0',
         userSelect: 'none'
@@ -91,7 +91,7 @@ export const SnippetPalette: React.FC<SnippetPaletteProps> = ({
             }}
           >
             {/* Icône de snippet style VS Code */}
-            <span style={{ color: '#569cd6', fontSize: '11px', flexShrink: 0 }}>⧉</span>
+            <span style={{ color: '#569cd6', fontSize: 'var(--fs-xs)', flexShrink: 0 }}>⧉</span>
 
             {/* Préfixe du snippet (/card) */}
             <span
@@ -108,7 +108,7 @@ export const SnippetPalette: React.FC<SnippetPaletteProps> = ({
             <span
               style={{
                 marginLeft: 'auto',
-                fontSize: '11px',
+                fontSize: 'var(--fs-xs)',
                 color: isSelected ? '#d0d0d0' : '#858585',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
