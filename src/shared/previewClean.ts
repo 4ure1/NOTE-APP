@@ -119,6 +119,29 @@ export function cleanPreviewDocument(doc: Document, options: PreviewCleanOptions
     }
   }
 
+  // Coloration reprise par Entrée (previewEditing.ts) : l'espace de largeur nulle qui tient le curseur
+  // n'est jamais enregistrée ; une copie restée vide disparaît (la ligne garde son <br>)
+  const carried = clone.querySelectorAll('[data-nf-carry]')
+  for (let i = carried.length - 1; i >= 0; i--) {
+    const el = carried[i]
+    const walker = el.ownerDocument.createTreeWalker(el, 4)
+    for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+      t.nodeValue = (t.nodeValue || '').split(zeroWidth).join('')
+    }
+    const parent = el.parentNode
+    if (el.textContent || el.querySelector('img, svg, br') || !parent) {
+      el.removeAttribute('data-nf-carry')
+      continue
+    }
+    el.remove()
+    // Une copie extérieure vide est traitée juste après (ordre inverse) : seule la ligne reçoit le <br>
+    if (parent.nodeType !== 1 || (parent as Element).hasAttribute('data-nf-carry')) continue
+    if (!parent.textContent && !(parent as Element).firstElementChild) {
+      while (parent.firstChild) parent.removeChild(parent.firstChild)
+      parent.appendChild(el.ownerDocument.createElement('br'))
+    }
+  }
+
   // Paragraphe créé par un clic dans le vide : retiré s'il est resté vide, gardé sinon
   const pending = clone.querySelectorAll('[data-nf-pending]')
   for (let i = 0; i < pending.length; i++) {

@@ -191,3 +191,93 @@ describe('installTableTools : Tab', () => {
     expect(onChange).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('installTableTools : diviser et fusionner', () => {
+  const html = (): string =>
+    Array.from(document.querySelectorAll('tr'))
+      .map((tr) =>
+        Array.from(tr.children)
+          .map((c) => {
+            const cs = c.getAttribute('colspan')
+            const rs = c.getAttribute('rowspan')
+            return (c.textContent || '_') + (cs ? '/c' + cs : '') + (rs ? '/r' + rs : '')
+          })
+          .join(' ')
+      )
+      .join(' | ')
+
+  function oneColumn(): void {
+    document.body.innerHTML =
+      '<table><tbody><tr><th>T</th></tr><tr><td>a</td></tr><tr><td>b</td></tr></tbody></table>'
+  }
+
+  it('tableau d’une colonne : diviser la colonne en deux, puis encore', () => {
+    oneColumn()
+    tools.splitColumn(cell('a'))
+    expect(html()).toBe('T _ | a _ | b _')
+    expect(document.querySelector('tr')!.children[1].nodeName).toBe('TH')
+    tools.splitColumn(cell('a'))
+    expect(html()).toBe('T _ _ | a _ _ | b _ _')
+  })
+
+  it('diviser une seule case : les autres lignes s’élargissent', () => {
+    oneColumn()
+    const n = tools.splitCell(cell('a'))!
+    expect(n.nodeName).toBe('TD')
+    expect(html()).toBe('T/c2 | a _ | b/c2')
+  })
+
+  it('diviser une case élargie lui rend une colonne', () => {
+    oneColumn()
+    tools.splitCell(cell('a'))
+    tools.splitCell(cell('b'))
+    expect(html()).toBe('T/c2 | a _ | b _')
+  })
+
+  it('insérer une colonne à côté d’une case fusionnée', () => {
+    oneColumn()
+    tools.splitCell(cell('a'))
+    // Après « a » : la case fusionnée T couvre la nouvelle colonne
+    tools.insertColumn(cell('a'), 'right')
+    expect(html()).toBe('T/c3 | a _ _ | b/c3')
+    // Tout à droite : une nouvelle case dans chaque ligne
+    tools.insertColumn(cell('T'), 'right')
+    expect(html()).toBe('T/c3 _ | a _ _ _ | b/c3 _')
+  })
+
+  it('supprimer une colonne réduit les cases fusionnées', () => {
+    oneColumn()
+    tools.splitCell(cell('a'))
+    tools.deleteColumn(cell('a'))
+    expect(html()).toBe('T | _ | b')
+  })
+
+  it('fusionner des cases d’une ligne, puis les rediviser', () => {
+    expect(tools.canMerge([cell('1'), cell('2')])).toBe(true)
+    const merged = tools.mergeCells([cell('2'), cell('1')])!
+    expect(html()).toBe('A B C | 12/c2 3 | 4 5 6')
+    expect(merged.innerHTML).toBe('1<br>2')
+    tools.splitCell(merged)
+    expect(html()).toBe('A B C | 12 _ 3 | 4 5 6')
+  })
+
+  it('fusionner un rectangle sur deux lignes', () => {
+    tools.mergeCells(tools.cellsBetween(cell('1'), cell('5')))
+    expect(html()).toBe('A B C | 1245/c2/r2 3 | 6')
+  })
+
+  it('refuse de fusionner ce qui n’est pas un rectangle', () => {
+    expect(tools.canMerge([cell('1'), cell('5')])).toBe(false)
+    expect(tools.canMerge([cell('1')])).toBe(false)
+    expect(tools.mergeCells([cell('1'), cell('5')])).toBeNull()
+  })
+
+  it('rectangle de sélection autour d’une case fusionnée', () => {
+    tools.mergeCells([cell('1'), cell('2')])
+    expect(tools.cellsBetween(cell('B'), cell('5')).map((c) => c.textContent)).toEqual([
+      'B',
+      '12',
+      '5'
+    ])
+  })
+})

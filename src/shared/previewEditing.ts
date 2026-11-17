@@ -2,8 +2,9 @@
  * Saisie dans l'aperçu éditable (iframe) : ce que le navigateur fait mal tout seul.
  *
  * - Entrée : de vrais paragraphes <p> (jamais de <br> ni de <div>), le texte après le curseur passe dans
- *   le nouveau bloc, la coloration en cours (<span class="o">…) ne déborde pas sur une ligne vide,
- *   et le nouveau bloc reprend l'indentation de son voisin dans le code.
+ *   le nouveau bloc, qui reprend l'indentation de son voisin dans le code. Au bout d'un texte coloré
+ *   (<span class="o">…), la nouvelle ligne reçoit sa propre copie de la coloration (data-nf-carry, tenue
+ *   par une espace de largeur nulle) : la couleur continue, ligne par ligne, jusqu'à Tab.
  * - Sortie d'une coloration : la frappe juste après un <span>/<strong>… s'écrit hors de lui ;
  *   Flèche droite au bout d'un texte coloré « sort » de la coloration.
  * - Après un effacement, les <span style="…"> / <font> que Chrome invente en fusionnant deux blocs
@@ -28,6 +29,10 @@ export interface PreviewEditing {
   armExit(doc: Document): boolean
   /** Oublie la sortie armée (autre touche, clic, déplacement du curseur). */
   disarm(): void
+  /** Après une saisie : une coloration reprise par Entrée qui contient du texte devient normale. */
+  settleCarry(doc: Document): number
+  /** Tab sur une coloration reprise encore vide : elle est retirée, le curseur reste sur la ligne. */
+  dropCarry(doc: Document, el: Element): boolean
   /** Éléments stylés présents avant un effacement. */
   snapshotStyled(doc: Document): Set<Element>
   /** Retire les éléments stylés apparus depuis snapshotStyled ; renvoie leur nombre. */
@@ -84,6 +89,10 @@ export function createPreviewEditing(): PreviewEditing {
     'SUP',
     'U'
   ]
+  // Mises en forme reprises par Entrée sur la ligne suivante (pas les liens ni le code en ligne)
+  const CARRY_TAGS = ['B', 'EM', 'FONT', 'I', 'MARK', 'S', 'SMALL', 'SPAN', 'STRONG', 'U']
+  const CARRY = 'data-nf-carry'
+  const ZWSP = String.fromCharCode(8203)
   const TEXT_BLOCKS = ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI']
   // Blocs titre du design system : Entrée crée un paragraphe après eux, dans leur carte
   const TITLE_CLASSES = ['node-title', 'q-title', 'label', 'caption']
@@ -244,13 +253,136 @@ export function createPreviewEditing(): PreviewEditing {
       placeCaret(doc, pos.node, pos.offset)
       return
     }
+    const chain = atEnd ? carriedFormats(range.startContainer, block) : []
     const moved = after.extractContents()
-    if (isEmptyContent(moved)) fresh.appendChild(doc.createElement('br'))
-    else fresh.appendChild(moved)
+    let holder: Text | null = null
+    if (isEmptyContent(moved)) {
+      if (chain.length) {
+        const copy = buildCarry(doc, chain)
+        fresh.appendChild(copy.root)
+        holder = copy.holder
+      } else {
+        fresh.appendChild(doc.createElement('br'))
+      }
+    } else {
+      fresh.appendChild(moved)
+    }
     ensureNotEmpty(block)
     insertAfter(block, fresh)
+    if (holder) {
+      placeCaret(doc, holder, holder.length)
+      return
+    }
     const pos = firstCaretPosition(fresh)
     placeCaret(doc, pos.node, pos.offset)
+  }
+
+  /** Mises en forme qui entourent le curseur dans le bloc, de la plus extérieure à la plus intérieure. */
+  function carriedFormats(node: Node, block: Element): Element[] {
+    const chain: Element[] = []
+    let n: Node | null = node
+    while (n && n !== block) {
+      if (
+        isElement(n) &&
+        CARRY_TAGS.indexOf(n.nodeName.toUpperCase()) !== -1 &&
+        !n.hasAttribute('data-nf-field') &&
+        !n.hasAttribute('data-injected-preview-helpers') &&
+        !n.classList.contains('tag')
+      ) {
+        chain.unshift(n)
+      }
+      n = n.parentNode
+    }
+    return chain
+  }
+
+  /** Copie vide (balise et attributs) des mises en forme, tenue par une espace de largeur nulle. */
+  function buildCarry(doc: Document, chain: Element[]): { root: Element; holder: Text } {
+    let root: Element | null = null
+    let parent: Element | null = null
+    for (let i = 0; i < chain.length; i++) {
+      const copy = chain[i].cloneNode(false) as Element
+      copy.removeAttribute('id')
+      copy.removeAttribute('data-nf-editing-color')
+      copy.setAttribute(CARRY, '')
+      if (parent) parent.appendChild(copy)
+      else root = copy
+      parent = copy
+    }
+    const holder = doc.createTextNode(ZWSP)
+    parent!.appendChild(holder)
+    return { root: root!, holder }
+  }
+
+  function hasRealText(el: Node): boolean {
+    return (el.textContent || '').split(ZWSP).join('') !== ''
+  }
+
+  function settleCarry(doc: Document): number {
+    const body = doc.body
+    if (!body) return 0
+    const carried = body.querySelectorAll('[' + CARRY + ']')
+    const sel = doc.getSelection()
+    const range = sel && sel.rangeCount ? sel.getRangeAt(0) : null
+    const caretNode: Node | null = range ? range.startContainer : null
+    let caretOffset = range ? range.startOffset : 0
+    let settled = 0
+    for (let i = carried.length - 1; i >= 0; i--) {
+      const el = carried[i]
+      if (!hasRealText(el)) continue
+      const walker = doc.createTreeWalker(el, 4)
+      const texts: Text[] = []
+      for (let t = walker.nextNode(); t; t = walker.nextNode()) texts.push(t as Text)
+      for (let j = 0; j < texts.length; j++) {
+        const t = texts[j]
+        let idx = t.data.indexOf(ZWSP)
+        while (idx !== -1) {
+          t.deleteData(idx, 1)
+          if (t === caretNode && caretOffset > idx) caretOffset--
+          idx = t.data.indexOf(ZWSP)
+        }
+      }
+      el.removeAttribute(CARRY)
+      settled++
+    }
+    if (settled && caretNode && range) {
+      if (caretNode.nodeType === TEXT) {
+        caretOffset = Math.min(caretOffset, (caretNode.textContent || '').length)
+      }
+      placeCaret(doc, caretNode, caretOffset)
+    }
+    return settled
+  }
+
+  function dropCarry(doc: Document, el: Element): boolean {
+    if (!el.hasAttribute(CARRY) || hasRealText(el) || !el.parentNode) return false
+    const parent = el.parentNode
+    const ref = el.nextSibling
+    if (isElement(parent) && parent.hasAttribute(CARRY)) {
+      // Coloration imbriquée : seule l'intérieure s'arrête, l'extérieure garde le curseur
+      parent.removeChild(el)
+      let holder = parent.lastChild
+      if (!holder || holder.nodeType !== TEXT) {
+        holder = doc.createTextNode(ZWSP)
+        parent.appendChild(holder)
+      }
+      placeCaret(doc, holder, (holder.textContent || '').length)
+      return true
+    }
+    parent.removeChild(el)
+    if (isElement(parent) && isEmptyContent(parent)) {
+      ensureNotEmpty(parent)
+      placeCaret(doc, parent, 0)
+      return true
+    }
+    if (ref && ref.parentNode === parent) {
+      let index = 0
+      for (let c = parent.firstChild; c && c !== ref; c = c.nextSibling) index++
+      placeCaret(doc, parent, index)
+    } else {
+      placeCaret(doc, parent, parent.childNodes.length)
+    }
+    return true
   }
 
   /** Blancs de mise en page du code entre deux blocs (pas une espace entre deux mots colorés). */
@@ -787,6 +919,8 @@ export function createPreviewEditing(): PreviewEditing {
     insertCodeNewline,
     armExit,
     disarm,
+    settleCarry,
+    dropCarry,
     snapshotStyled,
     unwrapNewStyled
   }

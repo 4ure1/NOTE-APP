@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createPreviewEditing } from './previewEditing'
 
 const editing = createPreviewEditing()
+const ZWSP = String.fromCharCode(8203)
 
 function setCaret(node: Node, offset: number): void {
   const sel = document.getSelection()!
@@ -39,15 +40,64 @@ describe('handleEnter : paragraphes', () => {
     expect(caret().offset).toBe(0)
   })
 
-  it('au bout d’un texte coloré : ligne vide sans la coloration', () => {
-    document.body.innerHTML = '<p>Mot <span class="o">orange</span></p>'
+  it('au bout d’un texte coloré : nouvelle ligne avec sa propre copie de la couleur', () => {
+    document.body.innerHTML = '<p>Mot <span class="o" data-nf-editing-color="">orange</span></p>'
     setCaret(textNode('span'), 6)
     editing.handleEnter(document)
     const ps = document.querySelectorAll('p')
     expect(ps).toHaveLength(2)
-    expect(ps[0].innerHTML).toBe('Mot <span class="o">orange</span>')
+    expect(ps[0].innerHTML).toBe('Mot <span class="o" data-nf-editing-color="">orange</span>')
+    expect(ps[1].innerHTML).toBe('<span class="o" data-nf-carry="">' + ZWSP + '</span>')
+    expect(caret().node).toBe(ps[1].querySelector('span')!.firstChild)
+    expect(caret().offset).toBe(1)
+  })
+
+  it('couleurs imbriquées : toute la chaîne est reprise', () => {
+    document.body.innerHTML = '<p><strong class="gb"><span class="o">a</span></strong></p>'
+    setCaret(textNode('span'), 1)
+    editing.handleEnter(document)
+    expect(document.querySelectorAll('p')[1].innerHTML).toBe(
+      '<strong class="gb" data-nf-carry=""><span class="o" data-nf-carry="">' +
+        ZWSP +
+        '</span></strong>'
+    )
+  })
+
+  it('Entrée sur une ligne colorée encore vide : la couleur passe à la suivante', () => {
+    document.body.innerHTML = '<p><span class="o">a</span></p>'
+    setCaret(textNode('span'), 1)
+    editing.handleEnter(document)
+    editing.handleEnter(document)
+    const ps = document.querySelectorAll('p')
+    expect(ps).toHaveLength(3)
     expect(ps[1].innerHTML).toBe('<br>')
-    expect(caret().node).toBe(ps[1])
+    expect(ps[2].querySelector('[data-nf-carry]')).not.toBeNull()
+  })
+
+  it('au milieu d’un texte coloré : la suite garde sa couleur', () => {
+    document.body.innerHTML = '<p><span class="o">orange</span></p>'
+    setCaret(textNode('span'), 3)
+    editing.handleEnter(document)
+    expect(document.body.innerHTML).toBe(
+      '<p><span class="o">ora</span></p><p><span class="o">nge</span></p>'
+    )
+  })
+
+  it('sans coloration : ligne vide normale', () => {
+    document.body.innerHTML = '<p>Mot</p>'
+    setCaret(textNode('p'), 3)
+    editing.handleEnter(document)
+    expect(document.querySelectorAll('p')[1].innerHTML).toBe('<br>')
+  })
+
+  it('ni lien ni étiquette ne sont repris', () => {
+    document.body.innerHTML = '<p><a href="#x">lien</a></p><p><span class="tag">t</span></p>'
+    setCaret(textNode('a'), 4)
+    editing.handleEnter(document)
+    expect(document.querySelectorAll('p')[1].innerHTML).toBe('<br>')
+    setCaret(textNode('.tag'), 1)
+    editing.handleEnter(document)
+    expect(document.querySelectorAll('p')[3].innerHTML).toBe('<br>')
   })
 
   it('au début d’un paragraphe rempli : ligne vide au-dessus, curseur qui reste', () => {
@@ -280,5 +330,54 @@ describe('pasteText : collage sur plusieurs lignes', () => {
     document.body.innerHTML = '<p>a</p>'
     setCaret(textNode('p'), 1)
     expect(editing.pasteText(document, 'simple')).toBe(false)
+  })
+})
+
+describe('couleur reprise par Entrée', () => {
+  function enterAtEndOfOrange(): HTMLElement {
+    document.body.innerHTML = '<p><span class="o">a</span></p>'
+    setCaret(textNode('span'), 1)
+    editing.handleEnter(document)
+    return document.querySelector('[data-nf-carry]') as HTMLElement
+  }
+
+  it('settleCarry : après la frappe, l’espace invisible part et le curseur suit', () => {
+    const carried = enterAtEndOfOrange()
+    const t = carried.firstChild as Text
+    t.data = ZWSP + 'bc'
+    setCaret(t, 3)
+    expect(editing.settleCarry(document)).toBe(1)
+    expect(carried.outerHTML).toBe('<span class="o">bc</span>')
+    expect(caret().offset).toBe(2)
+  })
+
+  it('settleCarry : une copie encore vide reste en attente', () => {
+    enterAtEndOfOrange()
+    expect(editing.settleCarry(document)).toBe(0)
+    expect(document.querySelector('[data-nf-carry]')).not.toBeNull()
+  })
+
+  it('dropCarry : Tab sur la copie vide la retire, la ligne reste', () => {
+    const carried = enterAtEndOfOrange()
+    expect(editing.dropCarry(document, carried)).toBe(true)
+    const ps = document.querySelectorAll('p')
+    expect(ps[1].innerHTML).toBe('<br>')
+    expect(caret().node).toBe(ps[1])
+  })
+
+  it('dropCarry : couleur imbriquée, seule l’intérieure s’arrête', () => {
+    document.body.innerHTML = '<p><strong class="gb"><span class="o">a</span></strong></p>'
+    setCaret(textNode('span'), 1)
+    editing.handleEnter(document)
+    const inner = document.querySelectorAll('p')[1].querySelector('span')!
+    expect(editing.dropCarry(document, inner)).toBe(true)
+    expect(document.querySelectorAll('p')[1].innerHTML).toBe(
+      '<strong class="gb" data-nf-carry="">' + ZWSP + '</strong>'
+    )
+  })
+
+  it('dropCarry : refusé sur une couleur qui contient du texte', () => {
+    document.body.innerHTML = '<p><span class="o">a</span></p>'
+    expect(editing.dropCarry(document, document.querySelector('span')!)).toBe(false)
   })
 })

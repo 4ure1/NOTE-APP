@@ -224,3 +224,30 @@ describe('cleanPreviewDocument : structure saine', () => {
     expect(cleanPreviewDocument(document, opts)).toBe('<p><span class="r">rouge</span></p>')
   })
 })
+
+describe('cleanPreviewDocument : couleur reprise par Entrée', () => {
+  const Z = String.fromCharCode(8203)
+  const NL = String.fromCharCode(10)
+  const opts = { ...FULL, hadDoctype: false }
+
+  it('copie restée vide : retirée, la ligne garde un <br>', () => {
+    const doc = parse(
+      '<html><body><p><span class="o">a</span></p>' +
+        '<p><strong class="gb" data-nf-carry=""><span class="o" data-nf-carry="">' +
+        Z +
+        '</span></strong></p></body></html>'
+    )
+    expect(cleanPreviewDocument(doc, opts)).toBe(
+      '<html><head></head><body><p><span class="o">a</span></p>' + NL + '<p><br></p></body></html>'
+    )
+  })
+
+  it('copie qui contient du texte : gardée sans marque ni espace invisible', () => {
+    const doc = parse(
+      '<html><body><p><span class="o" data-nf-carry="">' + Z + 'bc</span></p></body></html>'
+    )
+    expect(cleanPreviewDocument(doc, opts)).toBe(
+      '<html><head></head><body><p><span class="o">bc</span></p></body></html>'
+    )
+  })
+})

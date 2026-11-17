@@ -1365,6 +1365,16 @@ export const prepareHtmlPreview = (
             if (coloredEl) {
               e.preventDefault();
               e.stopPropagation();
+              // Couleur reprise par Entrée sur une ligne encore vide : retirée, le curseur reste sur la ligne
+              if (previewEditing.dropCarry(document, coloredEl)) {
+                if (activeColoredEl) {
+                  activeColoredEl.removeAttribute('data-nf-editing-color');
+                  activeColoredEl = null;
+                }
+                updateEditingColorOutline();
+                emitDocChange();
+                return;
+              }
               exitColoredElement(coloredEl, e.shiftKey);
               return;
             }
@@ -1577,7 +1587,9 @@ export const prepareHtmlPreview = (
                 }
               }
 
-              // 4. Entrée : vrais paragraphes <p> (src/shared/previewEditing.ts) ; Maj+Entrée garde le <br>
+              // 4. Entrée : vrais paragraphes <p> (src/shared/previewEditing.ts) ; Maj+Entrée garde le <br>.
+              //    Au bout d'un texte coloré, la nouvelle ligne garde la couleur (seul Tab l'arrête) ;
+              //    la session de snippet se termine d'abord, pour que l'encadré bleu reste sur sa ligne.
               if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && isLiveEditEnabled) {
                 if (snippetSession) endSnippetSession(false);
                 if (previewEditing.handleEnter(document)) {
@@ -1837,6 +1849,8 @@ export const prepareHtmlPreview = (
             previewEditing.unwrapNewStyled(document, styledBeforeEdit);
             styledBeforeEdit = null;
           }
+          // Couleur reprise par Entrée : dès qu'elle contient du texte, l'espace invisible qui la tenait part
+          previewEditing.settleCarry(document);
           if (snippetSession) {
             var anchor = window.getSelection() ? window.getSelection().anchorNode : null;
             var position = fieldPositionOf(anchor);

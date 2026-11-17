@@ -3,7 +3,8 @@
  * - sélection de cases : glisser d'une case à une autre (rectangle), Ctrl+clic pour ajouter / retirer ;
  *   Suppr vide les cases sélectionnées ;
  * - clic droit sur une case : fond de la case (ou des cases sélectionnées), insérer / supprimer une
- *   ligne ou une colonne, vider ;
+ *   ligne ou une colonne, diviser une case ou une colonne en deux, fusionner des cases, vider ;
+ *   les colonnes tiennent compte des cases fusionnées (colspan / rowspan) ;
  * - clic droit sur une carte (.node, .step) : couleur de la carte ;
  * - Tab / Maj+Tab : case suivante / précédente, Tab dans la dernière case ajoute une ligne.
  *
@@ -28,6 +29,14 @@ export interface TableTools {
   insertColumn(cell: Element, where: 'left' | 'right'): void
   deleteRow(cell: Element): void
   deleteColumn(cell: Element): void
+  /** Coupe la case en deux côte à côte ; les cases des autres lignes s'élargissent pour rester alignées. */
+  splitCell(cell: Element): Element | null
+  /** Coupe en deux toutes les cases de la colonne (une nouvelle colonne à droite de la case). */
+  splitColumn(cell: Element): void
+  /** Les cases forment-elles un rectangle (au moins deux cases) qu'on peut fusionner ? */
+  canMerge(cells: Element[]): boolean
+  /** Fusionne un rectangle de cases dans la première (colspan / rowspan), contenus mis à la suite. */
+  mergeCells(cells: Element[]): Element | null
   /** Case atteinte par Tab (une ligne est ajoutée après la dernière case) ou Maj+Tab ; null : aucune. */
   cellAfterTab(cell: Element, backwards: boolean): Element | null
   /** Couleur d'une carte (.node : red…brown, '' = gris ; .step : purple, orange, green, red, '' = bleu). */
@@ -68,39 +77,82 @@ export function installTableTools(doc: Document, options: TableToolsOptions): Ta
     return Array.from(tr.children).filter((c) => c.nodeName === 'TD' || c.nodeName === 'TH')
   }
 
-  function hasSpans(table: Element): boolean {
-    return rowsOf(table).some((tr) =>
-      cellsOf(tr).some(
-        (c) =>
-          parseInt(c.getAttribute('colspan') || '1', 10) > 1 ||
-          parseInt(c.getAttribute('rowspan') || '1', 10) > 1
-      )
-    )
+  function spanOf(c: Element, name: string): number {
+    const n = parseInt(c.getAttribute(name) || '1', 10)
+    return n > 1 ? n : 1
+  }
+
+  function setSpan(c: Element, name: string, n: number): void {
+    if (n > 1) c.setAttribute(name, String(n))
+    else c.removeAttribute(name)
+  }
+
+  /** Lignes fusionnées verticalement : insérer / supprimer une ligne n'est pas proposé. */
+  function hasRowSpans(table: Element): boolean {
+    return rowsOf(table).some((tr) => cellsOf(tr).some((c) => spanOf(c, 'rowspan') > 1))
+  }
+
+  /** Grille du tableau : grid[ligne][colonne] = case qui occupe cet emplacement (fusions comprises). */
+  interface Grid {
+    rows: Element[]
+    grid: Element[][]
+    at: Map<Element, { row: number; col: number }>
+  }
+
+  function gridOf(table: Element): Grid {
+    const rows = rowsOf(table)
+    const grid: Element[][] = rows.map(() => [])
+    const at = new Map<Element, { row: number; col: number }>()
+    rows.forEach((tr, r) => {
+      let c = 0
+      cellsOf(tr).forEach((cell) => {
+        while (grid[r][c]) c++
+        at.set(cell, { row: r, col: c })
+        const cs = spanOf(cell, 'colspan')
+        const rs = spanOf(cell, 'rowspan')
+        for (let i = 0; i < rs && r + i < rows.length; i++) {
+          for (let j = 0; j < cs; j++) grid[r + i][c + j] = cell
+        }
+        c += cs
+      })
+    })
+    return { rows, grid, at }
+  }
+
+  function byPosition(g: Grid): (x: Element, y: Element) => number {
+    return (x, y) => {
+      const px = g.at.get(x)!
+      const py = g.at.get(y)!
+      return px.row - py.row || px.col - py.col
+    }
   }
 
   function position(cell: Element): { table: Element; row: number; col: number } | null {
-    const tr = cell.parentElement
     const table = cell.closest('table')
-    if (!tr || !table) return null
-    return { table, row: rowsOf(table).indexOf(tr), col: cellsOf(tr).indexOf(cell) }
+    if (!table) return null
+    const p = gridOf(table).at.get(cell)
+    return p ? { table, row: p.row, col: p.col } : null
   }
 
   function cellsBetween(a: Element, b: Element): Element[] {
-    const pa = position(a)
-    const pb = position(b)
-    if (!pa || !pb || pa.table !== pb.table) return [a]
+    const table = a.closest('table')
+    if (!table || b.closest('table') !== table) return [a]
+    const g = gridOf(table)
+    const pa = g.at.get(a)
+    const pb = g.at.get(b)
+    if (!pa || !pb) return [a]
     const r0 = Math.min(pa.row, pb.row)
-    const r1 = Math.max(pa.row, pb.row)
+    const r1 = Math.max(pa.row + spanOf(a, 'rowspan'), pb.row + spanOf(b, 'rowspan')) - 1
     const c0 = Math.min(pa.col, pb.col)
-    const c1 = Math.max(pa.col, pb.col)
+    const c1 = Math.max(pa.col + spanOf(a, 'colspan'), pb.col + spanOf(b, 'colspan')) - 1
     const out: Element[] = []
-    rowsOf(pa.table).forEach((tr, r) => {
-      if (r < r0 || r > r1) return
-      cellsOf(tr).forEach((c, i) => {
-        if (i >= c0 && i <= c1) out.push(c)
-      })
-    })
-    return out
+    for (let r = r0; r <= r1 && r < g.grid.length; r++) {
+      for (let c = c0; c <= c1; c++) {
+        const cell = g.grid[r][c]
+        if (cell && out.indexOf(cell) === -1) out.push(cell)
+      }
+    }
+    return out.sort(byPosition(g))
   }
 
   function cleanClass(el: Element): void {
@@ -161,18 +213,148 @@ export function installTableTools(doc: Document, options: TableToolsOptions): Ta
     return tr2
   }
 
+  function newCellLike(ref: Element | undefined): Element {
+    return doc.createElement(ref && ref.nodeName === 'TH' ? 'th' : 'td')
+  }
+
+  /** Nouvelle colonne à l'indice k de la grille ; une case fusionnée qui la traverse s'élargit. */
+  function insertColumnAt(table: Element, k: number): void {
+    const g = gridOf(table)
+    const done: Element[] = []
+    g.rows.forEach((tr, r) => {
+      const x = g.grid[r][k]
+      const prev = k > 0 ? g.grid[r][k - 1] : undefined
+      if (x && x === prev) {
+        // Case fusionnée de part et d'autre : elle couvre aussi la nouvelle colonne
+        if (done.indexOf(x) === -1) {
+          done.push(x)
+          setSpan(x, 'colspan', spanOf(x, 'colspan') + 1)
+        }
+        return
+      }
+      if (x) {
+        if (done.indexOf(x) !== -1) return
+        done.push(x)
+        const n = newCellLike(x)
+        setSpan(n, 'rowspan', spanOf(x, 'rowspan'))
+        x.parentNode!.insertBefore(n, x)
+        return
+      }
+      // Bout de ligne : la nouvelle case va après la dernière (une seule fois pour une fusion verticale)
+      if (prev && (done.indexOf(prev) !== -1 || g.at.get(prev)!.row !== r)) return
+      const n = newCellLike(prev || cellsOf(tr)[0])
+      if (prev) {
+        done.push(prev)
+        setSpan(n, 'rowspan', spanOf(prev, 'rowspan'))
+        tr.insertBefore(n, prev.nextSibling)
+      } else {
+        tr.appendChild(n)
+      }
+    })
+  }
+
   function insertColumn(cell: Element, where: 'left' | 'right'): void {
     const p = position(cell)
     if (!p) return
-    rowsOf(p.table).forEach((tr) => {
-      const cells = cellsOf(tr)
-      const ref = cells[p.col] || cells[cells.length - 1]
-      const tag = ref && ref.nodeName === 'TH' ? 'th' : 'td'
-      const n = doc.createElement(tag)
-      if (!ref) tr.appendChild(n)
-      else if (where === 'left') tr.insertBefore(n, ref)
-      else tr.insertBefore(n, ref.nextSibling)
+    insertColumnAt(p.table, where === 'left' ? p.col : p.col + spanOf(cell, 'colspan'))
+  }
+
+  function splitColumn(cell: Element): void {
+    insertColumn(cell, 'right')
+  }
+
+  function splitCell(cell: Element): Element | null {
+    const p = position(cell)
+    if (!p) return null
+    const cs = spanOf(cell, 'colspan')
+    const n = newCellLike(cell)
+    setSpan(n, 'rowspan', spanOf(cell, 'rowspan'))
+    if (cs > 1) {
+      // Case déjà fusionnée : elle rend une de ses colonnes
+      setSpan(cell, 'colspan', cs - 1)
+    } else {
+      // Les cases des autres lignes dans la même colonne s'élargissent pour garder l'alignement
+      const g = gridOf(p.table)
+      const done: Element[] = [cell]
+      g.grid.forEach((row) => {
+        const x = row[p.col]
+        if (!x || done.indexOf(x) !== -1) return
+        done.push(x)
+        setSpan(x, 'colspan', spanOf(x, 'colspan') + 1)
+      })
+    }
+    cell.parentNode!.insertBefore(n, cell.nextSibling)
+    return n
+  }
+
+  /** Rectangle de la grille couvert par les cases ; null si elles ne sont pas dans un même tableau. */
+  function boundsOf(
+    g: Grid,
+    cells: Element[]
+  ): { r0: number; c0: number; r1: number; c1: number } | null {
+    let r0 = Infinity
+    let c0 = Infinity
+    let r1 = -1
+    let c1 = -1
+    for (const c of cells) {
+      const p = g.at.get(c)
+      if (!p) return null
+      r0 = Math.min(r0, p.row)
+      c0 = Math.min(c0, p.col)
+      r1 = Math.max(r1, p.row + spanOf(c, 'rowspan') - 1)
+      c1 = Math.max(c1, p.col + spanOf(c, 'colspan') - 1)
+    }
+    return { r0, c0, r1, c1 }
+  }
+
+  function canMerge(cells: Element[]): boolean {
+    if (cells.length < 2) return false
+    const table = cells[0].closest('table')
+    if (!table) return false
+    const g = gridOf(table)
+    const b = boundsOf(g, cells)
+    if (!b) return false
+    // Chaque emplacement du rectangle appartient à une case choisie : pas de trou, rien qui dépasse
+    for (let r = b.r0; r <= b.r1; r++) {
+      for (let c = b.c0; c <= b.c1; c++) {
+        const x = g.grid[r] ? g.grid[r][c] : undefined
+        if (!x || cells.indexOf(x) === -1) return false
+      }
+    }
+    return true
+  }
+
+  function isBlankCell(c: Element): boolean {
+    return (c.textContent || '').trim() === '' && !c.querySelector('img, svg, table, input')
+  }
+
+  function mergeCells(cells: Element[]): Element | null {
+    if (!canMerge(cells)) return null
+    const g = gridOf(cells[0].closest('table')!)
+    const b = boundsOf(g, cells)!
+    const ordered = cells.slice().sort(byPosition(g))
+    const first = ordered[0]
+    const emptyRows: Element[] = []
+    ordered.slice(1).forEach((c) => {
+      if (!isBlankCell(c)) {
+        if (isBlankCell(first)) {
+          while (first.firstChild) first.removeChild(first.firstChild)
+        } else {
+          first.appendChild(doc.createElement('br'))
+        }
+        while (c.firstChild) first.appendChild(c.firstChild)
+      }
+      const tr = c.parentElement
+      removeWithSpace(c)
+      if (tr && tr !== first.parentElement && !cellsOf(tr).length && emptyRows.indexOf(tr) === -1) {
+        emptyRows.push(tr)
+      }
     })
+    setSpan(first, 'colspan', b.c1 - b.c0 + 1)
+    // Lignes vidées par la fusion : retirées, la hauteur fusionnée diminue d'autant
+    setSpan(first, 'rowspan', b.r1 - b.r0 + 1 - emptyRows.length)
+    emptyRows.forEach((tr) => removeWithSpace(tr))
+    return first
   }
 
   function removeWithSpace(el: Element): void {
@@ -197,14 +379,21 @@ export function installTableTools(doc: Document, options: TableToolsOptions): Ta
   function deleteColumn(cell: Element): void {
     const p = position(cell)
     if (!p) return
-    const rows = rowsOf(p.table)
-    if (rows.every((tr) => cellsOf(tr).length <= 1)) {
+    const g = gridOf(p.table)
+    const width = g.grid.reduce((w, row) => Math.max(w, row.length), 0)
+    if (width <= 1) {
       removeWithSpace(p.table)
       return
     }
-    rows.forEach((tr) => {
-      const c = cellsOf(tr)[p.col]
-      if (c) c.remove()
+    const done: Element[] = []
+    g.grid.forEach((row) => {
+      const x = row[p.col]
+      if (!x || done.indexOf(x) !== -1) return
+      done.push(x)
+      // Case fusionnée : elle perd une colonne au lieu de disparaître
+      const cs = spanOf(x, 'colspan')
+      if (cs > 1) setSpan(x, 'colspan', cs - 1)
+      else removeWithSpace(x)
     })
   }
 
@@ -376,7 +565,7 @@ export function installTableTools(doc: Document, options: TableToolsOptions): Ta
     m.setAttribute('contenteditable', 'false')
     if (cells.length) {
       const table = cells[0].closest('table')!
-      const spans = hasSpans(table)
+      const spans = hasRowSpans(table)
       title(m, cells.length > 1 ? 'Fond des ' + cells.length + ' cases' : 'Fond de la case')
       swatches(m, BG, currentBg(cells), 'Aucun fond', (c) => setBackground(cells, c))
       separator(m)
@@ -385,8 +574,21 @@ export function installTableTools(doc: Document, options: TableToolsOptions): Ta
       const off = spans ? 'nf-off' : ''
       item(m, 'Insérer une ligne au-dessus', () => insertRow(first, 'above'), off)
       item(m, 'Insérer une ligne en dessous', () => insertRow(last, 'below'), off)
-      item(m, 'Insérer une colonne à gauche', () => insertColumn(first, 'left'), off)
-      item(m, 'Insérer une colonne à droite', () => insertColumn(last, 'right'), off)
+      item(m, 'Insérer une colonne à gauche', () => insertColumn(first, 'left'))
+      item(m, 'Insérer une colonne à droite', () => insertColumn(last, 'right'))
+      separator(m)
+      if (cells.length === 1) {
+        item(m, 'Diviser la case en deux', () => splitCell(first))
+        item(m, 'Diviser la colonne en deux', () => splitColumn(first))
+      } else {
+        const mergeable = canMerge(cells)
+        item(
+          m,
+          'Fusionner les ' + cells.length + ' cases',
+          () => mergeCells(cells),
+          mergeable ? '' : 'nf-off'
+        )
+      }
       separator(m)
       item(m, cells.length > 1 ? 'Vider les cases' : 'Vider la case', () =>
         cells.forEach((c) => {
@@ -394,7 +596,7 @@ export function installTableTools(doc: Document, options: TableToolsOptions): Ta
         })
       )
       item(m, 'Supprimer la ligne', () => deleteRow(first), 'nf-danger ' + off)
-      item(m, 'Supprimer la colonne', () => deleteColumn(first), 'nf-danger ' + off)
+      item(m, 'Supprimer la colonne', () => deleteColumn(first), 'nf-danger')
     }
     if (card) {
       if (cells.length) separator(m)
@@ -538,6 +740,10 @@ export function installTableTools(doc: Document, options: TableToolsOptions): Ta
     insertColumn,
     deleteRow,
     deleteColumn,
+    splitCell,
+    splitColumn,
+    canMerge,
+    mergeCells,
     cellAfterTab,
     setCardColor,
     selection: () => selected.slice()
