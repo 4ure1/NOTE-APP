@@ -606,392 +606,132 @@ export default function YouTubeWorkspace() {
         position: 'relative'
       }}
     >
-      {/* ── BARRE SUPÉRIEURE D'ONGLETS MULTI-YOUTUBE ── */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          backgroundColor: 'var(--sidebar-bg)',
-          borderBottom: '1px solid var(--border-color)',
-          height: '42px',
-          padding: '0 8px',
-          gap: '4px',
-          overflowX: 'auto',
-          flexShrink: 0
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 10px 0 4px', borderRight: '1px solid var(--border-color)', marginRight: '4px' }}>
-          <YouTubeIcon size={18} />
-          <span
-            style={{
-              fontSize: 'var(--fs-md)',
-              fontWeight: 700,
-              color: 'var(--text-strong)',
-              letterSpacing: '-0.2px'
-            }}
-          >
-            YouTube
-          </span>
-        </div>
-
-        {/* Liste des onglets */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0, overflowX: 'auto' }}>
-          {tabs.map((tab) => {
-            const isActive = tab.id === activeTabId
-            return (
-              <div
-                key={tab.id}
-                onClick={() => setActiveTabId(tab.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  height: '32px',
-                  padding: '0 10px',
-                  borderRadius: '6px',
-                  backgroundColor: isActive ? 'var(--element-active)' : 'transparent',
-                  border: `1px solid ${isActive ? 'color-mix(in srgb, var(--danger-strong) 45%, transparent)' : 'transparent'}`,
-                  color: isActive ? 'var(--text-strong)' : 'var(--text-secondary)',
-                  fontSize: 'var(--fs-sm)',
-                  fontWeight: isActive ? 600 : 500,
-                  cursor: 'pointer',
-                  maxWidth: '220px',
-                  minWidth: '120px',
-                  transition: 'all 0.15s ease',
-                  flexShrink: 0
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) e.currentTarget.style.backgroundColor = 'var(--element-bg-hover)'
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) e.currentTarget.style.backgroundColor = 'transparent'
-                }}
+      {/* ── ONGLETS YOUTUBE ── */}
+      <div className="yt-tabs">
+        {tabs.map((tab) => {
+          const isActive = tab.id === activeTabId
+          return (
+            <div
+              key={tab.id}
+              className="yt-tab"
+              role="tab"
+              tabIndex={0}
+              aria-selected={isActive}
+              onClick={() => setActiveTabId(tab.id)}
+              onKeyDown={(e) => {
+                if (e.target !== e.currentTarget) return
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setActiveTabId(tab.id)
+                }
+              }}
+            >
+              <YouTubeIcon size={14} />
+              <span className="yt-tab-title" title={tab.title}>
+                {tab.title}
+              </span>
+              <button
+                className="yt-tab-close"
+                onClick={(e) => handleCloseTab(tab.id, e)}
+                title="Fermer l’onglet"
+                aria-label="Fermer l’onglet"
               >
-                <div
-                  style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    backgroundColor: isActive ? 'var(--danger-strong)' : '#6b7280',
-                    flexShrink: 0
-                  }}
-                />
-                <span
-                  style={{
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    flex: 1
-                  }}
-                  title={tab.title}
-                >
-                  {tab.title}
-                </span>
-
-                <button
-                  onClick={(e) => handleCloseTab(tab.id, e)}
-                  title="Fermer l'onglet"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '18px',
-                    height: '18px',
-                    borderRadius: '4px',
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer',
-                    padding: 0
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = 'var(--text-strong)'
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = 'var(--text-muted)'
-                    e.currentTarget.style.backgroundColor = 'transparent'
-                  }}
-                >
-                  <XIcon size={11} />
-                </button>
-              </div>
-            )
-          })}
-
-          {/* Bouton Nouvel Onglet (+) */}
-          <button
-            className="hv-background-color-element-bg-hover hv-color-text-strong"
-            onClick={() => handleAddTab()}
-            title="Ouvrir un nouvel onglet YouTube"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '28px',
-              height: '28px',
-              borderRadius: '6px',
-              backgroundColor: 'transparent',
-              border: '1px solid var(--border-color)',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              flexShrink: 0,
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <PlusIcon size={14} />
-          </button>
-        </div>
+                <XIcon size={11} />
+              </button>
+            </div>
+          )
+        })}
+        <button
+          className="eh-icon yt-add"
+          onClick={() => handleAddTab()}
+          title="Ouvrir un nouvel onglet YouTube"
+          aria-label="Nouvel onglet YouTube"
+        >
+          <PlusIcon size={14} />
+        </button>
       </div>
 
-      {/* ── BARRE DE CONTRÔLES & ADRESSE / RECHERCHE ── */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '6px 12px',
-          backgroundColor: 'var(--sidebar-bg)',
-          borderBottom: '1px solid var(--border-subtle)',
-          flexShrink: 0
-        }}
-      >
-        {/* Navigation : Précédent, Suivant, Recharger, Accueil */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+      {/* ── NAVIGATION, ADRESSE ET ACTIONS ── */}
+      <div className="eh-bar yt-bar">
+        <div className="eh-actions">
           <button
-            className="hv-color-text-strong"
+            className="eh-icon"
             onClick={handleGoBack}
             title="Page précédente"
-            style={{
-              width: '28px',
-              height: '28px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'transparent',
-              border: 'none',
-              borderRadius: '6px',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer'
-            }}
+            aria-label="Page précédente"
           >
             <ArrowLeftIcon size={14} />
           </button>
-
           <button
-            className="hv-color-text-strong"
+            className="eh-icon"
             onClick={handleGoForward}
             title="Page suivante"
-            style={{
-              width: '28px',
-              height: '28px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'transparent',
-              border: 'none',
-              borderRadius: '6px',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer'
-            }}
+            aria-label="Page suivante"
           >
             <ArrowRightIcon size={14} />
           </button>
-
           <button
-            className="hv-color-text-strong"
+            className="eh-icon"
             onClick={handleReload}
             title="Recharger la vidéo"
-            style={{
-              width: '28px',
-              height: '28px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'transparent',
-              border: 'none',
-              borderRadius: '6px',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer'
-            }}
+            aria-label="Recharger"
           >
-            <RefreshCwIcon size={13} />
+            <RefreshCwIcon size={14} />
           </button>
-
           <button
-            className="hv-color-text-strong"
+            className="eh-icon"
             onClick={handleGoHome}
             title="Accueil YouTube"
-            style={{
-              width: '28px',
-              height: '28px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'transparent',
-              border: 'none',
-              borderRadius: '6px',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer'
-            }}
+            aria-label="Accueil YouTube"
           >
             <HomeIcon size={14} />
           </button>
         </div>
 
-        {/* Formulaire URL / Recherche */}
-        <form
-          onSubmit={handleSubmitUrl}
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            backgroundColor: 'var(--editor-bg)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '20px',
-            padding: '3px 12px',
-            gap: '8px'
-          }}
-        >
-          <SearchIcon size={13} style={{ color: 'var(--danger-strong)', flexShrink: 0 }} />
+        <form className="yt-url" onSubmit={handleSubmitUrl}>
+          <SearchIcon size={14} />
           <input
             type="text"
             value={inputUrl}
             onChange={(e) => setInputUrl(e.target.value)}
-            placeholder="Collez un lien YouTube ou tapez une recherche..."
-            style={{
-              flex: 1,
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              color: 'var(--text-strong)',
-              fontSize: 'var(--fs-md)',
-              fontFamily: 'inherit'
-            }}
+            placeholder="Collez un lien YouTube ou tapez une recherche"
+            aria-label="Lien ou recherche YouTube"
           />
         </form>
 
-        {/* Actions rapides droite : Connexion Chrome, Cookies, Historique, Raccourci, Copier, Externe */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-
-
-          {/* Bouton Historique avec badge */}
+        <div className="eh-actions">
           <button
+            className="eh-btn"
+            aria-pressed={isHistoryDrawerOpen}
             onClick={() => setIsHistoryDrawerOpen((prev) => !prev)}
             title="Historique de visionnage par date et heure"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              height: '28px',
-              padding: '0 8px',
-              background: isHistoryDrawerOpen
-                ? 'color-mix(in srgb, var(--accent-color) 20%, transparent)'
-                : 'transparent',
-              border: `1px solid ${isHistoryDrawerOpen ? 'color-mix(in srgb, var(--accent-color) 45%, transparent)' : 'var(--border-color)'}`,
-              borderRadius: '6px',
-              color: isHistoryDrawerOpen ? 'var(--accent-color)' : 'var(--text-secondary)',
-              fontSize: 'var(--fs-xs)',
-              fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
           >
-            <ClockIcon
-              size={13}
-              style={{ color: isHistoryDrawerOpen ? 'var(--accent-color)' : 'inherit' }}
-            />
-            <span>Historique</span>
-            {history.length > 0 && (
-              <span
-                style={{
-                  fontSize: 'var(--fs-xs)',
-                  padding: '1px 4px',
-                  borderRadius: '8px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  color: 'var(--text-strong)'
-                }}
-              >
-                {history.length}
-              </span>
-            )}
+            <ClockIcon size={14} />
+            Historique
+            {history.length > 0 && <span className="sb-count">{history.length}</span>}
           </button>
-
-          {/* Bouton bookmark / enregistrer cette page comme raccourci */}
           <button
+            className="eh-btn"
             onClick={handleOpenAddModal}
             title="Enregistrer cette vidéo ou recherche en raccourci"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              height: '28px',
-              padding: '0 8px',
-              background: 'color-mix(in srgb, var(--danger-strong) 12%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--danger-strong) 30%, transparent)',
-              borderRadius: '6px',
-              color: 'var(--danger-color)',
-              fontSize: 'var(--fs-xs)',
-              fontWeight: 500,
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor =
-                'color-mix(in srgb, var(--danger-strong) 25%, transparent)')
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.backgroundColor =
-                'color-mix(in srgb, var(--danger-strong) 12%, transparent)')
-            }
           >
-            <StarIcon size={12} filled />
-            <span>Raccourci</span>
+            <StarIcon size={14} />
+            Raccourci
           </button>
-
-          <button
-            onClick={handleCopyUrl}
-            title="Copier le lien"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              height: '28px',
-              padding: '0 8px',
-              background: 'transparent',
-              border: '1px solid var(--border-color)',
-              borderRadius: '6px',
-              color: copied ? 'var(--success-color)' : 'var(--text-secondary)',
-              fontSize: 'var(--fs-xs)',
-              cursor: 'pointer'
-            }}
-          >
-            {copied ? <CheckIcon size={12} /> : <CopyIcon size={12} />}
-            <span>{copied ? 'Copié !' : 'Copier'}</span>
+          <button className="eh-btn" onClick={handleCopyUrl} title="Copier le lien">
+            {copied ? <CheckIcon size={14} /> : <CopyIcon size={14} />}
+            {copied ? 'Copié' : 'Copier'}
           </button>
-
           <button
-            className="hv-color-text-strong"
+            className="eh-icon"
             onClick={handleOpenExternal}
-            title="Ouvrir dans le navigateur externe"
-            style={{
-              width: '28px',
-              height: '28px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'transparent',
-              border: '1px solid var(--border-color)',
-              borderRadius: '6px',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer'
-            }}
+            title="Ouvrir dans le navigateur"
+            aria-label="Ouvrir dans le navigateur"
           >
-            <ExternalLinkIcon size={12} />
+            <ExternalLinkIcon size={14} />
           </button>
         </div>
       </div>
-
-
 
       {/* ── BARRE DE RACCOURCIS YOUTUBE (AJOUTABLES & SUPPRIMABLES) ── */}
       <div

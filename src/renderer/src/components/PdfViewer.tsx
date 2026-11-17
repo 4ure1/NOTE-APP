@@ -17,7 +17,9 @@ import {
   RotateCwIcon,
   MoonIcon,
   FolderIcon,
-  SparklesIcon
+  SparklesIcon,
+  ArrowLeftIcon,
+  ArrowRightIcon
 } from './Icons'
 import {
   PdfAnnotation,
@@ -935,17 +937,17 @@ export default function PdfViewer({
 
   // Branding dynamique IA
   const aiData = {
-    agent: { name: 'Agent IA', color: '#10b981', icon: <SparklesIcon size={14} color="#10b981" /> },
-    claude: { name: 'Claude', color: '#D97757', icon: <ClaudeIcon size={14} color="#D97757" /> },
+    agent: { name: 'Agent IA', color: '#10b981', icon: <SparklesIcon size={14} /> },
+    claude: { name: 'Claude', color: '#D97757', icon: <ClaudeIcon size={14} /> },
     chatgpt: {
       name: 'ChatGPT',
       color: '#ffffff',
-      icon: <ChatGPTIcon size={14} style={{ color: 'var(--text-strong)' }} />
+      icon: <ChatGPTIcon size={14} />
     },
     gemini: {
       name: 'Gemini',
       color: '#4285f4',
-      icon: <GeminiIcon size={14} style={{ color: '#4285f4' }} />
+      icon: <GeminiIcon size={14} />
     }
   }[activeAI] || {
     name: 'Agent IA',
@@ -966,427 +968,138 @@ export default function PdfViewer({
         position: 'relative'
       }}
     >
-      {/* ── BARRE D'OUTILS SUPÉRIEURE DU LECTEUR PDF ── */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          height: '46px',
-          padding: '0 10px',
-          backgroundColor: 'var(--sidebar-bg)',
-          borderBottom: '1px solid var(--border-color)',
-          gap: '8px',
-          flexShrink: 0,
-          boxSizing: 'border-box',
-          overflowX: 'auto',
-          scrollbarWidth: 'none',
-          userSelect: 'none'
-        }}
-      >
-        {/* Titre & Info fichier */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            minWidth: 0,
-            overflow: 'hidden'
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '28px',
-              height: '28px',
-              borderRadius: '6px',
-              backgroundColor: 'color-mix(in srgb, var(--danger-strong) 12%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--danger-strong) 25%, transparent)',
-              flexShrink: 0
-            }}
-          >
-            <PdfIcon size={16} />
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span
-                style={{
-                  fontSize: 'var(--fs-md)',
-                  fontWeight: 600,
-                  color: 'var(--text-primary)',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  maxWidth: '180px'
-                }}
-                title={fileName}
-              >
-                {fileName}
-              </span>
-              <span
-                style={{
-                  fontSize: 'var(--fs-xs)',
-                  fontWeight: 700,
-                  padding: '1px 5px',
-                  borderRadius: '8px',
-                  backgroundColor: 'color-mix(in srgb, var(--danger-strong) 15%, transparent)',
-                  color: 'var(--danger-color)',
-                  border: '1px solid color-mix(in srgb, var(--danger-strong) 30%, transparent)'
-                }}
-              >
-                PDF
-              </span>
-              {annotations.length > 0 && (
-                <span
-                  title={`${annotations.length} passage(s) surligné(s)`}
-                  style={{
-                    fontSize: 'var(--fs-xs)',
-                    fontWeight: 600,
-                    padding: '1px 6px',
-                    borderRadius: '8px',
-                    backgroundColor: 'rgba(250, 204, 21, 0.15)',
-                    color: '#facc15',
-                    border: '1px solid rgba(250, 204, 21, 0.3)'
-                  }}
-                >
-                  ✏️ {annotations.length}
-                </span>
-              )}
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                fontSize: 'var(--fs-xs)',
-                color: 'var(--text-muted)',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}
-            >
-              {fileSize ? <span>{formatBytes(fileSize)}</span> : null}
-              {fileSize && (numPages > 0 || modifiedAt) ? <span>•</span> : null}
-              {numPages > 0 ? (
-                <span>
-                  {numPages} page{numPages > 1 ? 's' : ''}
-                </span>
-              ) : null}
-              {modifiedAt ? <span>• {modifiedAt}</span> : null}
-            </div>
-          </div>
+      {/* ── BARRE D'OUTILS DU LECTEUR PDF : nom, pages, zoom, actions ── */}
+      <div className="eh-bar pv-bar">
+        <div className="pv-title">
+          <PdfIcon size={15} />
+          <span className="eh-file" title={fileName}>
+            {fileName}
+          </span>
+          <span className="pv-meta">
+            {[
+              fileSize ? formatBytes(fileSize) : null,
+              numPages > 0 ? `${numPages} page${numPages > 1 ? 's' : ''}` : null,
+              annotations.length > 0
+                ? `${annotations.length} surlignage${annotations.length > 1 ? 's' : ''}`
+                : null,
+              modifiedAt ? `modifié ${modifiedAt}` : null
+            ]
+              .filter(Boolean)
+              .join(', ')}
+          </span>
         </div>
 
-        {/* ── CONTRÔLES CENTRAUX : ZOOM PINCH + NAVIGATION ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {/* Navigation Pages */}
+        <div className="eh-actions">
           {numPages > 0 && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                padding: '2px 6px',
-                borderRadius: '6px',
-                fontSize: 'var(--fs-sm)',
-                color: 'var(--text-secondary)'
-              }}
-            >
+            <div className="pv-pages">
               <button
+                className="eh-icon"
                 onClick={(): void => scrollToPage(currentPage - 1)}
                 disabled={currentPage <= 1}
                 title="Page précédente"
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: currentPage <= 1 ? 'rgba(255, 255, 255, 0.2)' : 'var(--text-primary)',
-                  cursor: currentPage <= 1 ? 'default' : 'pointer',
-                  padding: '2px 4px',
-                  borderRadius: '4px',
-                  fontSize: 'var(--fs-xs)',
-                  fontWeight: 700,
-                  flexShrink: 0
-                }}
+                aria-label="Page précédente"
               >
-                ◀
+                <ArrowLeftIcon size={14} />
               </button>
-              <span
-                style={{
-                  fontWeight: 600,
-                  color: 'var(--text-strong)',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0
-                }}
-              >
-                {currentPage}
-              </span>
-              <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                &nbsp;/ {numPages}
+              <span className="pv-count">
+                {currentPage} / {numPages}
               </span>
               <button
+                className="eh-icon"
                 onClick={(): void => scrollToPage(currentPage + 1)}
                 disabled={currentPage >= numPages}
                 title="Page suivante"
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color:
-                    currentPage >= numPages ? 'rgba(255, 255, 255, 0.2)' : 'var(--text-primary)',
-                  cursor: currentPage >= numPages ? 'default' : 'pointer',
-                  padding: '2px 4px',
-                  borderRadius: '4px',
-                  fontSize: 'var(--fs-xs)',
-                  fontWeight: 700,
-                  flexShrink: 0
-                }}
+                aria-label="Page suivante"
               >
-                ▶
+                <ArrowRightIcon size={14} />
               </button>
             </div>
           )}
-
-          {/* Contrôles de zoom */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '2px',
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              padding: '2px 4px',
-              borderRadius: '6px'
-            }}
-          >
-            <button
-              className="hv-color-text-strong"
-              onClick={(): void =>
-                setScale((prev) => Math.max(parseFloat((prev - 0.15).toFixed(2)), 0.25))
-              }
-              title="Zoom arrière (ou pincez vers l'intérieur)"
-              style={{
-                width: '26px',
-                height: '26px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-secondary)',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              <ZoomOutIcon size={14} />
-            </button>
-
-            <span
-              onClick={handleFitWidth}
-              title="Cliquer pour ajuster à la largeur (ou zoomez avec pincement)"
-              style={{
-                fontSize: 'var(--fs-sm)',
-                fontWeight: 600,
-                color: 'var(--text-primary)',
-                minWidth: '42px',
-                textAlign: 'center',
-                cursor: 'pointer',
-                padding: '2px 4px',
-                borderRadius: '4px'
-              }}
-            >
-              {Math.round(scale * 100)}%
-            </span>
-
-            <button
-              className="hv-color-text-strong"
-              onClick={(): void =>
-                setScale((prev) => Math.min(parseFloat((prev + 0.15).toFixed(2)), 4.5))
-              }
-              title="Zoom avant (ou pincez vers l'extérieur)"
-              style={{
-                width: '26px',
-                height: '26px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-secondary)',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              <ZoomInIcon size={14} />
-            </button>
-
-            {/* Bouton Ajuster Largeur */}
-            <button
-              className="hv-color-text-strong"
-              onClick={handleFitWidth}
-              title="Ajuster à la largeur de l'écran"
-              style={{
-                height: '24px',
-                padding: '0 6px',
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-muted)',
-                fontSize: 'var(--fs-xs)',
-                fontWeight: 600,
-                cursor: 'pointer',
-                borderRadius: '4px'
-              }}
-            >
-              Largeur
-            </button>
-          </div>
-
-          {/* Rotation 90° */}
+          <span className="pv-sep" aria-hidden="true" />
           <button
-            className="hv-color-text-strong"
+            className="eh-icon"
+            onClick={(): void =>
+              setScale((prev) => Math.max(parseFloat((prev - 0.15).toFixed(2)), 0.25))
+            }
+            title="Zoom arrière (ou pincez vers l’intérieur)"
+            aria-label="Zoom arrière"
+          >
+            <ZoomOutIcon size={14} />
+          </button>
+          <button
+            className="eh-btn pv-zoom"
+            onClick={handleFitWidth}
+            title="Ajuster à la largeur"
+          >
+            {Math.round(scale * 100)} %
+          </button>
+          <button
+            className="eh-icon"
+            onClick={(): void =>
+              setScale((prev) => Math.min(parseFloat((prev + 0.15).toFixed(2)), 4.5))
+            }
+            title="Zoom avant (ou pincez vers l’extérieur)"
+            aria-label="Zoom avant"
+          >
+            <ZoomInIcon size={14} />
+          </button>
+          <button
+            className="eh-icon"
             onClick={handleRotate}
             title="Pivoter de 90°"
-            style={{
-              width: '28px',
-              height: '28px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'transparent',
-              border: '1px solid var(--border-color)',
-              borderRadius: '6px',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer'
-            }}
+            aria-label="Pivoter de 90°"
           >
-            <RotateCwIcon size={13} />
+            <RotateCwIcon size={14} />
           </button>
-
-          {/* Mode Sombre (inversion douce du papier) */}
           <button
+            className="eh-icon"
+            aria-pressed={darkMode}
             onClick={(): void => setDarkMode((prev) => !prev)}
             title={
-              darkMode ? 'Désactiver le mode sombre PDF' : 'Activer le mode sombre PDF (inversion)'
+              darkMode
+                ? 'Désactiver le mode sombre du PDF'
+                : 'Mode sombre du PDF (couleurs inversées)'
             }
-            style={{
-              width: '28px',
-              height: '28px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: darkMode ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
-              border: `1px solid ${darkMode ? 'rgba(99, 102, 241, 0.4)' : 'var(--border-color)'}`,
-              borderRadius: '6px',
-              color: darkMode ? '#818cf8' : 'var(--text-secondary)',
-              cursor: 'pointer'
-            }}
+            aria-label="Mode sombre du PDF"
           >
-            <MoonIcon size={13} />
+            <MoonIcon size={14} />
           </button>
-        </div>
-
-        {/* ── ACTIONS DROITE : EXTERNE / EXPLORATEUR / IA ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-          {/* Ouvrir en externe */}
+          <span className="pv-sep" aria-hidden="true" />
           <button
+            className="eh-btn"
             onClick={handleOpenExternal}
-            title="Ouvrir dans l'application système (Adobe, Edge...)"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              height: '28px',
-              padding: '0 8px',
-              backgroundColor: 'transparent',
-              border: '1px solid var(--border-strong)',
-              borderRadius: '6px',
-              color: 'var(--text-secondary)',
-              fontSize: 'var(--fs-sm)',
-              fontWeight: 500,
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e): void => {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-              e.currentTarget.style.color = 'var(--text-strong)'
-            }}
-            onMouseLeave={(e): void => {
-              e.currentTarget.style.backgroundColor = 'transparent'
-              e.currentTarget.style.color = 'var(--text-secondary)'
-            }}
+            title="Ouvrir dans l’application système (Adobe, Edge…)"
           >
-            <ExternalLinkIcon size={12} />
-            <span>Ouvrir</span>
+            <ExternalLinkIcon size={14} />
+            Ouvrir
           </button>
-
-          {/* Révéler dossier */}
           <button
-            className="hv-color-text-strong"
+            className="eh-icon"
             onClick={handleShowInFolder}
-            title="Afficher dans l'explorateur Windows"
-            style={{
-              width: '28px',
-              height: '28px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: 'transparent',
-              border: '1px solid var(--border-strong)',
-              borderRadius: '6px',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer'
-            }}
+            title="Afficher dans l’explorateur Windows"
+            aria-label="Afficher dans l’explorateur"
           >
             <FolderIcon size={14} />
           </button>
-
-          {/* Supprimer */}
           {onDelete && (
             <button
+              className="eh-icon pv-danger"
               onClick={onDelete}
               title="Mettre ce PDF à la corbeille"
-              style={{
-                width: '28px',
-                height: '28px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: 'transparent',
-                border: '1px solid color-mix(in srgb, var(--danger-strong) 20%, transparent)',
-                borderRadius: '6px',
-                color: 'var(--danger-color)',
-                cursor: 'pointer'
-              }}
+              aria-label="Mettre ce PDF à la corbeille"
             >
-              <TrashIcon size={13} />
+              <TrashIcon size={14} />
             </button>
           )}
-
-          {/* Assistant IA toggle */}
           {onToggleAIWorkspace && (
             <button
+              className="eh-btn eh-assistant"
+              aria-pressed={!!showAIWorkspace}
               onClick={onToggleAIWorkspace}
-              title={`Afficher/masquer ${aiData.name}`}
-              style={{
-                height: '28px',
-                padding: '0 10px',
-                backgroundColor: showAIWorkspace ? `${aiData.color}29` : `${aiData.color}14`,
-                border: `1px solid ${showAIWorkspace ? `${aiData.color}80` : `${aiData.color}40`}`,
-                borderRadius: '6px',
-                color: aiData.color,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: 'var(--fs-sm)',
-                fontWeight: 600,
-                boxShadow: showAIWorkspace ? `0 0 10px ${aiData.color}40` : 'none'
-              }}
+              title={`Afficher ou masquer ${aiData.name}`}
             >
               {aiData.icon}
-              <span>{aiData.name}</span>
+              Assistant
             </button>
           )}
         </div>
