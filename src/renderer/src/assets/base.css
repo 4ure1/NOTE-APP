@@ -52,8 +52,8 @@
   --fs-xl: 18px; /* titres de fenêtre */
   --fs-2xl: 22px; /* grands titres (visite, écrans vides) */
 
-  --font-ui: 'Atkinson Hyperlegible Next', 'Segoe UI', system-ui, sans-serif;
-  --font-title: 'Newsreader', Georgia, serif;
+  --font-ui: 'Inter Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-title: var(--font-ui); /* titres dans la même police, comme Obsidian */
   --font-mono: Consolas, 'Cascadia Code', 'Courier New', monospace;
 
   --danger-color: #f87171;
