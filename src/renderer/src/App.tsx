@@ -18,6 +18,7 @@ import {
   getFileIcon,
   DownloadIcon,
   MessageSquareIcon,
+  SendIcon,
   ClaudeIcon,
   ChatGPTIcon,
   GeminiIcon,
@@ -5262,497 +5263,184 @@ function App() {
                     }
               }
             >
-              {/* Header Toolbar */}
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '0 10px',
-                  backgroundColor: 'var(--sidebar-bg)',
-                  borderBottom: '1px solid var(--border-color)',
-                  height: '36px',
-                  boxSizing: 'border-box',
-                  width: '100%',
-                  gap: '8px'
-                }}
-              >
-                {/* Gauche: Switcher IA interactif (bascule instantanée 0ms) */}
-                <div
-                  role="tablist"
-                  aria-label="Assistant IA"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '2px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                    padding: '2px',
-                    borderRadius: '6px'
-                  }}
-                >
-                  {(['agent', 'claude', 'chatgpt', 'gemini'] as AIProvider[]).map((ai) => {
-                    const isActive = activeAI === ai
-                    return (
-                      <button
-                        key={ai}
-                        role="tab"
-                        aria-selected={isActive}
-                        onClick={() => handleSelectAI(ai)}
-                        title={`Basculer vers ${ai === 'agent' ? 'Agent IA Autonome' : ai.charAt(0).toUpperCase() + ai.slice(1)} (Ctrl+I)`}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '2px 7px',
-                          height: '24px',
-                          borderRadius: '4px',
-                          border: 'none',
-                          backgroundColor: isActive
-                            ? ai === 'agent'
-                              ? 'color-mix(in srgb, var(--success-strong) 22%, transparent)'
-                              : 'rgba(255, 255, 255, 0.12)'
-                            : 'transparent',
-                          color: isActive
-                            ? ai === 'agent'
-                              ? 'var(--success-strong)'
-                              : 'var(--text-strong)'
-                            : 'var(--text-muted)',
-                          // Onglet courant souligné du rouge de marge, comme les modes de l'éditeur
-                          boxShadow: isActive ? 'inset 0 -2px 0 var(--accent-marge)' : 'none',
-                          cursor: 'pointer',
-                          fontSize: 'var(--fs-xs)',
-                          fontWeight: isActive ? 600 : 400,
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        {ai === 'agent' && (
-                          <SparklesIcon size={12} color={isActive ? '#10b981' : 'currentColor'} />
-                        )}
-                        {ai === 'claude' && (
-                          <ClaudeIcon size={12} color={isActive ? '#D97757' : 'currentColor'} />
-                        )}
-                        {ai === 'chatgpt' && (
-                          <ChatGPTIcon
-                            size={12}
-                            style={{ color: isActive ? 'var(--text-strong)' : 'currentColor' }}
-                          />
-                        )}
-                        {ai === 'gemini' && (
-                          <GeminiIcon
-                            size={12}
-                            style={{ color: isActive ? '#4285f4' : 'currentColor' }}
-                          />
-                        )}
-                        <span>
-                          {ai === 'agent'
-                            ? 'Agent'
-                            : ai === 'chatgpt'
-                              ? 'ChatGPT'
-                              : ai.charAt(0).toUpperCase() + ai.slice(1)}
-                        </span>
-                      </button>
-                    )
-                  })}
-                  {spyActive && (
-                    <div
-                      style={{
-                        width: '6px',
-                        height: '6px',
-                        borderRadius: '50%',
-                        backgroundColor: 'var(--success-color)',
-                        boxShadow: '0 0 6px rgba(74, 222, 128, 0.5)',
-                        marginLeft: '4px',
-                        marginRight: '2px'
-                      }}
-                      title={`Spy ${activeAI === 'claude' ? 'Claude' : activeAI === 'chatgpt' ? 'ChatGPT' : 'Gemini'} actif`}
-                    />
-                  )}
-                </div>
+              {/* Onglets des assistants (bascule instantanée, les webviews restent chargées) */}
+              <div className="ai-tabs" role="tablist" aria-label="Assistant IA">
+                {(['claude', 'chatgpt', 'gemini', 'agent'] as AIProvider[]).map((ai) => {
+                  const isActive = activeAI === ai
+                  const label =
+                    ai === 'agent'
+                      ? 'Local'
+                      : ai === 'chatgpt'
+                        ? 'ChatGPT'
+                        : ai.charAt(0).toUpperCase() + ai.slice(1)
+                  return (
+                    <button
+                      key={ai}
+                      className="ai-tab"
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() => handleSelectAI(ai)}
+                      title={`${ai === 'agent' ? 'Agent local (Ollama)' : label} (Ctrl+I pour changer)`}
+                    >
+                      {ai === 'agent' && <SparklesIcon size={14} />}
+                      {ai === 'claude' && <ClaudeIcon size={14} />}
+                      {ai === 'chatgpt' && <ChatGPTIcon size={14} />}
+                      {ai === 'gemini' && <GeminiIcon size={14} />}
+                      <span>{label}</span>
+                    </button>
+                  )
+                })}
+              </div>
 
-                {/* Centre: Notification toast discrète */}
-                {claudeNotification && (
-                  <div
-                    style={{
-                      fontSize: 'var(--fs-xs)',
-                      fontWeight: 500,
-                      color: 'var(--success-color)',
-                      backgroundColor: 'rgba(74, 222, 128, 0.1)',
-                      border: '1px solid rgba(74, 222, 128, 0.25)',
-                      borderRadius: '10px',
-                      padding: '1px 8px',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {claudeNotification}
+              {/* Site ouvert et outils (seulement pour les assistants web) */}
+              <div className="ai-bar">
+                <span className="ai-site">
+                  {activeAI === 'agent'
+                    ? 'Ollama, sur cette machine'
+                    : activeAI === 'claude'
+                      ? 'claude.ai'
+                      : activeAI === 'chatgpt'
+                        ? 'chatgpt.com'
+                        : 'gemini.google.com'}
+                  {spyActive && activeAI !== 'agent' && (
+                    <span className="ai-live" title="Suivi de la conversation actif" />
+                  )}
+                </span>
+                {claudeNotification && <span className="ai-toast">{claudeNotification}</span>}
+                {activeAI !== 'agent' && (
+                  <div className="ai-tools">
+                    <button
+                      className="ai-icon"
+                      aria-label="Page précédente"
+                      title="Page précédente"
+                      onClick={() => {
+                        const wv = getActiveWebview()
+                        if (wv) {
+                          try {
+                            if (typeof wv.canGoBack === 'function' && wv.canGoBack()) {
+                              wv.goBack()
+                            } else {
+                              wv.executeJavaScript('window.history.back()')
+                            }
+                            showClaudeToast('Retour en arrière')
+                          } catch (err) {
+                            console.debug('[App]', err)
+                            try {
+                              wv.executeJavaScript('window.history.back()')
+                            } catch (_) {
+                              console.debug('[App]', _)
+                            }
+                          }
+                        }
+                      }}
+                    >
+                      <ArrowLeftIcon size={14} />
+                    </button>
+                    <button
+                      className="ai-icon"
+                      aria-label="Page suivante"
+                      title="Page suivante"
+                      onClick={() => {
+                        const wv = getActiveWebview()
+                        if (wv) {
+                          try {
+                            if (typeof wv.canGoForward === 'function' && wv.canGoForward()) {
+                              wv.goForward()
+                            } else {
+                              wv.executeJavaScript('window.history.forward()')
+                            }
+                            showClaudeToast('Page suivante')
+                          } catch (err) {
+                            console.debug('[App]', err)
+                            try {
+                              wv.executeJavaScript('window.history.forward()')
+                            } catch (_) {
+                              console.debug('[App]', _)
+                            }
+                          }
+                        }
+                      }}
+                    >
+                      <ArrowRightIcon size={14} />
+                    </button>
+                    <button
+                      className="ai-icon"
+                      aria-label="Recharger"
+                      title={`Recharger ${activeAI === 'claude' ? 'Claude' : activeAI === 'chatgpt' ? 'ChatGPT' : 'Gemini'} (F5)`}
+                      onClick={() => {
+                        if (getActiveWebview()) {
+                          try {
+                            getActiveWebview().reload()
+                            showClaudeToast('Rechargement de la page...')
+                          } catch (_) {
+                            console.debug('[App]', _)
+                          }
+                        }
+                      }}
+                    >
+                      <RotateCwIcon size={14} />
+                    </button>
+                    <button
+                      className="ai-icon"
+                      aria-label="Accueil"
+                      title={`Retour à l'accueil de ${activeAI === 'claude' ? 'Claude' : activeAI === 'chatgpt' ? 'ChatGPT' : 'Gemini'}`}
+                      onClick={() => {
+                        if (getActiveWebview()) {
+                          const url =
+                            activeAI === 'claude'
+                              ? 'https://claude.ai'
+                              : activeAI === 'chatgpt'
+                                ? 'https://chatgpt.com'
+                                : 'https://gemini.google.com/app'
+                          try {
+                            getActiveWebview().loadURL(url)
+                            showClaudeToast("Retour à l'accueil")
+                          } catch (_) {
+                            console.debug('[App]', _)
+                          }
+                        }
+                      }}
+                    >
+                      <HomeIcon size={14} />
+                    </button>
+                    <span className="ai-sep" aria-hidden="true" />
+                    <button
+                      className="ai-icon"
+                      aria-label="Enregistrer la page hors ligne"
+                      title={`Enregistrer la page complète de ${activeAI === 'claude' ? 'Claude' : activeAI === 'chatgpt' ? 'ChatGPT' : 'Gemini'} hors ligne (.html avec styles originaux)`}
+                      onClick={saveClaudePageOfflineHtml}
+                      disabled={isSavingClaudeOffline}
+                    >
+                      <OfflineHtmlIcon size={14} />
+                    </button>
+                    <button
+                      className="ai-icon"
+                      aria-label="Exporter la discussion en Markdown"
+                      title={`Exporter la discussion ${activeAI === 'claude' ? 'Claude' : activeAI === 'chatgpt' ? 'ChatGPT' : 'Gemini'} vers une note Markdown (.md)`}
+                      onClick={exportClaudeDiscussion}
+                      disabled={isExportingClaude}
+                    >
+                      <DownloadIcon size={14} />
+                    </button>
+                    <button
+                      className="ai-icon"
+                      aria-label="Insérer la dernière réponse dans la note"
+                      title={`Insérer la dernière réponse de ${activeAI === 'claude' ? 'Claude' : activeAI === 'chatgpt' ? 'ChatGPT' : 'Gemini'} dans votre note`}
+                      onClick={importLastClaudeMessage}
+                    >
+                      <MessageSquareIcon size={14} />
+                    </button>
+                    <button
+                      className="ai-send"
+                      title={`Envoyer la note actuelle à ${activeAI === 'claude' ? 'Claude' : activeAI === 'chatgpt' ? 'ChatGPT' : 'Gemini'}`}
+                      onClick={() => sendToClaude(fileContent)}
+                      disabled={isSendingToClaude}
+                    >
+                      <SendIcon size={13} />
+                      Envoyer
+                    </button>
                   </div>
                 )}
-
-                {/* Droite: Toolbar d'icônes */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  {/* Sauvegarder la page complète hors-ligne en HTML */}
-                  <button
-                    onClick={saveClaudePageOfflineHtml}
-                    disabled={isSavingClaudeOffline}
-                    title={`Enregistrer la page complète de ${activeAI === 'claude' ? 'Claude' : activeAI === 'chatgpt' ? 'ChatGPT' : 'Gemini'} hors-ligne (.html avec styles originaux)`}
-                    style={{
-                      width: '26px',
-                      height: '26px',
-                      backgroundColor: 'transparent',
-                      border: '1px solid transparent',
-                      borderRadius: '5px',
-                      color: 'var(--text-secondary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: isSavingClaudeOffline ? 'wait' : 'pointer',
-                      transition: 'all 0.15s ease',
-                      opacity: isSavingClaudeOffline ? 0.5 : 1
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-                      e.currentTarget.style.color = 'var(--text-strong)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent'
-                      e.currentTarget.style.color = 'var(--text-secondary)'
-                    }}
-                  >
-                    <OfflineHtmlIcon size={14} />
-                  </button>
-
-                  {/* Exporter Discussion en Markdown */}
-                  <button
-                    onClick={exportClaudeDiscussion}
-                    disabled={isExportingClaude}
-                    title={`Exporter la discussion ${activeAI === 'claude' ? 'Claude' : activeAI === 'chatgpt' ? 'ChatGPT' : 'Gemini'} vers une note Markdown (.md)`}
-                    style={{
-                      width: '26px',
-                      height: '26px',
-                      backgroundColor: 'transparent',
-                      border: '1px solid transparent',
-                      borderRadius: '5px',
-                      color: 'var(--text-secondary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: isExportingClaude ? 'wait' : 'pointer',
-                      transition: 'all 0.15s ease',
-                      opacity: isExportingClaude ? 0.5 : 1
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-                      e.currentTarget.style.color = 'var(--text-strong)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent'
-                      e.currentTarget.style.color = 'var(--text-secondary)'
-                    }}
-                  >
-                    <DownloadIcon size={14} />
-                  </button>
-
-                  {/* Insérer dernière réponse */}
-                  <button
-                    onClick={importLastClaudeMessage}
-                    title={`Insérer la dernière réponse de ${activeAI === 'claude' ? 'Claude' : activeAI === 'chatgpt' ? 'ChatGPT' : 'Gemini'} dans votre note`}
-                    style={{
-                      width: '26px',
-                      height: '26px',
-                      backgroundColor: 'transparent',
-                      border: '1px solid transparent',
-                      borderRadius: '5px',
-                      color: 'var(--text-secondary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-                      e.currentTarget.style.color = 'var(--text-strong)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent'
-                      e.currentTarget.style.color = 'var(--text-secondary)'
-                    }}
-                  >
-                    <MessageSquareIcon size={14} />
-                  </button>
-
-                  {/* Page Précédente (Retour en arrière) */}
-                  <button
-                    onClick={() => {
-                      const wv = getActiveWebview()
-                      if (wv) {
-                        try {
-                          if (typeof wv.canGoBack === 'function' && wv.canGoBack()) {
-                            wv.goBack()
-                          } else {
-                            wv.executeJavaScript('window.history.back()')
-                          }
-                          showClaudeToast('Retour en arrière')
-                        } catch (_) {
-                          try {
-                            wv.executeJavaScript('window.history.back()')
-                          } catch (_) {
-                            console.debug('[App]', _)
-                          }
-                        }
-                      }
-                    }}
-                    title="Page précédente (Retour en arrière)"
-                    style={{
-                      width: '26px',
-                      height: '26px',
-                      backgroundColor: 'transparent',
-                      border: '1px solid transparent',
-                      borderRadius: '5px',
-                      color: 'var(--text-secondary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-                      e.currentTarget.style.color = 'var(--text-strong)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent'
-                      e.currentTarget.style.color = 'var(--text-secondary)'
-                    }}
-                  >
-                    <ArrowLeftIcon size={13} />
-                  </button>
-
-                  {/* Page Suivante */}
-                  <button
-                    onClick={() => {
-                      const wv = getActiveWebview()
-                      if (wv) {
-                        try {
-                          if (typeof wv.canGoForward === 'function' && wv.canGoForward()) {
-                            wv.goForward()
-                          } else {
-                            wv.executeJavaScript('window.history.forward()')
-                          }
-                          showClaudeToast('Page suivante')
-                        } catch (_) {
-                          try {
-                            wv.executeJavaScript('window.history.forward()')
-                          } catch (_) {
-                            console.debug('[App]', _)
-                          }
-                        }
-                      }
-                    }}
-                    title="Page suivante"
-                    style={{
-                      width: '26px',
-                      height: '26px',
-                      backgroundColor: 'transparent',
-                      border: '1px solid transparent',
-                      borderRadius: '5px',
-                      color: 'var(--text-secondary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-                      e.currentTarget.style.color = 'var(--text-strong)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent'
-                      e.currentTarget.style.color = 'var(--text-secondary)'
-                    }}
-                  >
-                    <ArrowRightIcon size={13} />
-                  </button>
-
-                  {/* Recharger */}
-                  <button
-                    onClick={() => {
-                      if (getActiveWebview()) {
-                        try {
-                          getActiveWebview().reload()
-                          showClaudeToast('Rechargement de la page...')
-                        } catch (_) {
-                          console.debug('[App]', _)
-                        }
-                      }
-                    }}
-                    title={`Recharger ${activeAI === 'claude' ? 'Claude' : activeAI === 'chatgpt' ? 'ChatGPT' : 'Gemini'} (F5)`}
-                    style={{
-                      width: '26px',
-                      height: '26px',
-                      backgroundColor: 'transparent',
-                      border: '1px solid transparent',
-                      borderRadius: '5px',
-                      color: 'var(--text-secondary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-                      e.currentTarget.style.color = 'var(--text-strong)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent'
-                      e.currentTarget.style.color = 'var(--text-secondary)'
-                    }}
-                  >
-                    <RotateCwIcon size={13} />
-                  </button>
-
-                  {/* Accueil */}
-                  <button
-                    onClick={() => {
-                      if (getActiveWebview()) {
-                        const url =
-                          activeAI === 'claude'
-                            ? 'https://claude.ai'
-                            : activeAI === 'chatgpt'
-                              ? 'https://chatgpt.com'
-                              : 'https://gemini.google.com/app'
-                        try {
-                          getActiveWebview().loadURL(url)
-                          showClaudeToast("Retour à l'accueil")
-                        } catch (_) {
-                          console.debug('[App]', _)
-                        }
-                      }
-                    }}
-                    title={`Retour à l'accueil de ${activeAI === 'claude' ? 'Claude' : activeAI === 'chatgpt' ? 'ChatGPT' : 'Gemini'}`}
-                    style={{
-                      width: '26px',
-                      height: '26px',
-                      backgroundColor: 'transparent',
-                      border: '1px solid transparent',
-                      borderRadius: '5px',
-                      color: 'var(--text-secondary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
-                      e.currentTarget.style.color = 'var(--text-strong)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent'
-                      e.currentTarget.style.color = 'var(--text-secondary)'
-                    }}
-                  >
-                    <HomeIcon size={13} />
-                  </button>
-
-                  {/* Séparateur fin */}
-                  <div
-                    style={{
-                      width: '1px',
-                      height: '14px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                      margin: '0 2px'
-                    }}
-                  />
-
-                  {/* Bouton Envoyer */}
-                  <button
-                    onClick={() => sendToClaude(fileContent)}
-                    disabled={isSendingToClaude}
-                    title={`Envoyer la note actuelle à ${activeAI === 'claude' ? 'Claude' : activeAI === 'chatgpt' ? 'ChatGPT' : 'Gemini'}`}
-                    style={{
-                      height: '26px',
-                      padding: '0 9px',
-                      backgroundColor:
-                        activeAI === 'claude'
-                          ? 'rgba(217, 119, 87, 0.12)'
-                          : activeAI === 'chatgpt'
-                            ? 'rgba(255, 255, 255, 0.10)'
-                            : 'rgba(66, 133, 244, 0.12)',
-                      border:
-                        activeAI === 'claude'
-                          ? '1px solid rgba(217, 119, 87, 0.28)'
-                          : activeAI === 'chatgpt'
-                            ? '1px solid rgba(255, 255, 255, 0.25)'
-                            : '1px solid rgba(66, 133, 244, 0.28)',
-                      borderRadius: '5px',
-                      color:
-                        activeAI === 'claude'
-                          ? '#e88d71'
-                          : activeAI === 'chatgpt'
-                            ? 'var(--text-strong)'
-                            : '#60a5fa',
-                      fontSize: 'var(--fs-sm)',
-                      fontWeight: 500,
-                      cursor: isSendingToClaude ? 'wait' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      transition: 'all 0.15s ease',
-                      opacity: isSendingToClaude ? 0.6 : 1
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        activeAI === 'claude'
-                          ? 'rgba(217, 119, 87, 0.22)'
-                          : activeAI === 'chatgpt'
-                            ? 'rgba(255, 255, 255, 0.18)'
-                            : 'rgba(66, 133, 244, 0.22)'
-                      e.currentTarget.style.borderColor =
-                        activeAI === 'claude'
-                          ? 'rgba(217, 119, 87, 0.45)'
-                          : activeAI === 'chatgpt'
-                            ? 'rgba(255, 255, 255, 0.45)'
-                            : 'rgba(66, 133, 244, 0.45)'
-                      e.currentTarget.style.color =
-                        activeAI === 'claude'
-                          ? '#f7a992'
-                          : activeAI === 'chatgpt'
-                            ? '#ffffff'
-                            : '#93c5fd'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        activeAI === 'claude'
-                          ? 'rgba(217, 119, 87, 0.12)'
-                          : activeAI === 'chatgpt'
-                            ? 'rgba(255, 255, 255, 0.10)'
-                            : 'rgba(66, 133, 244, 0.12)'
-                      e.currentTarget.style.borderColor =
-                        activeAI === 'claude'
-                          ? '1px solid rgba(217, 119, 87, 0.28)'
-                          : activeAI === 'chatgpt'
-                            ? '1px solid rgba(255, 255, 255, 0.25)'
-                            : 'rgba(66, 133, 244, 0.28)'
-                      e.currentTarget.style.color =
-                        activeAI === 'claude'
-                          ? '#e88d71'
-                          : activeAI === 'chatgpt'
-                            ? '#ffffff'
-                            : '#60a5fa'
-                    }}
-                  >
-                    {activeAI === 'claude' ? (
-                      <ClaudeIcon size={12} color="currentColor" />
-                    ) : activeAI === 'chatgpt' ? (
-                      <ChatGPTIcon size={12} style={{ color: 'currentColor' }} />
-                    ) : (
-                      <GeminiIcon size={12} style={{ color: 'currentColor' }} />
-                    )}
-                    <span>Envoyer</span>
-                  </button>
-                </div>
               </div>
 
               {/* Webviews Container: 3 instances permanentes, affichage instantané sans rechargement */}
