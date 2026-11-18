@@ -876,3 +876,65 @@ export function CapIcon({ size = 15, strokeWidth = 1.8, ...props }: IconProps): 
     </svg>
   )
 }
+
+function strokeIcon(paths: React.ReactNode) {
+  return function Icon({ size = 15, strokeWidth = 1.8, ...props }: IconProps): React.JSX.Element {
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        {...props}
+      >
+        {paths}
+      </svg>
+    )
+  }
+}
+
+/** Avertissement (triangle) */
+export const AlertIcon = strokeIcon(
+  <>
+    <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+    <path d="M12 9v4M12 17h.01" />
+  </>
+)
+
+export const GlobeIcon = strokeIcon(
+  <>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+  </>
+)
+
+/** Outils (clé) */
+export const WrenchIcon = strokeIcon(
+  <path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3 17.8V21h3.2l6.3-6.3a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.5-.7-.7-2.5z" />
+)
+
+/** Chargement (cercle ouvert, à faire tourner en CSS) */
+export const LoaderIcon = strokeIcon(<path d="M21 12a9 9 0 1 1-6.2-8.6" />)
+
+/** Revenir à une version (flèche de retour) */
+export const UndoIcon = strokeIcon(
+  <>
+    <path d="M3 7v6h6" />
+    <path d="M3 13a9 9 0 1 0 3-6.7L3 9" />
+  </>
+)
+
+export const ShieldIcon = strokeIcon(<path d="M12 3 4 6v6c0 5 3.4 8.4 8 9 4.6-.6 8-4 8-9V6z" />)
+
+/** Mode zen (lune) déjà : MoonIcon. Fichier Word : document à lignes. */
+export const DocIcon = strokeIcon(
+  <>
+    <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+    <path d="M14 3v6h6M8 13h8M8 17h8" />
+  </>
+)

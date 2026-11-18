@@ -466,7 +466,7 @@ export default function EditorHeader({
                         aria-hidden="true"
                         style={{ width: '12px', color: 'var(--accent-marge)', fontWeight: 700 }}
                       >
-                        {entry.checked ? '✓' : ''}
+                        {entry.checked ? <CheckIcon size={12} /> : null}
                       </span>
                       <span style={{ flex: 1 }}>{entry.label}</span>
                       {entry.hint && (

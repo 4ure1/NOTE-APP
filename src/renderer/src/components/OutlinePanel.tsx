@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { OutlineHeading, buildOutlineTree, OutlineTreeNode } from '../utils/outlineExtractor'
-import { ChevronDown, ChevronRight, XIcon } from './Icons'
+import { ChevronDown, ChevronRight, XIcon, OutlineIcon } from './Icons'
 
 export type OutlinePosition = 'left' | 'right'
 
@@ -368,7 +368,7 @@ export default function OutlinePanel({
               gap: '10px'
             }}
           >
-            <span style={{ fontSize: 'var(--fs-2xl)' }}>📑</span>
+            <OutlineIcon size={24} />
             <span>Aucun titre dans cette note</span>
             <span style={{ fontSize: 'var(--fs-xs)', color: '#475569', lineHeight: 1.4 }}>
               Ajoutez des balises &lt;h1&gt; à &lt;h6&gt; ou des dièses (#) en Markdown pour générer

@@ -116,12 +116,13 @@
     },
     {
       "prefix": "divider",
-      "name": "Séparateur ⸻",
-      "description": "Ligne décorative centrée",
+      "name": "Séparateur de chapitre",
+      "description": "Ligne pleine largeur avec le titre du chapitre ; nouvelle page à l'export PDF",
       "category": "Structure",
       "scope": "html",
       "body": [
-        "<div class=\"divider\">⸻</div>"
+        "<div class=\"chapter-break\">${1:Chapitre}</div>",
+        "$0"
       ],
       "id": "divider"
     },

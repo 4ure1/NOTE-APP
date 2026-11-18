@@ -1,7 +1,7 @@
 import React, { useId, useState, type ReactNode } from 'react'
 import { NoteTemplate, SessionSuggestion } from '../utils/sessionDetector'
 import Modal from './Modal'
-import { FolderIcon, HtmlIcon, MarkdownIcon, XIcon, CheckIcon } from './Icons'
+import { FolderIcon, HtmlIcon, MarkdownIcon, XIcon, CheckIcon, CapIcon } from './Icons'
 
 export interface NewSessionModalProps {
   isOpen: boolean
@@ -131,9 +131,7 @@ export default function NewSessionModal({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span aria-hidden="true" style={{ fontSize: 'var(--fs-xl)' }}>
-            🎓
-          </span>
+          <CapIcon size={20} />
           <div>
             <div
               id={`${fid}-title`}

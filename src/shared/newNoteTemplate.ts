@@ -55,7 +55,7 @@ export function buildNewHtmlNote(fileTitle: string, notePath: string): string {
   <p><br></p>
 
   <a class="nf-credit" href="${REPOSITORY}">
-    <span class="nf-credit-logo">✦</span>
+    <span class="nf-credit-logo"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></span>
     <span class="nf-credit-text">
       <strong>Créé avec <span class="nf-credit-name">NOTE-APP</span></strong>
       <span>par ${AUTHOR} · retrouve le projet sur GitHub</span>

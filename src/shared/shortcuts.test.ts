@@ -34,7 +34,9 @@ describe('raccourcis par défaut', () => {
 
   it('Ctrl+F n’est plus pris : il reste à la recherche de l’éditeur', () => {
     expect(matchShortcut(DEFAULT_SHORTCUTS, key('f', { ctrl: true }))).toBeUndefined()
-    expect(matchShortcut(DEFAULT_SHORTCUTS, key('F11'))?.actionId).toBe('toggle-fullscreen')
+    expect(matchShortcut(DEFAULT_SHORTCUTS, key('F', { ctrl: true, shift: true }))?.actionId).toBe(
+      'toggle-fullscreen'
+    )
   })
 })
 
@@ -56,7 +58,7 @@ describe('mergeShortcuts', () => {
     expect(new Set(merged.map((m) => m.uuid)).size).toBe(merged.length)
   })
 
-  it('l’ancien Ctrl+F du plein écran devient F11', () => {
+  it('l’ancien Ctrl+F (et F11) du plein écran devient Ctrl+Maj+F', () => {
     const merged = mergeShortcuts([
       {
         uuid: '6',
@@ -68,8 +70,23 @@ describe('mergeShortcuts', () => {
       }
     ])
     expect(merged.find((m) => m.actionId === 'toggle-fullscreen')).toMatchObject({
-      key: 'F11',
-      ctrlKey: false
+      key: 'f',
+      ctrlKey: true,
+      shiftKey: true
+    })
+    const fromF11 = mergeShortcuts([
+      {
+        uuid: '6',
+        actionId: 'toggle-fullscreen',
+        key: 'F11',
+        ctrlKey: false,
+        shiftKey: false,
+        altKey: false
+      }
+    ])
+    expect(fromF11.find((m) => m.actionId === 'toggle-fullscreen')).toMatchObject({
+      key: 'f',
+      shiftKey: true
     })
   })
 

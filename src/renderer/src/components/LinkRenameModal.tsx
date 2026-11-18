@@ -1,6 +1,7 @@
 import { useId, useState, type ReactNode } from 'react'
 import { RenameOperationPlan } from '../../../../src/shared/linkUpdater'
 import Modal from './Modal'
+import { ArrowRightIcon, AlertIcon, ShieldIcon } from './Icons'
 
 interface LinkRenameModalProps {
   isOpen: boolean
@@ -71,7 +72,7 @@ export default function LinkRenameModal({
             <span style={{ color: 'var(--danger-strong)', textDecoration: 'line-through' }}>
               {plan.oldPath}
             </span>
-            {' ➔ '}
+            <ArrowRightIcon size={13} style={{ verticalAlign: '-2px', margin: '0 6px' }} />
             <span style={{ color: 'var(--accent-color)', fontWeight: 500 }}>{plan.newPath}</span>
           </div>
         </div>
@@ -120,7 +121,7 @@ export default function LinkRenameModal({
               gap: '10px'
             }}
           >
-            <span style={{ fontSize: 'var(--fs-xl)' }}>⚠️</span>
+            <AlertIcon size={20} />
             <div>
               <strong>Collision détectée :</strong> {plan.collisionError}
             </div>
@@ -292,7 +293,8 @@ export default function LinkRenameModal({
         )}
 
         <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-          🛡️ <strong>Sécurité garantie :</strong> chaque note modifiée fait l&apos;objet d&apos;un
+          <ShieldIcon size={13} style={{ verticalAlign: '-2px', marginRight: '6px' }} />
+          <strong>Sécurité garantie :</strong> chaque note modifiée fait l&apos;objet d&apos;un
           instantané dans l&apos;historique des versions. Vous disposerez également d&apos;un bouton
           immédiat pour annuler ce renommage en un clic.
         </div>

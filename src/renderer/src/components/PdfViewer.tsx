@@ -19,7 +19,9 @@ import {
   FolderIcon,
   SparklesIcon,
   ArrowLeftIcon,
-  ArrowRightIcon
+  ArrowRightIcon,
+  PinIcon,
+  XIcon
 } from './Icons'
 import {
   PdfAnnotation,
@@ -914,7 +916,7 @@ export default function PdfViewer({
         persistAnnotations(updatedList)
       }
 
-      onShowToast?.(`Extrait inséré dans "${destNote.split('/').pop()}" 📌`)
+      onShowToast?.(`Extrait inséré dans « ${destNote.split('/').pop()} »`)
       window.getSelection()?.removeAllRanges()
       setSendToNoteTarget(null)
       setQuoteComment('')
@@ -1332,7 +1334,7 @@ export default function PdfViewer({
                 'color-mix(in srgb, var(--accent-color) 12%, transparent)'
             }}
           >
-            <span>📌</span>
+            <PinIcon size={13} />
             <span>Envoyer vers la note</span>
           </button>
 
@@ -1440,7 +1442,8 @@ export default function PdfViewer({
               padding: '2px 6px'
             }}
           >
-            <span>📌 Note</span>
+            <PinIcon size={13} />
+            <span>Note</span>
           </button>
 
           {/* Copier */}
@@ -1520,7 +1523,7 @@ export default function PdfViewer({
                 gap: '8px'
               }}
             >
-              <span>📌</span>
+              <PinIcon size={14} />
               <span>Insérer l&apos;extrait dans une note (p. {sendToNoteTarget.pageNumber})</span>
             </h3>
             <button
@@ -1532,8 +1535,9 @@ export default function PdfViewer({
                 cursor: 'pointer',
                 fontSize: 'var(--fs-lg)'
               }}
+              aria-label="Fermer"
             >
-              ✕
+              <XIcon size={14} />
             </button>
           </div>
 
@@ -1588,7 +1592,10 @@ export default function PdfViewer({
                   marginBottom: '10px'
                 }}
               >
-                <span>📌 Insérer dans la note active : {lastActiveNote.split('/').pop()}</span>
+                <span>
+                  <PinIcon size={13} style={{ verticalAlign: '-2px', marginRight: '6px' }} />
+                  Insérer dans la note active : {lastActiveNote.split('/').pop()}
+                </span>
                 <span style={{ fontSize: 'var(--fs-xs)', opacity: 0.8 }}>Entrée ↵</span>
               </button>
             )}

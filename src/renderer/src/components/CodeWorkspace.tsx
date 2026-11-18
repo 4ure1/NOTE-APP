@@ -29,6 +29,7 @@ import { installCanvasEditor } from '../utils/canvasEditor'
 import { installBlockDrag } from '../utils/blockDrag'
 import { createUndoHistory } from '../utils/undoHistory'
 import { installTableTools } from '../utils/tableTools'
+import { installFormatToolbar } from '../utils/formatToolbar'
 import { sanitizePastedHtml } from '../utils/pasteSanitize'
 import { rankSnippets } from '../utils/snippetRanking'
 import { notesThemeHref } from '../utils/notesTheme'
@@ -478,6 +479,7 @@ export const prepareHtmlPreview = (
         // Tableaux (sélection de cases, clic droit : fond, lignes, colonnes) et couleur des cartes :
         // src/shared/tableTools.ts (fonction autonome)
         var installTableTools = ${installTableTools.toString()};
+        var installFormatToolbar = ${installFormatToolbar.toString()};
         // Collage riche nettoyé : src/shared/pasteSanitize.ts (fonction autonome)
         var sanitizePastedHtml = ${sanitizePastedHtml.toString()};
         // Défilement voulu par l'utilisateur : source de src/shared/scrollIntent.ts (fonction autonome)
@@ -552,6 +554,12 @@ export const prepareHtmlPreview = (
         installCanvasEditor(document, {
           geometry: createCanvasGeometry(),
           onChange: emitDocChange,
+          beforeChange: function() { recordUndo('edit'); },
+          isEnabled: function() { return isLiveEditEnabled; }
+        });
+        // Barre de mise en forme au-dessus d'un texte sélectionné (src/shared/formatToolbar.ts)
+        installFormatToolbar(document, {
+          onChange: function() { updateEditingColorOutline(); emitDocChange(); },
           beforeChange: function() { recordUndo('edit'); },
           isEnabled: function() { return isLiveEditEnabled; }
         });
@@ -825,9 +833,14 @@ export const prepareHtmlPreview = (
         var choiceIndex = 0;
         // Suivi et surlignage de la balise de couleur en cours d'édition
         var activeColoredEl = null;
-        var COLOR_CLASSES = ['b', 't', 'y', 'o', 'l', 'g', 'p', 'a', 'r', 'base', 'k', 'f', 's', 'n', 'c', 'keyword', 'kw'];
+        // Espace insécable posée en bout de ligne à la sortie d'une coloration : redevient une espace
+        // ordinaire dès qu'un caractère est tapé après elle (sinon « &nbsp; » resterait dans le code)
+        var pendingExitNbsp = null;
+        var COLOR_CLASSES = ['b', 't', 'y', 'o', 'l', 'g', 'p', 'a', 'r', 'base', 'k', 'f', 's', 'n', 'c', 'keyword', 'kw',
+          'hl-yellow', 'hl-green', 'hl-blue', 'hl-pink', 'hl-orange', 'ff-serif', 'ff-sans', 'ff-mono',
+          'fs-small', 'fs-large', 'fs-xlarge'];
         // Éléments en ligne qui portent une couleur ou une mise en forme (/h…, /g…, /couleur, /hblank)
-        var INLINE_FORMAT_NAMES = ['SPAN', 'MARK', 'CODE', 'FONT', 'STRONG', 'EM', 'B', 'I'];
+        var INLINE_FORMAT_NAMES = ['SPAN', 'MARK', 'CODE', 'FONT', 'STRONG', 'EM', 'B', 'I', 'U'];
 
         function findColoredAncestor(node) {
           if (!node || node === document.body) return null;
@@ -892,11 +905,12 @@ export const prepareHtmlPreview = (
             var prevOffset = 0;
             if (prev && prev.nodeType === 3) {
               var pVal = prev.nodeValue || '';
-              if (/[\s\u00A0]$/.test(pVal)) {
+              if (/[\\s\u00A0]$/.test(pVal)) {
                 prevNode = prev;
                 prevOffset = pVal.length;
               } else {
-                prev.nodeValue = pVal + '\u00A0';
+                // Au milieu du texte, une espace ordinaire suffit (pas de &nbsp; dans le code)
+                prev.nodeValue = pVal + ' ';
                 prevNode = prev;
                 prevOffset = prev.nodeValue.length;
               }
@@ -914,18 +928,22 @@ export const prepareHtmlPreview = (
 
             if (next && next.nodeType === 3) {
               var val = next.nodeValue || '';
-              if (/^[\s\u00A0]/.test(val)) {
+              if (/^[\\s\u00A0]/.test(val)) {
                 targetNode = next;
                 targetOffset = 1;
               } else {
-                next.nodeValue = '\u00A0' + val;
+                // Du texte suit : une espace ordinaire, qui reste visible entre deux mots
+                next.nodeValue = ' ' + val;
                 targetNode = next;
                 targetOffset = 1;
               }
             } else {
+              // Bout de ligne : une espace insécable (une espace ordinaire n'y serait pas visible),
+              // redevenue ordinaire dès qu'on tape après elle (pendingExitNbsp)
               targetNode = document.createTextNode('\u00A0');
               parent.insertBefore(targetNode, next || null);
               targetOffset = 1;
+              pendingExitNbsp = targetNode;
             }
 
             r.setStart(targetNode, targetOffset);
@@ -1108,15 +1126,16 @@ export const prepareHtmlPreview = (
             var targetNode = null;
             if (next && next.nodeType === 3) {
               var val = next.nodeValue || '';
-              if (/^[\s\u00A0]/.test(val)) {
+              if (/^[\\s\u00A0]/.test(val)) {
                 targetNode = next;
               } else {
-                next.nodeValue = '\u00A0' + val;
+                next.nodeValue = ' ' + val;
                 targetNode = next;
               }
             } else {
               targetNode = document.createTextNode('\u00A0');
               parent.insertBefore(targetNode, marker);
+              pendingExitNbsp = targetNode;
             }
             parent.removeChild(marker);
             r.setStart(targetNode, 1);
@@ -1870,6 +1889,17 @@ export const prepareHtmlPreview = (
           }
           // Couleur reprise par Entrée : dès qu'elle contient du texte, l'espace invisible qui la tenait part
           previewEditing.settleCarry(document);
+          if (pendingExitNbsp) {
+            var nb = pendingExitNbsp;
+            var nbv = nb.nodeValue || '';
+            if (!nb.parentNode || nbv.charAt(0) !== '\u00A0') {
+              pendingExitNbsp = null;
+            } else if (nbv.length > 1 && !/\\s/.test(nbv.charAt(1))) {
+              // replaceData garde le curseur après le caractère tapé
+              nb.replaceData(0, 1, ' ');
+              pendingExitNbsp = null;
+            }
+          }
           if (snippetSession) {
             var anchor = window.getSelection() ? window.getSelection().anchorNode : null;
             var position = fieldPositionOf(anchor);
@@ -3270,9 +3300,15 @@ export default function CodeWorkspace({
 
                 // Échap dans Monaco : sortie du plein écran. Les raccourcis de l'app passent par la fenêtre
                 // (phase de capture, App.tsx) ; Ctrl+F reste la recherche de Monaco
-                editor.addCommand(monaco.KeyCode.Escape, () => {
-                  window.parent.postMessage({ type: 'HTML_EXIT_FULLSCREEN' }, '*')
-                })
+                // Seulement quand aucune boîte de Monaco n'est ouverte : sinon Échap doit fermer la
+                // recherche (Ctrl+F), les suggestions ou le renommage, comme d'habitude
+                editor.addCommand(
+                  monaco.KeyCode.Escape,
+                  () => {
+                    window.parent.postMessage({ type: 'HTML_EXIT_FULLSCREEN' }, '*')
+                  },
+                  '!findWidgetVisible && !suggestWidgetVisible && !renameInputVisible && !parameterHintsVisible && !inSnippetMode'
+                )
 
                 // Raccourci Shift+Alt+F pour formater et indenter proprement tout le code HTML
                 editor.addAction({

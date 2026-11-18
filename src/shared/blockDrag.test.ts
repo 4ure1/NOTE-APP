@@ -151,3 +151,31 @@ describe('installBlockDrag : sélection de blocs', () => {
     expect(document.querySelector('table')).toBeNull()
   })
 })
+
+describe('dépôt dans une case de tableau', () => {
+  it('une liste déjà créée entre dans une case vide (le <br> de la case part)', () => {
+    container().insertAdjacentHTML(
+      'beforeend',
+      '<ul class="moi"><li>a</li><li>b</li></ul><table><tr><td class="vide"><br></td></tr></table>'
+    )
+    const list = document.querySelector('ul.moi')!
+    const cell = document.querySelector('td.vide')!
+    expect(drag.moveIntoCell(list, cell)).toBe(true)
+    expect(cell.innerHTML).toBe('<ul class="moi"><li>a</li><li>b</li></ul>')
+  })
+
+  it('s’ajoute après le texte d’une case déjà remplie', () => {
+    container().insertAdjacentHTML(
+      'beforeend',
+      '<p class="moi">note</p><table><tr><td class="pleine">texte</td></tr></table>'
+    )
+    const cell = document.querySelector('td.pleine')!
+    drag.moveIntoCell(document.querySelector('p.moi')!, cell)
+    expect(cell.innerHTML).toBe('texte<p class="moi">note</p>')
+  })
+
+  it('refuse de poser un bloc dans lui-même', () => {
+    const td = document.querySelector('td')!
+    expect(drag.moveIntoCell(document.querySelector('table')!, td)).toBe(false)
+  })
+})

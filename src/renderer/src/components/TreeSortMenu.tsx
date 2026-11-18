@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { DEFAULT_TREE_SORT, nextTreeSort, type TreeSort, type TreeSortKey } from '../utils/treeSort'
-import { SortIcon } from './Icons'
+import { SortIcon, CheckIcon } from './Icons'
 
 interface TreeSortMenuProps {
   sort: TreeSort
@@ -148,7 +148,7 @@ export default function TreeSortMenu({ sort, onChange }: TreeSortMenuProps): Rea
                   aria-hidden="true"
                   style={{ width: '12px', color: 'var(--text-strong)', fontWeight: 700 }}
                 >
-                  {active ? '✓' : ''}
+                  {active ? <CheckIcon size={12} /> : null}
                 </span>
                 <span style={{ flex: 1 }}>{option.label}</span>
                 {active && (

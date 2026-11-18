@@ -55,6 +55,8 @@
   --font-ui: 'Inter Variable', 'Segoe UI', system-ui, sans-serif;
   --font-title: var(--font-ui); /* titres dans la même police, comme Obsidian */
   --font-mono: Consolas, 'Cascadia Code', 'Courier New', monospace;
+  /* Police du texte des notes (Paramètres › Apparence), réécrite par utils/appTheme.ts */
+  --note-font: Georgia, Cambria, 'Times New Roman', serif;
 
   --danger-color: #f87171;
   --danger-bg-hover: rgba(248, 113, 113, 0.12);

@@ -841,6 +841,18 @@ export default function Sidebar({
                         if (setActiveView) setActiveView('all')
                         onSelectFiles([favPath])
                       }}
+                      // Clic droit (ou touche Menu) : mêmes actions que dans l'arbre, dont « Retirer des favoris »
+                      onContextMenu={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        setContextMenu({
+                          x: e.clientX,
+                          y: e.clientY,
+                          itemPath: favPath,
+                          isFolder: false
+                        })
+                      }}
+                      title="Clic droit : retirer des favoris, renommer, déplacer…"
                     >
                       <PinIcon size={14} />
                       <span className="sb-label">{cleanName}</span>
@@ -1138,8 +1150,8 @@ export default function Sidebar({
                     setContextMenu(null)
                   }}
                 >
-                  <span>🎓</span>
-                  <span>Nouvelle séance...</span>
+                  <CapIcon size={13} />
+                  <span>Nouvelle séance…</span>
                 </div>
               )}
               <div

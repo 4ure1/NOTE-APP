@@ -450,3 +450,23 @@ kbd{
 @media (max-width: 560px){
   .nf-credit-cta{ display:none; }
 }
+
+/* Séparateur de chapitres (/divider) : ligne sur toute la largeur, titre du chapitre au centre.
+   À l'impression et à l'export PDF, chaque chapitre commence sur une nouvelle page. */
+.chapter-break{ display:flex; align-items:center; gap:16px; margin:56px 0 28px; color: var(--text-dim); font-family:'Trebuchet MS', sans-serif; font-size:0.85em; letter-spacing:0.04em; }
+.chapter-break::before, .chapter-break::after{ content:''; flex:1; height:1px; background: var(--border); }
+.chapter-break:empty{ gap:0; }
+@media print{ .chapter-break{ break-before: page; margin-top:0; } }
+
+/* Mise en forme d'un texte sélectionné dans l'aperçu (barre de mise en forme) */
+.hl-yellow{ background: rgba(220,220,170,0.28); border-radius:3px; }
+.hl-green{ background: rgba(106,153,85,0.32); border-radius:3px; }
+.hl-blue{ background: rgba(79,193,255,0.24); border-radius:3px; }
+.hl-pink{ background: rgba(197,134,192,0.28); border-radius:3px; }
+.hl-orange{ background: rgba(206,145,120,0.3); border-radius:3px; }
+.ff-serif{ font-family: Georgia, Cambria, 'Times New Roman', serif; }
+.ff-sans{ font-family: 'Trebuchet MS', 'Segoe UI', sans-serif; }
+.ff-mono{ font-family: Consolas, 'Courier New', monospace; }
+.fs-small{ font-size: 0.85em; }
+.fs-large{ font-size: 1.2em; }
+.fs-xlarge{ font-size: 1.45em; }

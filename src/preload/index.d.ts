@@ -56,10 +56,10 @@ interface CustomAPI {
   openInBrowser: (relativePath: string) => Promise<boolean>
   openExternalUrl: (url: string) => Promise<boolean>
   // Premier lancement : dossier de notes (relance l'app s'il change) et visite guidée
-  setTitleBarColors: (
-    color: string,
-    symbolColor: string
-  ) => Promise<{ success: true } | { success: false; error: string }>
+  windowControl: (
+    action: 'minimize' | 'toggle-maximize' | 'close' | 'state'
+  ) => Promise<{ success: true; maximized: boolean } | { success: false; error: string }>
+  onWindowMaximized: (callback: (maximized: boolean) => void) => () => void
   getAppSetup: () => Promise<{
     success: true
     notesDir: string

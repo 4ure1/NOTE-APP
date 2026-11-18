@@ -1,5 +1,6 @@
 import React, { useId, useState } from 'react'
 import Modal from './Modal'
+import { PdfIcon, DocIcon, GlobeIcon, ShareIcon, XIcon } from './Icons'
 
 interface ExportModalProps {
   isOpen: boolean
@@ -62,21 +63,21 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     {
       id: 'pdf',
       name: 'Document PDF Pro',
-      icon: '📄',
+      icon: <PdfIcon size={20} />,
       desc: 'Mise en page A4 impeccable, numérotation de pages X/Y et application intégrale des styles de votre thème.',
       badge: 'Imprimable'
     },
     {
       id: 'docx',
       name: 'Document Word (.docx)',
-      icon: '📘',
+      icon: <DocIcon size={20} />,
       desc: 'Fichier natif Microsoft Word structuré : Titres H1-H3, listes à puces, blocs de code ombrés et callouts.',
       badge: 'Éditable'
     },
     {
       id: 'html',
       name: 'Page Web autonome (.html)',
-      icon: '🌐',
+      icon: <GlobeIcon size={20} />,
       desc: 'Fichier web 100% autonome avec CSS embarqué, idéal à partager par email ou héberger sans dépendances.',
       badge: 'Léger'
     }
@@ -96,9 +97,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span aria-hidden="true" style={{ fontSize: 'var(--fs-xl)' }}>
-            🚀
-          </span>
+          <ShareIcon size={20} />
           <h3
             id={titleId}
             style={{ margin: 0, fontSize: 'var(--fs-lg)', color: 'var(--text-strong)' }}
@@ -118,7 +117,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             cursor: 'pointer'
           }}
         >
-          <span aria-hidden="true">✕</span>
+          <XIcon size={14} />
         </button>
       </div>
 

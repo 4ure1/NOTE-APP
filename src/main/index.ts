@@ -1201,11 +1201,12 @@ function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    show: true,
+    show: false,
     autoHideMenuBar: true,
-    // Barre de titre intégrée : le renderer dessine la bande (TitleBar.tsx), Windows les boutons
-    titleBarStyle: 'hidden',
-    titleBarOverlay: { color: '#19191a', symbolColor: '#b0afab', height: 32 },
+    // Sans cadre : la barre du haut et ses boutons sont dessinés par l'app (TitleBar.tsx), cachée
+    // tant que la souris ne touche pas le bord haut
+    frame: false,
+    backgroundColor: '#19191a',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -1226,9 +1227,17 @@ function createWindow(): void {
     })
   }
 
+  // Ouverture agrandie : l'app occupe tout l'écran sauf la barre des tâches
   mainWindow.on('ready-to-show', () => {
+    mainWindow.maximize()
     mainWindow.show()
   })
+  const sendMaximized = (): void => {
+    if (!mainWindow.isDestroyed())
+      mainWindow.webContents.send('window-maximized', mainWindow.isMaximized())
+  }
+  mainWindow.on('maximize', sendMaximized)
+  mainWindow.on('unmaximize', sendMaximized)
 
   // Synchronisation du plein écran et capture inconditionnelle de Escape
   mainWindow.on('enter-full-screen', () => {
@@ -1739,28 +1748,19 @@ ipcMain.handle('set-shortcut-keys', (event, combos: unknown) => {
   return { success: true }
 })
 
-// Couleurs des boutons de fenêtre dessinés par Windows : suivent le thème de l'app
-ipcMain.handle('set-title-bar-colors', (event, color: unknown, symbolColor: unknown) => {
+// Boutons de la barre du haut (fenêtre sans cadre) : réduire, agrandir ou restaurer, fermer
+ipcMain.handle('window-control', (event, action: unknown) => {
   const win = globalMainWindow
   if (!win || win.isDestroyed() || event.sender !== win.webContents) {
     return { success: false, error: 'Fenêtre indisponible.' }
   }
-  const hex = /^#[0-9a-f]{6}$/i
-  if (
-    typeof color !== 'string' ||
-    typeof symbolColor !== 'string' ||
-    !hex.test(color) ||
-    !hex.test(symbolColor)
-  ) {
-    return { success: false, error: 'Couleur invalide.' }
-  }
-  try {
-    win.setTitleBarOverlay({ color, symbolColor, height: 32 })
-    return { success: true }
-  } catch (err) {
-    console.error('[TitleBar]', err)
-    return { success: false, error: err instanceof Error ? err.message : String(err) }
-  }
+  if (action === 'minimize') win.minimize()
+  else if (action === 'toggle-maximize') {
+    if (win.isMaximized()) win.unmaximize()
+    else win.maximize()
+  } else if (action === 'close') win.close()
+  else if (action !== 'state') return { success: false, error: 'Action inconnue.' }
+  return { success: true, maximized: win.isMaximized() }
 })
 
 ipcMain.handle('get-app-setup', () => {
@@ -2370,7 +2370,7 @@ const DEFAULT_COURSE_TEMPLATE_HTML = `<!DOCTYPE html>
     <p class="lead">Objectifs pédagogiques et notions clés de la séance \${SESSION_NUMBER}.</p>
 
     <div class="callout callout-info">
-      <div class="callout-title">💡 Objectifs de la séance</div>
+      <div class="callout-title">Objectifs de la séance</div>
       <p>Comprendre les principes fondamentaux et les mettre en pratique à travers des exercices guidés.</p>
     </div>
 
@@ -2429,13 +2429,13 @@ const DEFAULT_COURSE_TEMPLATE_MD = `# \${NOTE_TITLE}
 
 ---
 
-## 🎯 Objectifs de la séance
+## Objectifs de la séance
 - Comprendre les notions fondamentales de la séance \${SESSION_NUMBER}.
 - Mettre en pratique à travers des exercices d'application.
 
 ---
 
-## 📚 1. Notions du cours
+## 1. Notions du cours
 
 ### 1.1 Concepts clés
 Définitions et explications détaillées...
@@ -2445,13 +2445,13 @@ Exemple d'illustration...
 
 ---
 
-## ✍️ 2. Exercices & Travaux dirigés
+## 2. Exercices & Travaux dirigés
 1. Question / Exercice 1
 2. Question / Exercice 2
 
 ---
 
-## 📌 Résumé de fin de séance
+## Résumé de fin de séance
 - Point essentiel 1
 - Point essentiel 2
 `

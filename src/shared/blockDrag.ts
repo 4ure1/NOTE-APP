@@ -27,6 +27,8 @@ export interface BlockDrag {
   moveBlock(block: Element, ref: Element, where: 'before' | 'after'): boolean
   /** Pose block à côté de target : rangée .duo créée autour, ou .nodes pour deux cartes .node. */
   placeBeside(block: Element, target: Element, where: 'before' | 'after'): boolean
+  /** Ajoute block à la fin d'une case de tableau (dépôt sur une case). */
+  moveIntoCell(block: Element, cell: Element): boolean
   /** Élément déplaçable qui contient el : une carte d'une grille (.duo, .nodes), sinon le bloc. */
   draggableOf(el: Element | null): Element | null
   /** Bloc qui contient la grille d'une carte (pour déplacer tout le groupe), ou null. */
@@ -142,6 +144,23 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
     return true
   }
 
+  /** Ajoute block à la fin d'une case de tableau ; une case vide (ou un simple <br>) est d'abord vidée. */
+  function moveIntoCell(block: Element, cell: Element): boolean {
+    if (block === cell || block.contains(cell)) return false
+    const prevBlank = block.previousSibling
+    if (isBlank(prevBlank) && block.parentNode) block.parentNode.removeChild(prevBlank!)
+    if (block.parentNode) block.parentNode.removeChild(block)
+    const onlyBlank = Array.prototype.every.call(
+      cell.childNodes,
+      (n: Node) => isBlank(n) || (n.nodeType === 1 && n.nodeName === 'BR')
+    )
+    if (onlyBlank) {
+      while (cell.firstChild) cell.removeChild(cell.firstChild)
+    }
+    cell.appendChild(block)
+    return true
+  }
+
   /** Pose block à côté de target dans une nouvelle rangée, lisible dans le code. */
   function placeBeside(block: Element, target: Element, where: 'before' | 'after'): boolean {
     if (block === target || block.contains(target) || target.contains(block)) return false
@@ -198,7 +217,8 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
   interface DragState {
     block: Element
     target: Element | null
-    where: 'before' | 'after'
+    // 'inside' : dans une case de tableau (le bloc y est ajouté à la fin)
+    where: 'before' | 'after' | 'inside'
     // Sens de la ligne de dépôt : entre deux cartes d'une grille (x) ou entre deux blocs (y)
     axis: 'x' | 'y'
     // Dépôt sur le côté d'une carte hors grille : une rangée sera créée autour des deux
@@ -246,6 +266,8 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
       'transition:top .14s cubic-bezier(.2,.8,.2,1), left .14s cubic-bezier(.2,.8,.2,1), ',
       'width .14s cubic-bezier(.2,.8,.2,1), opacity .1s ease;}',
       '.nf-bd-line.nf-on{opacity:1;}',
+      '.nf-bd-line.nf-cell{margin-top:0;border-radius:4px;background:rgba(56,189,248,0.14);',
+      'outline:2px solid #38bdf8;outline-offset:-2px;}',
       '.nf-bd-source{position:absolute;z-index:5;pointer-events:none;display:none;border-radius:8px;',
       'outline:2px dashed rgba(56,189,248,0.55);outline-offset:3px;background:rgba(24,24,27,0.55);}',
       '.nf-bd-ghost{position:fixed;left:0;top:0;z-index:2147483000;pointer-events:none;margin:0;',
@@ -430,7 +452,25 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
     clientX: number,
     clientY: number,
     block: Element
-  ): { target: Element; where: 'before' | 'after'; axis: 'x' | 'y'; side?: boolean } | null {
+  ): {
+    target: Element
+    where: 'before' | 'after' | 'inside'
+    axis: 'x' | 'y'
+    side?: boolean
+  } | null {
+    // Bloc lâché sur une case de tableau : il entre dans la case (liste, paragraphe, carte…)
+    const overCell = doc.elementFromPoint(clientX, clientY)
+    const cell = overCell && overCell.closest ? overCell.closest('td, th') : null
+    if (
+      cell &&
+      !isHelper(cell) &&
+      !block.contains(cell) &&
+      !block.matches('table, .canvas, .duo, .nodes') &&
+      !block.querySelector('table') &&
+      !cell.closest('pre')
+    ) {
+      return { target: cell, where: 'inside', axis: 'y' }
+    }
     // Carte d'une grille : posée avant / après une autre carte, selon la moitié horizontale
     if (isItem(block)) {
       const under = doc.elementFromPoint(clientX, clientY)
@@ -535,13 +575,27 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
     return { target, where: y < r.top + r.height / 2 ? 'before' : 'after', axis: 'y' }
   }
 
-  function showLine(target: Element | null, where: 'before' | 'after', axis: 'x' | 'y'): void {
+  function showLine(
+    target: Element | null,
+    where: 'before' | 'after' | 'inside',
+    axis: 'x' | 'y'
+  ): void {
     if (!line) return
+    line.classList.remove('nf-cell')
     if (!target) {
       line.classList.remove('nf-on')
       return
     }
     const r = pageRect(target)
+    if (where === 'inside') {
+      // Case de tableau visée : encadrée
+      line.style.left = r.left + 'px'
+      line.style.top = r.top + 'px'
+      line.style.width = r.width + 'px'
+      line.style.height = r.height + 'px'
+      line.classList.add('nf-cell', 'nf-on')
+      return
+    }
     if (axis === 'x') {
       // Ligne verticale entre deux cartes
       line.style.top = r.top + 'px'
@@ -870,9 +924,19 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
       let where = d.where
       let moved = false
       let beside = d.side
+      if (where === 'inside') {
+        blocks.forEach((b) => {
+          if (moveIntoCell(b, target!)) moved = true
+        })
+        if (moved) options.onChange()
+        land(d)
+        if (picked.length) drawPicked()
+        return
+      }
       blocks.forEach((b) => {
         const oldGrid = isItem(b) ? b.parentElement : null
-        if (beside ? placeBeside(b, ref, where) : moveBlock(b, ref, where)) moved = true
+        const at = where === 'before' ? 'before' : 'after'
+        if (beside ? placeBeside(b, ref, at) : moveBlock(b, ref, at)) moved = true
         beside = false
         if (oldGrid !== b.parentElement) dissolveGrid(oldGrid)
         ref = b
@@ -959,6 +1023,7 @@ export function installBlockDrag(doc: Document, options: BlockDragOptions): Bloc
   return {
     moveBlock,
     placeBeside,
+    moveIntoCell,
     draggableOf,
     groupOf,
     select: (blocks: Element[]) => setPicked(blocks.slice()),

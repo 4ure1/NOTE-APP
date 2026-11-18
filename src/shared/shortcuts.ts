@@ -13,40 +13,65 @@ export interface ShortcutMapping {
   altKey: boolean
 }
 
+export const SHORTCUT_GROUPS = ['Notes', 'Navigation', 'Affichage', 'Assistant'] as const
+export type ShortcutGroup = (typeof SHORTCUT_GROUPS)[number]
+
 export interface ShortcutAction {
   id: string
   label: string
+  /** Rubrique de la page Raccourcis clavier des Paramètres. */
+  group: ShortcutGroup
   /** Peut être déclenchée depuis l'aperçu ou un panneau web (jamais la suppression). */
   remote: boolean
 }
 
 export const SHORTCUT_ACTIONS: ShortcutAction[] = [
-  { id: 'create-note', label: 'Nouvelle note', remote: true },
-  { id: 'create-folder', label: 'Nouveau dossier', remote: true },
-  { id: 'import-pdf', label: 'Importer un PDF', remote: true },
-  { id: 'delete-note', label: 'Supprimer la note (corbeille)', remote: false },
-  { id: 'open-search', label: 'Rechercher dans les notes', remote: true },
-  { id: 'open-recent', label: 'Notes récentes', remote: true },
-  { id: 'open-board', label: 'Ouvrir le Tableau', remote: true },
-  { id: 'open-youtube', label: 'Ouvrir YouTube', remote: true },
-  { id: 'toggle-favorite', label: 'Ajouter ou retirer des favoris', remote: true },
-  { id: 'cycle-editor-mode', label: 'Alterner Code / Côte à côte / Aperçu', remote: true },
-  { id: 'mode-code', label: 'Code seul', remote: true },
-  { id: 'mode-split', label: 'Code et aperçu côte à côte', remote: true },
-  { id: 'mode-preview', label: 'Aperçu seul', remote: true },
-  { id: 'open-history', label: 'Historique des versions', remote: true },
-  { id: 'open-export', label: 'Exporter la note', remote: true },
-  { id: 'toggle-outline', label: 'Plan de la note', remote: true },
-  { id: 'toggle-zen', label: 'Mode zen', remote: true },
-  { id: 'toggle-fullscreen', label: 'Plein écran', remote: true },
-  { id: 'toggle-sidebar', label: 'Afficher ou masquer la barre latérale', remote: true },
-  { id: 'toggle-claude', label: 'Afficher ou masquer l’assistant', remote: true },
-  { id: 'switch-ai', label: 'Changer d’assistant (Claude, ChatGPT, Gemini, local)', remote: true },
-  { id: 'send-to-ai', label: 'Envoyer la note à l’assistant', remote: true },
-  { id: 'zoom-in', label: 'Zoom avant', remote: true },
-  { id: 'zoom-out', label: 'Zoom arrière', remote: true },
-  { id: 'zoom-reset', label: 'Zoom à 100 %', remote: true },
-  { id: 'open-settings', label: 'Paramètres', remote: true }
+  { id: 'create-note', label: 'Nouvelle note', group: 'Notes', remote: true },
+  { id: 'create-folder', label: 'Nouveau dossier', group: 'Notes', remote: true },
+  { id: 'import-pdf', label: 'Importer un PDF', group: 'Notes', remote: true },
+  { id: 'delete-note', label: 'Supprimer la note (corbeille)', group: 'Notes', remote: false },
+  { id: 'open-search', label: 'Rechercher dans les notes', group: 'Navigation', remote: true },
+  { id: 'open-recent', label: 'Notes récentes', group: 'Navigation', remote: true },
+  { id: 'open-board', label: 'Ouvrir le Tableau', group: 'Navigation', remote: true },
+  { id: 'open-youtube', label: 'Ouvrir YouTube', group: 'Navigation', remote: true },
+  { id: 'toggle-favorite', label: 'Ajouter ou retirer des favoris', group: 'Notes', remote: true },
+  {
+    id: 'cycle-editor-mode',
+    label: 'Alterner Code / Côte à côte / Aperçu',
+    group: 'Affichage',
+    remote: true
+  },
+  { id: 'mode-code', label: 'Code seul', group: 'Affichage', remote: true },
+  { id: 'mode-split', label: 'Code et aperçu côte à côte', group: 'Affichage', remote: true },
+  { id: 'mode-preview', label: 'Aperçu seul', group: 'Affichage', remote: true },
+  { id: 'open-history', label: 'Historique des versions', group: 'Notes', remote: true },
+  { id: 'open-export', label: 'Exporter la note', group: 'Notes', remote: true },
+  { id: 'toggle-outline', label: 'Plan de la note', group: 'Affichage', remote: true },
+  { id: 'toggle-zen', label: 'Mode zen', group: 'Affichage', remote: true },
+  { id: 'toggle-fullscreen', label: 'Plein écran', group: 'Affichage', remote: true },
+  {
+    id: 'toggle-sidebar',
+    label: 'Afficher ou masquer la barre latérale',
+    group: 'Affichage',
+    remote: true
+  },
+  {
+    id: 'toggle-claude',
+    label: 'Afficher ou masquer l’assistant',
+    group: 'Assistant',
+    remote: true
+  },
+  {
+    id: 'switch-ai',
+    label: 'Changer d’assistant (Claude, ChatGPT, Gemini, local)',
+    group: 'Assistant',
+    remote: true
+  },
+  { id: 'send-to-ai', label: 'Envoyer la note à l’assistant', group: 'Assistant', remote: true },
+  { id: 'zoom-in', label: 'Zoom avant', group: 'Affichage', remote: true },
+  { id: 'zoom-out', label: 'Zoom arrière', group: 'Affichage', remote: true },
+  { id: 'zoom-reset', label: 'Zoom à 100 %', group: 'Affichage', remote: true },
+  { id: 'open-settings', label: 'Paramètres', group: 'Navigation', remote: true }
 ]
 
 const combo = (
@@ -69,7 +94,7 @@ export const DEFAULT_SHORTCUTS: ShortcutMapping[] = [
   combo('3', 'open-settings', ',', { ctrl: true }),
   combo('4', 'toggle-sidebar', 'b', { ctrl: true }),
   combo('5', 'toggle-claude', 'j', { ctrl: true }),
-  combo('6', 'toggle-fullscreen', 'F11'),
+  combo('6', 'toggle-fullscreen', 'f', { ctrl: true, shift: true }),
   combo('7', 'switch-ai', 'i', { ctrl: true }),
   combo('8', 'open-recent', 'r', { ctrl: true }),
   combo('9', 'open-search', 'p', { ctrl: true }),
@@ -123,18 +148,18 @@ function isValid(m: unknown): m is ShortcutMapping {
 
 /**
  * Raccourcis enregistrés + raccourci par défaut de chaque action qui n'en a aucun.
- * Ctrl+F sert désormais à chercher dans la note : l'ancien Ctrl+F du plein écran passe à F11.
+ * Ctrl+F sert à chercher dans la note : le plein écran est sur Ctrl+Maj+F (l'ancien Ctrl+F et le
+ * F11 d'une version intermédiaire y passent d'eux-mêmes).
  */
 export function mergeShortcuts(saved: unknown): ShortcutMapping[] {
   if (!Array.isArray(saved)) return DEFAULT_SHORTCUTS.map((m) => ({ ...m }))
   const kept = saved.filter(isValid).map((m) => {
     const isOldFullscreen =
       m.actionId === 'toggle-fullscreen' &&
-      normalizeKey(m.key) === 'f' &&
-      m.ctrlKey &&
-      !m.shiftKey &&
-      !m.altKey
-    return isOldFullscreen ? { ...m, key: 'F11', ctrlKey: false } : { ...m }
+      !m.altKey &&
+      ((normalizeKey(m.key) === 'f' && m.ctrlKey && !m.shiftKey) ||
+        (m.key === 'F11' && !m.ctrlKey && !m.shiftKey))
+    return isOldFullscreen ? { ...m, key: 'f', ctrlKey: true, shiftKey: true } : { ...m }
   })
   const used = new Set(kept.map((m) => m.uuid))
   for (const def of DEFAULT_SHORTCUTS) {

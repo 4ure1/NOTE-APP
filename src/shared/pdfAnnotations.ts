@@ -159,7 +159,7 @@ export function formatPdfQuoteBlock(params: {
       ? `\n  <p><em>Note : ${escapeHtml(params.comment)}</em></p>`
       : ''
     return `<div class="callout callout-info" data-pdf-quote="true">
-  <div class="callout-title">📌 Extrait PDF — <a href="${linkHref}">${escapeHtml(linkText)}</a></div>
+  <div class="callout-title">Extrait PDF — <a href="${linkHref}">${escapeHtml(linkText)}</a></div>
   <p>${escapedText}</p>${commentHtml}
 </div>`
   } else {

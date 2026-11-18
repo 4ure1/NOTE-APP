@@ -39,7 +39,10 @@ import {
   ZoomInIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
-  OutlineIcon
+  OutlineIcon,
+  AlertIcon,
+  XIcon,
+  MoonIcon
 } from '@renderer/components/Icons'
 import AutonomousAgentWorkspace from './components/AutonomousAgentWorkspace'
 import { askConfirm, ConfirmHost } from './components/ConfirmDialog'
@@ -3020,7 +3023,7 @@ function App() {
       const currentAIName =
         activeAI === 'claude' ? 'Claude' : activeAI === 'chatgpt' ? 'ChatGPT' : 'Gemini'
       if (success) {
-        showClaudeToast(`Note envoyée à ${currentAIName} ✓`)
+        showClaudeToast(`Note envoyée à ${currentAIName}`)
       } else {
         showClaudeToast("Échec de l'envoi")
       }
@@ -3411,7 +3414,7 @@ function App() {
         const createdPath = await window.api.createNoteWithContent(fileName, res.markdown)
         await fetchFiles()
         setSelectedFiles([createdPath || fileName])
-        showClaudeToast(`Discussion exportée en note ✓`)
+        showClaudeToast('Discussion exportée en note')
       } else {
         showClaudeToast('Aucun message détecté à exporter')
       }
@@ -3455,7 +3458,7 @@ function App() {
         if (activeLoadedFileRef.current) {
           if (!(await saveOpenNote(activeLoadedFileRef.current, updated))) return
         }
-        showClaudeToast('Réponse insérée dans la note ✓')
+        showClaudeToast('Réponse insérée dans la note')
       } else {
         showClaudeToast(`Aucune réponse ${currentAIName} trouvée`)
       }
@@ -4564,7 +4567,13 @@ function App() {
                             zIndex: 20
                           }}
                         >
-                          <span>⚠️ {snippetError}</span>
+                            <span>
+                              <AlertIcon
+                                size={13}
+                                style={{ verticalAlign: '-2px', marginRight: '6px' }}
+                              />
+                              {snippetError}
+                            </span>
                           <button
                             onClick={() => setSnippetError(null)}
                             style={{
@@ -4575,8 +4584,9 @@ function App() {
                               fontSize: 'var(--fs-md)',
                               padding: '0 6px'
                             }}
+                              aria-label="Fermer l’erreur"
                           >
-                            ✕
+                              <XIcon size={13} />
                           </button>
                         </div>
                       )}
@@ -6531,7 +6541,10 @@ function App() {
             transition: 'all 0.15s ease'
           }}
         >
-          <span>🧘 Mode Zen actif</span>
+            <span>
+              <MoonIcon size={13} style={{ verticalAlign: '-2px', marginRight: '6px' }} />
+              Mode zen actif
+            </span>
           <kbd
             style={{
               fontSize: 'var(--fs-xs)',

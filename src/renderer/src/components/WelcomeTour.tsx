@@ -6,6 +6,7 @@
  */
 import { useCallback, useEffect, useState, type ReactElement } from 'react'
 import { AUTHOR, AUTHOR_GITHUB, REPOSITORY } from '../utils/credits'
+import { CheckIcon, FileTextIcon, FolderIcon, SparklesIcon, StarIcon } from './Icons'
 
 interface WelcomeTourProps {
   // Fin de la visite ; notesDir = dossier de notes choisi (absent : inchangé)
@@ -42,7 +43,9 @@ function ArtWelcome(): ReactElement {
         <span className="wt-dot wt-d3" />
         <span className="wt-dot wt-d4" />
       </div>
-      <div className="wt-logo">✦</div>
+      <div className="wt-logo">
+        <SparklesIcon size={40} strokeWidth={1.5} />
+      </div>
       <div className="wt-brand">NOTE-APP</div>
       <div className="wt-badges">
         <span>100 % local</span>
@@ -54,13 +57,13 @@ function ArtWelcome(): ReactElement {
 }
 
 function ArtOrganize(): ReactElement {
-  const rows: Array<[string, number, string]> = [
-    ['📁 Cours', 0, ''],
-    ['📁 SQL', 1, ''],
-    ['📄 Jointures.html', 2, ''],
-    ['📄 Index.html', 2, ''],
-    ['📄 Révisions.md', 1, ''],
-    ['📄 Ma note.html', 1, 'wt-new']
+  const rows: Array<[string, number, string, boolean]> = [
+    ['Cours', 0, '', true],
+    ['SQL', 1, '', true],
+    ['Jointures.html', 2, '', false],
+    ['Index.html', 2, '', false],
+    ['Révisions.md', 1, '', false],
+    ['Ma note.html', 1, 'wt-new', false]
   ]
   return (
     <div className="wt-art wt-art-tree">
@@ -72,13 +75,13 @@ function ArtOrganize(): ReactElement {
           <em>Notes</em>
           <b className="wt-plus">+</b>
         </div>
-        {rows.map(([label, depth, cls], i) => (
+        {rows.map(([label, depth, cls, folder], i) => (
           <div
             key={label}
             className={'wt-row ' + cls}
             style={{ paddingLeft: 12 + depth * 16, animationDelay: i * 0.25 + 's' }}
           >
-            {label}
+            {folder ? <FolderIcon size={13} /> : <FileTextIcon size={13} />} {label}
           </div>
         ))}
       </div>
@@ -201,7 +204,10 @@ function ArtSafe(): ReactElement {
         <kbd className="wt-press">Ctrl</kbd>+<kbd className="wt-press wt-late">Z</kbd>
       </div>
       <div className="wt-saved">
-        <span className="wt-check">✓</span> Enregistré sur le disque, en un seul coup
+        <span className="wt-check">
+          <CheckIcon size={13} />
+        </span>{' '}
+        Enregistré sur le disque, en un seul coup
       </div>
     </div>
   )
@@ -227,7 +233,10 @@ function ArtReady(): ReactElement {
         ))}
       </div>
       <button className="wt-github" onClick={() => openLink(REPOSITORY)}>
-        <span className="wt-star">★</span> Voir NOTE-APP sur GitHub
+        <span className="wt-star">
+          <StarIcon size={13} />
+        </span>{' '}
+        Voir NOTE-APP sur GitHub
       </button>
     </div>
   )
@@ -249,7 +258,9 @@ function ArtFolder(props: {
         <span className="wt-folder-back" />
         <span className="wt-folder-sheet wt-s1" />
         <span className="wt-folder-sheet wt-s2" />
-        <span className="wt-folder-front">✦</span>
+        <span className="wt-folder-front">
+          <SparklesIcon size={22} />
+        </span>
       </div>
       <div className="wt-path" title={current}>
         {current || '…'}
@@ -504,7 +515,7 @@ const TOUR_CSS = `
 .wt-points{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0;padding:0;list-style:none;}
 .wt-points li{padding:5px 11px;border-radius:999px;background:rgba(255,255,255,0.05);
   border:1px solid rgba(255,255,255,0.08);font-size:12.5px;color:#d4d4d8;}
-.wt-points li::before{content:'✓ ';color:#6a9955;}
+.wt-points li::before{content:'';display:inline-block;width:6px;height:6px;margin:0 8px 2px 0;border-radius:50%;background:#6a9955;}
 .wt-footer{display:flex;align-items:center;gap:14px;padding:18px 30px 22px;}
 .wt-dots{display:flex;gap:6px;}
 .wt-dot-btn{width:8px;height:8px;padding:0;border:none;border-radius:999px;background:#3f3f46;cursor:pointer;

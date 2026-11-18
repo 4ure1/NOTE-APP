@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useId } from 'react'
 import { notifyApiError } from '../utils/apiError'
 import Modal from './Modal'
+import { ClockIcon, XIcon, UndoIcon } from './Icons'
 
 interface HistoryItem {
   id: string
@@ -182,9 +183,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span aria-hidden="true" style={{ fontSize: 'var(--fs-xl)' }}>
-            ⏳
-          </span>
+          <ClockIcon size={20} />
           <div>
             <h3
               id={titleId}
@@ -209,7 +208,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
             cursor: 'pointer'
           }}
         >
-          <span aria-hidden="true">✕</span>
+          <XIcon size={14} />
         </button>
       </div>
 
@@ -365,7 +364,14 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                   gap: '6px'
                 }}
               >
-                {isRestoring ? 'Restauration...' : '⏪ Restaurer cette version'}
+                {isRestoring ? (
+                  'Restauration…'
+                ) : (
+                  <>
+                    <UndoIcon size={13} style={{ verticalAlign: '-2px', marginRight: '6px' }} />
+                    Restaurer cette version
+                  </>
+                )}
               </button>
             )}
           </div>

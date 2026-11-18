@@ -29,8 +29,15 @@ const api = {
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
   // Premier lancement : dossier de notes et visite guidée
   getAppSetup: () => ipcRenderer.invoke('get-app-setup'),
-  setTitleBarColors: (color: string, symbolColor: string) =>
-    ipcRenderer.invoke('set-title-bar-colors', color, symbolColor),
+  windowControl: (action: 'minimize' | 'toggle-maximize' | 'close' | 'state') =>
+    ipcRenderer.invoke('window-control', action),
+  onWindowMaximized: (callback: (maximized: boolean) => void) => {
+    const sub = (_event: Electron.IpcRendererEvent, maximized: boolean): void => callback(maximized)
+    ipcRenderer.on('window-maximized', sub)
+    return () => {
+      ipcRenderer.removeListener('window-maximized', sub)
+    }
+  },
   chooseNotesFolder: () => ipcRenderer.invoke('choose-notes-folder'),
   finishAppSetup: (notesDir?: string) => ipcRenderer.invoke('finish-app-setup', notesDir),
   importPdfDialog: (targetFolder?: string) => ipcRenderer.invoke('import-pdf-dialog', targetFolder),

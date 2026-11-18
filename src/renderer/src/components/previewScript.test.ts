@@ -41,4 +41,15 @@ describe('script de l’aperçu', () => {
     expect(code.length).toBeGreaterThan(10_000)
     expect(() => new Script(code)).not.toThrow()
   })
+
+  it('n’a pas de \\s ou \\d avalé par la chaîne de modèle', () => {
+    // Dans un modèle `…`, « \\s » devient « s » : /[\\s]/ cherchait la lettre s (espaces parasites).
+    // Le code source doit écrire « \\\\s ».
+    const file = join(dirname(fileURLToPath(import.meta.url)), 'CodeWorkspace.tsx')
+    const src = readFileSync(file, 'utf8')
+    const start = src.indexOf('const enhancementBundle = `')
+    const end = src.indexOf('</script>', src.indexOf('function insertSnippet(snip)'))
+    const lost = src.slice(start, end).match(/(?<!\\)\\[sSdDwW]/g) || []
+    expect(lost).toEqual([])
+  })
 })

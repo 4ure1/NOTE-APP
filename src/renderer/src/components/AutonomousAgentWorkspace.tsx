@@ -2,7 +2,23 @@ import React, { useState, useRef, useEffect } from 'react'
 import Modal from './Modal'
 import * as pdfjsLib from 'pdfjs-dist'
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url'
-import { SparklesIcon, SendIcon, PaperclipIcon, XIcon, PdfIcon } from './Icons'
+import {
+  SparklesIcon,
+  SendIcon,
+  PaperclipIcon,
+  XIcon,
+  PdfIcon,
+  FileTextIcon,
+  HomeIcon,
+  WrenchIcon,
+  MessageSquareIcon,
+  SettingsIcon,
+  AlertIcon,
+  GlobeIcon,
+  SearchIcon,
+  EditIcon,
+  LoaderIcon
+} from './Icons'
 
 // Configurer le worker PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker
@@ -271,8 +287,8 @@ export default function AutonomousAgentWorkspace({
                 return {
                   ...act,
                   text: step.data.success
-                    ? `✓ ${step.data.name} : ${step.data.result?.message || 'Succès'}`
-                    : `✗ ${step.data.name} : ${step.data.result?.error || 'Erreur'}`,
+                    ? `${step.data.name} : ${step.data.result?.message || 'Succès'}`
+                    : `Échec de ${step.data.name} : ${step.data.result?.error || 'Erreur'}`,
                   status: step.data.success ? ('success' as const) : ('error' as const)
                 }
               }
@@ -308,7 +324,10 @@ export default function AutonomousAgentWorkspace({
           if (last && last.sender === 'agent' && !last.text) {
             return [
               ...prev.slice(0, -1),
-              { ...last, text: `❌ ${step.data?.error || 'Erreur survenue pendant l’exécution.'}` }
+              {
+                ...last,
+                text: `Erreur : ${step.data?.error || 'erreur survenue pendant l’exécution.'}`
+              }
             ]
           }
           return prev
@@ -473,7 +492,11 @@ export default function AutonomousAgentWorkspace({
             if (last && last.id === agentMsgId) {
               return [
                 ...prev.slice(0, -1),
-                { ...last, text: last.text || `❌ ${runRes.error || 'Erreur d’exécution de l’agent.'}` }
+                {
+                  ...last,
+                  text:
+                    last.text || `Erreur : ${runRes.error || 'exécution de l’agent impossible.'}`
+                }
               ]
             }
             return prev
@@ -518,7 +541,7 @@ export default function AutonomousAgentWorkspace({
         if (last && last.id === agentMsgId) {
           return [
             ...prev.slice(0, -1),
-            { ...last, text: last.text || `❌ Erreur : ${err.message}` }
+            { ...last, text: last.text || `Erreur : ${err.message}` }
           ]
         }
         return prev
@@ -657,7 +680,17 @@ export default function AutonomousAgentWorkspace({
                   fontWeight: 500
                 }}
               >
-                {currentFilePath ? `📄 ${currentFilePath.split('/').pop()}` : '🏠 Accueil'}
+                {currentFilePath ? (
+                  <>
+                    <FileTextIcon size={12} style={{ verticalAlign: '-2px', marginRight: '6px' }} />
+                    {currentFilePath.split('/').pop()}
+                  </>
+                ) : (
+                  <>
+                    <HomeIcon size={12} style={{ verticalAlign: '-2px', marginRight: '6px' }} />
+                    Accueil
+                  </>
+                )}
               </span>
             </div>
           </div>
@@ -699,7 +732,7 @@ export default function AutonomousAgentWorkspace({
               gap: '4px'
             }}
           >
-            <span>🤖</span> Ollama Agent
+            <SparklesIcon size={14} /> Ollama Agent
           </button>
           <button
             onClick={() => setSelectedEngine('claude')}
@@ -774,7 +807,7 @@ export default function AutonomousAgentWorkspace({
             >
               {availableModelOptions.map((m) => (
                 <option key={m} value={m}>
-                  {m} {ollamaInfo.models.includes(m) ? '✓' : '(à télécharger)'}
+                  {m} {ollamaInfo.models.includes(m) ? '(installé)' : '(à télécharger)'}
                 </option>
               ))}
             </select>
@@ -798,7 +831,20 @@ export default function AutonomousAgentWorkspace({
                 cursor: 'pointer'
               }}
             >
-              {toolsEnabled ? '🛠️ Outils actifs (16K)' : '💬 Chat pur'}
+              {toolsEnabled ? (
+                <>
+                  <WrenchIcon size={13} style={{ verticalAlign: '-2px', marginRight: '6px' }} />
+                  Outils actifs (16K)
+                </>
+              ) : (
+                <>
+                  <MessageSquareIcon
+                    size={13}
+                    style={{ verticalAlign: '-2px', marginRight: '6px' }}
+                  />
+                  Chat pur
+                </>
+              )}
             </button>
 
             <button
@@ -826,7 +872,10 @@ export default function AutonomousAgentWorkspace({
                 gap: '4px'
               }}
             >
-              <span>⚙️ Clé Web</span>
+              <span>
+                <SettingsIcon size={13} style={{ verticalAlign: '-2px', marginRight: '6px' }} />
+                Clé Web
+              </span>
               {ollamaApiKey ? (
                 <span style={{ color: 'var(--success-strong)', fontSize: 'var(--fs-xs)' }}>●</span>
               ) : null}
@@ -864,7 +913,7 @@ export default function AutonomousAgentWorkspace({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: 'var(--fs-lg)' }}>⚙️</span>
+              <SettingsIcon size={18} />
               <h3
                 style={{
                   margin: 0,
@@ -886,7 +935,7 @@ export default function AutonomousAgentWorkspace({
                 fontSize: 'var(--fs-lg)'
               }}
             >
-              ✕
+              <XIcon size={14} />
             </button>
           </div>
 
@@ -1003,7 +1052,9 @@ export default function AutonomousAgentWorkspace({
           }}
         >
           <span>
-            ⚠️ Le modèle <strong>{agentModel}</strong> n’est pas détecté dans Ollama. Lance <code>ollama pull {agentModel}</code> dans ton terminal.
+            <AlertIcon size={14} style={{ verticalAlign: '-2px', marginRight: '6px' }} />
+            Le modèle <strong>{agentModel}</strong> n’est pas détecté dans Ollama. Lance{' '}
+            <code>ollama pull {agentModel}</code> dans ton terminal.
           </span>
           {ollamaInfo.models.length > 0 && (
             <button
@@ -1067,7 +1118,8 @@ export default function AutonomousAgentWorkspace({
             whiteSpace: 'nowrap'
           }}
         >
-          🌐 Nouveautés Ollama
+          <GlobeIcon size={13} style={{ verticalAlign: '-2px', marginRight: '6px' }} />
+          Nouveautés Ollama
         </button>
 
         <button
@@ -1083,7 +1135,8 @@ export default function AutonomousAgentWorkspace({
             whiteSpace: 'nowrap'
           }}
         >
-          🔍 Chercher & Synthétiser
+          <SearchIcon size={13} style={{ verticalAlign: '-2px', marginRight: '6px' }} />
+          Chercher & Synthétiser
         </button>
 
         <button
@@ -1099,7 +1152,8 @@ export default function AutonomousAgentWorkspace({
             whiteSpace: 'nowrap'
           }}
         >
-          📝 Créer une Note
+          <EditIcon size={13} style={{ verticalAlign: '-2px', marginRight: '6px' }} />
+          Créer une note
         </button>
       </div>
 
@@ -1212,7 +1266,9 @@ export default function AutonomousAgentWorkspace({
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
-                        {act.status === 'pending' && <span style={{ animation: 'spin 1s infinite' }}>⏳</span>}
+                        {act.status === 'pending' && (
+                          <LoaderIcon size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                        )}
                         <span>{act.text}</span>
                       </div>
                       {act.details && (
@@ -1245,7 +1301,7 @@ export default function AutonomousAgentWorkspace({
                     fontSize: 'var(--fs-sm)'
                   }}
                 >
-                  <span style={{ display: 'inline-block', animation: 'spin 1.5s linear infinite' }}>⚙️</span>
+                  <LoaderIcon size={14} style={{ animation: 'spin 1s linear infinite' }} />
                   <span>L'agent analyse ta demande et prépare les outils...</span>
                 </div>
               ) : null}
@@ -1277,7 +1333,8 @@ export default function AutonomousAgentWorkspace({
                       gap: '4px'
                     }}
                   >
-                    📄 Ouvrir la note
+                    <FileTextIcon size={13} style={{ verticalAlign: '-2px', marginRight: '6px' }} />
+                    Ouvrir la note
                   </button>
                   <button
                     onClick={handleUndo}

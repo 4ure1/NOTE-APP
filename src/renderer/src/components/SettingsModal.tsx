@@ -2,11 +2,18 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { askConfirm } from './ConfirmDialog'
 import Modal from './Modal'
 import { APP_THEMES } from '../../../shared/appThemes'
-import { savedAppThemeId, setAppTheme } from '../utils/appTheme'
+import { savedAppThemeId, savedNoteFontId, setAppTheme, setNoteFont } from '../utils/appTheme'
+import { NOTE_FONTS } from '../../../shared/noteFonts'
 import { Snippet } from '../types/snippets'
 import { getSnippetBodyText } from '../utils/snippetEngine'
 import { notifyApiError } from '../utils/apiError'
-import { findConflict } from '../../../shared/shortcuts'
+import {
+  SHORTCUT_ACTIONS,
+  SHORTCUT_GROUPS,
+  findConflict,
+  formatShortcut as formatShortcutLabel,
+  sameCombo
+} from '../../../shared/shortcuts'
 import { APP_NAME, AUTHOR, AUTHOR_GITHUB, COPYRIGHT } from '../utils/credits'
 import {
   BrainIcon,
@@ -126,17 +133,6 @@ const NAV_GROUPS: {
   }
 ]
 
-const CATEGORY_COLORS: Record<string, string> = {
-  Structure: '#60a5fa',
-  Blocs: '#34d399',
-  'Mise en page': '#a78bfa',
-  Code: '#f59e0b',
-  Texte: '#38bdf8',
-  Quiz: '#f43f5e',
-  Markdown: '#fb923c',
-  Divers: '#94a3b8'
-}
-
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
@@ -145,7 +141,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   setShortcuts,
   defaultShortcuts,
   actions,
-  formatShortcut,
   activeAI,
   onSelectAI,
   editorMode,
@@ -163,7 +158,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   // État onglet Snippets
   const [snippetSearch, setSnippetSearch] = useState('')
   const [snippetScopeFilter, setSnippetScopeFilter] = useState<'all' | 'html' | 'markdown'>('all')
-  const [snippetCategoryFilter, setSnippetCategoryFilter] = useState<string>('all')
   const [expandedSnippetPrefix, setExpandedSnippetPrefix] = useState<string | null>(null)
   const [copiedPrefix, setCopiedPrefix] = useState<string | null>(null)
 
@@ -212,6 +206,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       e.stopPropagation()
 
       if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return
+      if (e.key === 'Escape') {
+        setShortcuts((prev) => {
+          const item = prev.find((m) => m.uuid === recordingUuid)
+          if (!item || item.key) return prev
+          const updated = prev.filter((m) => m.uuid !== recordingUuid)
+          localStorage.setItem('note-app-shortcuts', JSON.stringify(updated))
+          return updated
+        })
+        setRecordingUuid(null)
+        return
+      }
 
       let key = e.key
       if (key === ' ') key = 'Space'
@@ -240,11 +245,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   }, [recordingUuid, isOpen, setShortcuts])
 
   // Filtrage des snippets
-  const allCategories = useMemo(() => {
-    const set = new Set<string>()
-    snippets.forEach((s) => set.add(s.category || 'Autres'))
-    return Array.from(set).sort()
-  }, [snippets])
 
   const filteredSnippets = useMemo(() => {
     const q = snippetSearch.trim().toLowerCase()
@@ -255,10 +255,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         if (snippetScopeFilter === 'markdown' && s.scope !== 'markdown' && s.scope !== 'all')
           return false
       }
-      // Filtre catégorie
-      if (snippetCategoryFilter !== 'all' && s.category !== snippetCategoryFilter) {
-        return false
-      }
       // Filtre texte (prefix, nom, description)
       if (!q) return true
       return (
@@ -267,7 +263,65 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         (s.description && s.description.toLowerCase().includes(q))
       )
     })
-  }, [snippets, snippetSearch, snippetScopeFilter, snippetCategoryFilter])
+  }, [snippets, snippetSearch, snippetScopeFilter])
+
+  // Snippets regroupés par catégorie, dans l'ordre du fichier
+  const snippetGroups = useMemo(() => {
+    const groups = new Map<string, Snippet[]>()
+    filteredSnippets.forEach((sn) => {
+      const category = sn.category || 'Autres'
+      const list = groups.get(category)
+      if (list) list.push(sn)
+      else groups.set(category, [sn])
+    })
+    return Array.from(groups.entries())
+  }, [filteredSnippets])
+
+  // ---------- Raccourcis : modification ----------
+  const [shortcutQuery, setShortcutQuery] = useState('')
+  const persistShortcuts = (updated: ShortcutMapping[]): void => {
+    setShortcuts(updated)
+    try {
+      localStorage.setItem('note-app-shortcuts', JSON.stringify(updated))
+    } catch (err) {
+      console.error('[Raccourcis]', err)
+    }
+  }
+  const removeShortcut = (uuid: string): void => {
+    if (recordingUuid === uuid) setRecordingUuid(null)
+    persistShortcuts(shortcuts.filter((m) => m.uuid !== uuid))
+  }
+  const addShortcut = (actionId: string): void => {
+    const uuid = 'u' + Date.now().toString(36)
+    persistShortcuts([
+      ...shortcuts,
+      { uuid, actionId, key: '', ctrlKey: false, shiftKey: false, altKey: false }
+    ])
+    setRecordingUuid(uuid)
+  }
+  const resetShortcut = (actionId: string): void => {
+    const kept = shortcuts.filter((m) => m.actionId !== actionId)
+    const used = new Set(kept.map((m) => m.uuid))
+    const defaults = defaultShortcuts
+      .filter((m) => m.actionId === actionId)
+      .map((m) => {
+        let uuid = m.uuid
+        while (used.has(uuid)) uuid += '-r'
+        used.add(uuid)
+        return { ...m, uuid }
+      })
+    persistShortcuts([...kept, ...defaults])
+  }
+  const resetAllShortcuts = async (): Promise<void> => {
+    const ok = await askConfirm({
+      title: 'Rétablir tous les raccourcis ?',
+      message: 'Chaque action reprend son raccourci par défaut.',
+      confirmLabel: 'Tout rétablir'
+    })
+    if (ok) persistShortcuts(defaultShortcuts.map((m) => ({ ...m })))
+  }
+  const sameCombos = (a: ShortcutMapping[], b: ShortcutMapping[]): boolean =>
+    a.length === b.length && a.every((m) => b.some((d) => !!m.key && sameCombo(m, d)))
 
   const handleCopyPrefix = (prefix: string) => {
     navigator.clipboard.writeText('/' + prefix)
@@ -291,6 +345,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   }
 
   const [appThemeId, setAppThemeId] = useState(savedAppThemeId)
+  const [noteFontId, setNoteFontId] = useState(savedNoteFontId)
 
   // Échap ferme (sauf pendant l'enregistrement d'un raccourci : la capture de la touche l'intercepte avant)
   const handleDismiss = (): void => {
@@ -522,6 +577,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <h3>Texte</h3>
                   <div className="st-card">
                     {row(
+                      'Police des notes',
+                      'Texte courant de toutes les notes, dans l’aperçu. Vos fichiers ne sont pas modifiés ; titres et code gardent la police du thème.',
+                      <select
+                        className="st-input"
+                        aria-label="Police des notes"
+                        value={noteFontId}
+                        onChange={(e) => {
+                          setNoteFont(e.target.value)
+                          setNoteFontId(e.target.value)
+                        }}
+                        style={{ fontFamily: NOTE_FONTS.find((f) => f.id === noteFontId)?.stack }}
+                      >
+                        {NOTE_FONTS.map((f) => (
+                          <option key={f.id} value={f.id} style={{ fontFamily: f.stack }}>
+                            {f.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {row(
                       'Police de l’interface',
                       'Inter, embarquée dans l’app. Le contenu des notes garde la police de son thème, le code reste en Consolas.'
                     )}
@@ -653,588 +728,229 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </>
             )}
 
-            {/* ---------------- ONGLET 1 : AIDE & SNIPPETS ---------------- */}
+            {/* ---------------- SNIPPETS ---------------- */}
             {activeTab === 'snippets' && (
-              <div>
-                <div style={{ marginBottom: '16px' }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    <h3
-                      style={{
-                        margin: '0 0 4px',
-                        fontSize: 'var(--fs-md)',
-                        fontWeight: 600,
-                        color: 'var(--text-strong)'
-                      }}
-                    >
-                      Catalogue des Snippets ({snippets.length})
-                    </h3>
-                    <span
-                      style={{
-                        fontSize: 'var(--fs-xs)',
-                        background: 'var(--surface-input)',
-                        color: 'var(--text-primary)',
-                        padding: '3px 8px',
-                        borderRadius: '6px'
-                      }}
-                    >
-                      Déclencheur : <strong style={{ color: 'var(--accent-color)' }}>/</strong>
-                    </span>
-                  </div>
-                  <p
-                    style={{
-                      margin: '0 0 12px',
-                      fontSize: 'var(--fs-md)',
-                      color: 'var(--text-secondary)',
-                      lineHeight: 1.5
-                    }}
-                  >
-                    Tapez{' '}
-                    <code
-                      style={{
-                        color: 'var(--accent-amber)',
-                        background: 'var(--surface-input)',
-                        padding: '1px 4px',
-                        borderRadius: 3
-                      }}
-                    >
-                      /
-                    </code>{' '}
-                    dans l’éditeur pour ouvrir la palette instantanée. Utilisez{' '}
-                    <code
-                      style={{
-                        color: 'var(--accent-color)',
-                        background: 'var(--surface-input)',
-                        padding: '1px 4px',
-                        borderRadius: 3
-                      }}
-                    >
-                      Tab
-                    </code>{' '}
-                    pour naviguer entre les champs modifiables.
-                  </p>
-
-                  {/* ASTUCE SUR LE FICHIER DU COFFRE */}
-                  <div
-                    style={{
-                      background: 'color-mix(in srgb, var(--accent-color) 8%, transparent)',
-                      border: '1px solid color-mix(in srgb, var(--accent-color) 20%, transparent)',
-                      borderRadius: '8px',
-                      padding: '10px 14px',
-                      fontSize: 'var(--fs-sm)',
-                      color: '#bae6fd',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginBottom: '16px'
-                    }}
-                  >
-                    <span>
-                      📁 Fichier personnalisable : <strong>.snippets/snippets.json</strong> dans
-                      votre coffre Notes (rechargement à chaud automatique).
-                    </span>
-                    {window.api?.showItemInFolder && (
-                      <button
-                        onClick={() =>
-                          window.api
-                            .showItemInFolder('.snippets')
-                            .catch((err) => notifyApiError("Affichage dans l'Explorateur", err))
-                        }
-                        style={{
-                          background: 'color-mix(in srgb, var(--accent-color) 20%, transparent)',
-                          border: 'none',
-                          color: 'var(--accent-color)',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          fontSize: 'var(--fs-xs)',
-                          cursor: 'pointer',
-                          fontWeight: 500
-                        }}
-                      >
-                        Ouvrir le dossier
-                      </button>
-                    )}
-                  </div>
-
-                  {/* BARRE DE RECHERCHE ET FILTRES */}
-                  <div
-                    style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}
-                  >
+              <div className="sk">
+                <div className="sk-head">
+                  <label className="st-search sk-search">
+                    <SearchIcon size={14} />
                     <input
-                      type="text"
-                      aria-label="Filtrer les snippets"
                       value={snippetSearch}
                       onChange={(e) => setSnippetSearch(e.target.value)}
-                      placeholder="Filtrer par préfixe, nom ou description..."
-                      style={{
-                        flex: 1,
-                        minWidth: '220px',
-                        background: 'var(--surface-control)',
-                        border: '1px solid var(--border-strong)',
-                        borderRadius: '6px',
-                        padding: '6px 12px',
-                        color: 'var(--text-strong)',
-                        fontSize: 'var(--fs-md)',
-                        outline: 'none'
-                      }}
+                      placeholder="Filtrer les snippets"
+                      aria-label="Filtrer les snippets"
                     />
-
-                    {/* Filtre de Scope */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        background: 'var(--surface-control)',
-                        borderRadius: '6px',
-                        padding: '2px',
-                        border: '1px solid var(--border-strong)'
-                      }}
-                    >
-                      {(['all', 'html', 'markdown'] as const).map((sc) => (
-                        <button
-                          key={sc}
-                          onClick={() => setSnippetScopeFilter(sc)}
-                          style={{
-                            background:
-                              snippetScopeFilter === sc ? 'var(--accent-color)' : 'transparent',
-                            color:
-                              snippetScopeFilter === sc
-                                ? 'var(--surface-sunken)'
-                                : 'var(--text-secondary)',
-                            border: 'none',
-                            padding: '4px 10px',
-                            borderRadius: '4px',
-                            fontSize: 'var(--fs-sm)',
-                            fontWeight: 600,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          {sc === 'all' ? 'Tous' : sc.toUpperCase()}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Filtre de Catégorie */}
-                    <select
-                      aria-label="Catégorie de snippets"
-                      value={snippetCategoryFilter}
-                      onChange={(e) => setSnippetCategoryFilter(e.target.value)}
-                      style={{
-                        background: 'var(--surface-control)',
-                        border: '1px solid var(--border-strong)',
-                        borderRadius: '6px',
-                        color: 'var(--text-secondary)',
-                        fontSize: 'var(--fs-sm)',
-                        padding: '6px 10px',
-                        outline: 'none',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <option value="all">Toutes catégories</option>
-                      {allCategories.map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
-                    </select>
+                  </label>
+                  <div className="st-seg" role="group" aria-label="Type de note">
+                    {(
+                      [
+                        ['all', 'Tous'],
+                        ['html', 'HTML'],
+                        ['markdown', 'Markdown']
+                      ] as const
+                    ).map(([id, label]) => (
+                      <button
+                        key={id}
+                        aria-pressed={snippetScopeFilter === id}
+                        onClick={() => setSnippetScopeFilter(id)}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
                 </div>
-
-                {/* LISTE DES SNIPPETS */}
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                    maxHeight: '380px',
-                    overflowY: 'auto'
-                  }}
-                >
-                  {filteredSnippets.length === 0 ? (
-                    <div
-                      style={{
-                        textAlign: 'center',
-                        padding: '30px',
-                        color: 'var(--text-muted)',
-                        fontSize: 'var(--fs-md)'
-                      }}
+                <p className="sk-lead">
+                  Tapez <kbd className="sk-key">/</kbd> dans une note, puis{' '}
+                  <kbd className="sk-key">Tab</kbd> pour passer d’un champ à l’autre. Les vôtres se
+                  modifient dans <code>.snippets/snippets.json</code>
+                  {window.api?.showItemInFolder && (
+                    <button
+                      className="sk-link"
+                      onClick={() =>
+                        window.api
+                          .showItemInFolder('.snippets')
+                          .catch((err) => notifyApiError('Affichage dans l’Explorateur', err))
+                      }
                     >
-                      Aucun snippet ne correspond aux filtres.
+                      Ouvrir le dossier
+                    </button>
+                  )}
+                </p>
+                {snippetGroups.length === 0 && (
+                  <div className="st-empty">Aucun snippet ne correspond à ce filtre.</div>
+                )}
+                {snippetGroups.map(([category, items]) => (
+                  <section key={category} aria-label={category}>
+                    <div className="sk-group">
+                      {category}
+                      <span>{items.length}</span>
                     </div>
-                  ) : (
-                    filteredSnippets.map((s) => {
-                      const isExpanded = expandedSnippetPrefix === s.prefix
-                      const catColor = CATEGORY_COLORS[s.category] || '#94a3b8'
-                      const isCopied = copiedPrefix === s.prefix
-
+                    {items.map((s, i) => {
+                      const open = expandedSnippetPrefix === s.prefix
                       return (
-                        <div
-                          key={s.prefix + s.name}
-                          style={{
-                            background: 'var(--surface-control)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '8px',
-                            padding: '10px 14px',
-                            transition: 'border-color 0.15s'
-                          }}
-                        >
+                        <React.Fragment key={`${s.prefix}-${i}`}>
                           <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              gap: '10px'
+                            className={'sk-row' + (open ? ' open' : '')}
+                            role="button"
+                            tabIndex={0}
+                            aria-expanded={open}
+                            onClick={() => setExpandedSnippetPrefix(open ? null : s.prefix)}
+                            onKeyDown={(e) => {
+                              if (e.target !== e.currentTarget) return
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                setExpandedSnippetPrefix(open ? null : s.prefix)
+                              }
                             }}
                           >
-                            <div
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '10px',
-                                flex: 1,
-                                minWidth: 0
-                              }}
-                            >
-                              {/* Préfixe à copier */}
+                            <code className="sk-prefix">/{s.prefix}</code>
+                            <span className="sk-name">{s.name}</span>
+                            <span className="sk-desc">{s.description}</span>
+                            <span className="sk-kind">
+                              {s.scope === 'markdown'
+                                ? 'Markdown'
+                                : s.scope === 'html'
+                                  ? 'HTML'
+                                  : 'Les deux'}
+                            </span>
+                            <span className="sk-tools">
                               <button
-                                onClick={() => handleCopyPrefix(s.prefix)}
-                                title="Cliquer pour copier le préfixe"
-                                style={{
-                                  background: isCopied
-                                    ? 'var(--success-strong)'
-                                    : 'var(--surface-input)',
-                                  color: isCopied ? 'var(--text-strong)' : 'var(--accent-amber)',
-                                  border: '1px solid var(--border-color)',
-                                  borderRadius: '4px',
-                                  padding: '3px 8px',
-                                  fontFamily: 'Consolas, monospace',
-                                  fontSize: 'var(--fs-sm)',
-                                  fontWeight: 'bold',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '4px'
+                                className="sk-mini"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleCopyPrefix(s.prefix)
                                 }}
                               >
-                                /{s.prefix}
-                                {isCopied && <span style={{ fontSize: 'var(--fs-xs)' }}>✓</span>}
+                                {copiedPrefix === s.prefix ? 'Copié' : 'Copier'}
                               </button>
-
-                              {/* Nom et description */}
-                              <div style={{ minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    fontSize: 'var(--fs-md)',
-                                    fontWeight: 600,
-                                    color: 'var(--text-strong)'
-                                  }}
-                                >
-                                  {s.name}
-                                </div>
-                                <div
-                                  style={{
-                                    fontSize: 'var(--fs-sm)',
-                                    color: 'var(--text-secondary)'
-                                  }}
-                                >
-                                  {s.description}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              {/* Badge catégorie */}
-                              <span
-                                style={{
-                                  fontSize: 'var(--fs-xs)',
-                                  color: catColor,
-                                  background: `${catColor}18`,
-                                  border: `1px solid ${catColor}40`,
-                                  padding: '2px 7px',
-                                  borderRadius: '12px',
-                                  fontWeight: 600
-                                }}
-                              >
-                                {s.category}
-                              </span>
-
-                              {/* Badge scope */}
-                              <span
-                                style={{
-                                  fontSize: 'var(--fs-xs)',
-                                  color:
-                                    s.scope === 'html'
-                                      ? '#60a5fa'
-                                      : s.scope === 'markdown'
-                                        ? '#fb923c'
-                                        : 'var(--text-secondary)',
-                                  background: 'var(--surface-input)',
-                                  padding: '2px 6px',
-                                  borderRadius: '4px',
-                                  fontWeight: 500
-                                }}
-                              >
-                                {s.scope.toUpperCase()}
-                              </span>
-
-                              {/* Bouton déplier code */}
-                              <button
-                                onClick={() =>
-                                  setExpandedSnippetPrefix(isExpanded ? null : s.prefix)
-                                }
-                                style={{
-                                  background: 'transparent',
-                                  border: 'none',
-                                  color: 'var(--text-secondary)',
-                                  fontSize: 'var(--fs-xs)',
-                                  cursor: 'pointer',
-                                  padding: '3px 6px',
-                                  borderRadius: '4px'
-                                }}
-                              >
-                                {isExpanded ? '▲ Masquer' : '▼ Code'}
-                              </button>
-                            </div>
+                            </span>
                           </div>
-
-                          {/* Aperçu du code / body */}
-                          {isExpanded && (
-                            <pre
-                              style={{
-                                marginTop: '10px',
-                                background: 'var(--surface-panel)',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '6px',
-                                padding: '10px',
-                                fontSize: 'var(--fs-xs)',
-                                color: 'var(--text-primary)',
-                                overflowX: 'auto',
-                                maxHeight: '180px',
-                                whiteSpace: 'pre-wrap'
-                              }}
-                            >
-                              {getSnippetBodyText(s.body)}
-                            </pre>
-                          )}
-                        </div>
+                          {open && <pre className="sk-code">{getSnippetBodyText(s.body)}</pre>}
+                        </React.Fragment>
                       )
-                    })
-                  )}
-                </div>
+                    })}
+                  </section>
+                ))}
               </div>
             )}
 
-            {/* ---------------- ONGLET 2 : RACCOURCIS CLAVIER ---------------- */}
+            {/* ---------------- RACCOURCIS CLAVIER ---------------- */}
             {activeTab === 'shortcuts' && (
-              <div>
-                <div style={{ marginBottom: '16px' }}>
-                  <p
-                    style={{ margin: 0, fontSize: 'var(--fs-md)', color: 'var(--text-secondary)' }}
-                  >
-                    Cliquez sur Modifier puis appuyez sur la combinaison voulue. Ils marchent aussi
-                    dans l’aperçu et dans les panneaux Claude, ChatGPT, Gemini et YouTube. Ctrl+F
-                    reste la recherche dans la note.
-                  </p>
+              <div className="sk">
+                <div className="sk-head">
+                  <label className="st-search sk-search">
+                    <SearchIcon size={14} />
+                    <input
+                      value={shortcutQuery}
+                      onChange={(e) => setShortcutQuery(e.target.value)}
+                      placeholder="Chercher une action ou une touche"
+                      aria-label="Chercher une action ou une touche"
+                    />
+                  </label>
+                  <button className="sk-text-btn" onClick={() => void resetAllShortcuts()}>
+                    Tout rétablir
+                  </button>
                 </div>
-
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                    maxHeight: '420px',
-                    overflowY: 'auto'
-                  }}
-                >
-                  {shortcuts.map((s) => (
-                    <div
-                      key={s.uuid}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '10px 14px',
-                        backgroundColor: 'var(--surface-control)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '8px'
-                      }}
-                    >
-                      <select
-                        aria-label="Action du raccourci"
-                        value={s.actionId}
-                        onChange={(e) => {
-                          const newAction = e.target.value
-                          setShortcuts((prev) => {
-                            const updated = prev.map((m) =>
-                              m.uuid === s.uuid ? { ...m, actionId: newAction } : m
-                            )
-                            localStorage.setItem('note-app-shortcuts', JSON.stringify(updated))
-                            return updated
-                          })
-                        }}
-                        style={{
-                          backgroundColor: 'var(--surface-raised)',
-                          color: 'var(--text-strong)',
-                          border: '1px solid var(--border-strong)',
-                          borderRadius: '6px',
-                          padding: '6px 10px',
-                          fontSize: 'var(--fs-md)',
-                          outline: 'none',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {Object.entries(actions).map(([id, label]) => (
-                          <option key={id} value={id}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span
-                          style={{
-                            backgroundColor:
-                              recordingUuid === s.uuid
-                                ? 'var(--accent-color)'
-                                : 'var(--surface-panel)',
-                            color:
-                              recordingUuid === s.uuid
-                                ? 'var(--surface-sunken)'
-                                : 'var(--text-strong)',
-                            border: `1px solid ${recordingUuid === s.uuid ? 'var(--accent-color)' : 'var(--border-strong)'}`,
-                            borderRadius: '6px',
-                            padding: '5px 12px',
-                            fontFamily: 'monospace',
-                            fontSize: 'var(--fs-sm)',
-                            fontWeight: 'bold',
-                            minWidth: '120px',
-                            textAlign: 'center'
-                          }}
-                        >
-                          {recordingUuid === s.uuid ? 'Appuyez...' : formatShortcut(s)}
-                        </span>
-                        {(() => {
-                          // Même combinaison qu'un autre raccourci : le premier de la liste l'emporte
-                          const other =
-                            recordingUuid === s.uuid ? undefined : findConflict(shortcuts, s)
-                          return other ? (
-                            <span className="st-conflict" role="note">
-                              Déjà pris par « {actions[other.actionId] || other.actionId} »
+                <p className="sk-lead">
+                  Cliquez sur une combinaison pour la changer, Échap pour annuler. Ils marchent
+                  aussi dans l’aperçu et les panneaux web ; <kbd className="sk-key">Ctrl</kbd>{' '}
+                  <kbd className="sk-key">F</kbd> reste la recherche dans la note.
+                </p>
+                {SHORTCUT_GROUPS.map((group) => {
+                  const q = shortcutQuery.trim().toLowerCase()
+                  const items = SHORTCUT_ACTIONS.filter(
+                    (a) =>
+                      a.group === group &&
+                      (!q ||
+                        a.label.toLowerCase().includes(q) ||
+                        shortcuts.some(
+                          (m) =>
+                            m.actionId === a.id && formatShortcutLabel(m).toLowerCase().includes(q)
+                        ))
+                  )
+                  if (!items.length) return null
+                  return (
+                    <section key={group} aria-label={group}>
+                      <div className="sk-group">{group}</div>
+                      {items.map((a) => {
+                        const maps = shortcuts.filter((m) => m.actionId === a.id)
+                        const changed = !sameCombos(
+                          maps,
+                          defaultShortcuts.filter((m) => m.actionId === a.id)
+                        )
+                        return (
+                          <div
+                            key={a.id}
+                            className={
+                              'kb-row' +
+                              (maps.some((m) => m.uuid === recordingUuid) ? ' recording' : '')
+                            }
+                          >
+                            <span className="kb-label">
+                              {a.label}
+                              {changed && <i className="kb-dot" title="Modifié" />}
                             </span>
-                          ) : null
-                        })()}
-
-                        <button
-                          onClick={() => setRecordingUuid(s.uuid)}
-                          style={{
-                            backgroundColor: 'var(--surface-input)',
-                            color: 'var(--text-strong)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '6px',
-                            padding: '6px 12px',
-                            fontSize: 'var(--fs-sm)',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Modifier
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            if (recordingUuid === s.uuid) setRecordingUuid(null)
-                            setShortcuts((prev) => {
-                              const updated = prev.filter((m) => m.uuid !== s.uuid)
-                              localStorage.setItem('note-app-shortcuts', JSON.stringify(updated))
-                              return updated
-                            })
-                          }}
-                          style={{
-                            backgroundColor: 'transparent',
-                            color: 'var(--danger-strong)',
-                            border:
-                              '1px solid color-mix(in srgb, var(--danger-strong) 30%, transparent)',
-                            borderRadius: '6px',
-                            padding: '6px 10px',
-                            fontSize: 'var(--fs-sm)',
-                            cursor: 'pointer'
-                          }}
-                          aria-label="Supprimer ce raccourci"
-                          title="Supprimer ce raccourci"
-                        >
-                          <span aria-hidden="true">✕</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div
-                  style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px' }}
-                >
-                  <button
-                    onClick={() => {
-                      const newUuid = Math.random().toString()
-                      setShortcuts((prev) => {
-                        const updated = [
-                          ...prev,
-                          {
-                            uuid: newUuid,
-                            actionId: 'create-note',
-                            key: '',
-                            ctrlKey: false,
-                            shiftKey: false,
-                            altKey: false
-                          }
-                        ]
-                        localStorage.setItem('note-app-shortcuts', JSON.stringify(updated))
-                        return updated
-                      })
-                      setRecordingUuid(newUuid)
-                    }}
-                    style={{
-                      backgroundColor: 'var(--surface-input)',
-                      color: 'var(--accent-color)',
-                      border: '1px solid color-mix(in srgb, var(--accent-color) 30%, transparent)',
-                      borderRadius: '6px',
-                      padding: '8px 14px',
-                      fontSize: 'var(--fs-md)',
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    + Ajouter un raccourci
-                  </button>
-
-                  <button
-                    onClick={async () => {
-                      if (
-                        await askConfirm({
-                          title: 'Réinitialiser les raccourcis ?',
-                          message: 'Tous les raccourcis reprendront leurs valeurs par défaut.',
-                          confirmLabel: 'Réinitialiser'
-                        })
-                      ) {
-                        setShortcuts(defaultShortcuts)
-                        localStorage.setItem('note-app-shortcuts', JSON.stringify(defaultShortcuts))
-                      }
-                    }}
-                    style={{
-                      backgroundColor: 'transparent',
-                      color: 'var(--text-secondary)',
-                      border: '1px solid var(--border-strong)',
-                      borderRadius: '6px',
-                      padding: '8px 14px',
-                      fontSize: 'var(--fs-md)',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Réinitialiser par défaut
-                  </button>
-                </div>
+                            <span className="kb-combos">
+                              {maps.length === 0 && <span className="kb-none">Aucun</span>}
+                              {maps.map((m) => {
+                                if (m.uuid === recordingUuid) {
+                                  return (
+                                    <span key={m.uuid} className="kb-rec" role="status">
+                                      Appuyez sur une combinaison…<span>Échap pour annuler</span>
+                                    </span>
+                                  )
+                                }
+                                const other = findConflict(shortcuts, m)
+                                return (
+                                  <span key={m.uuid} className="kb-combo">
+                                    <button
+                                      className="kb-caps"
+                                      title="Cliquer pour changer"
+                                      aria-label={`${a.label} : ${formatShortcutLabel(m)}. Changer`}
+                                      onClick={() => setRecordingUuid(m.uuid)}
+                                    >
+                                      {m.key ? (
+                                        formatShortcutLabel(m)
+                                          .split(' ')
+                                          .map((k, i) => <kbd key={i}>{k}</kbd>)
+                                      ) : (
+                                        <span className="kb-none">Non défini</span>
+                                      )}
+                                    </button>
+                                    <button
+                                      className="kb-remove"
+                                      aria-label={`Retirer ${formatShortcutLabel(m)}`}
+                                      title="Retirer ce raccourci"
+                                      onClick={() => removeShortcut(m.uuid)}
+                                    >
+                                      <XIcon size={11} />
+                                    </button>
+                                    {other && (
+                                      <span className="st-conflict" role="note">
+                                        Déjà pris par « {actions[other.actionId] || other.actionId}{' '}
+                                        »
+                                      </span>
+                                    )}
+                                  </span>
+                                )
+                              })}
+                            </span>
+                            <span className="kb-tools">
+                              {changed && (
+                                <button className="sk-mini" onClick={() => resetShortcut(a.id)}>
+                                  Rétablir
+                                </button>
+                              )}
+                              <button className="sk-mini" onClick={() => addShortcut(a.id)}>
+                                Ajouter
+                              </button>
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </section>
+                  )
+                })}
               </div>
             )}
 
