@@ -29,6 +29,8 @@ const api = {
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
   // Premier lancement : dossier de notes et visite guidée
   getAppSetup: () => ipcRenderer.invoke('get-app-setup'),
+  setTitleBarColors: (color: string, symbolColor: string) =>
+    ipcRenderer.invoke('set-title-bar-colors', color, symbolColor),
   chooseNotesFolder: () => ipcRenderer.invoke('choose-notes-folder'),
   finishAppSetup: (notesDir?: string) => ipcRenderer.invoke('finish-app-setup', notesDir),
   importPdfDialog: (targetFolder?: string) => ipcRenderer.invoke('import-pdf-dialog', targetFolder),
@@ -90,27 +92,24 @@ const api = {
       ipcRenderer.removeListener('escape-pressed', sub)
     }
   },
-  onShortcutRecent: (callback: () => void) => {
-    const sub = () => callback()
-    ipcRenderer.on('shortcut-recent', sub)
+  // Raccourci tapé dans un panneau web, reconnu par le main (liste envoyée par setShortcutKeys)
+  onShortcutAction: (callback: (actionId: string) => void) => {
+    const sub = (_event: Electron.IpcRendererEvent, actionId: string): void => callback(actionId)
+    ipcRenderer.on('shortcut-action', sub)
     return () => {
-      ipcRenderer.removeListener('shortcut-recent', sub)
+      ipcRenderer.removeListener('shortcut-action', sub)
     }
   },
-  onShortcutToggleAi: (callback: () => void) => {
-    const sub = () => callback()
-    ipcRenderer.on('shortcut-toggle-ai', sub)
-    return () => {
-      ipcRenderer.removeListener('shortcut-toggle-ai', sub)
-    }
-  },
-  onShortcutToggleFullscreen: (callback: () => void) => {
-    const sub = () => callback()
-    ipcRenderer.on('shortcut-toggle-fullscreen', sub)
-    return () => {
-      ipcRenderer.removeListener('shortcut-toggle-fullscreen', sub)
-    }
-  },
+  setShortcutKeys: (
+    combos: {
+      actionId: string
+      key: string
+      ctrlKey: boolean
+      shiftKey: boolean
+      altKey: boolean
+    }[]
+  ) => ipcRenderer.invoke('set-shortcut-keys', combos),
+
   onNotesUpdated: (callback: () => void) => {
     const sub = () => callback()
     ipcRenderer.on('notes-updated', sub)

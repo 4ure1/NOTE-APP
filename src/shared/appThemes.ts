@@ -54,6 +54,29 @@ export const APP_THEMES: AppTheme[] = [
     }
   },
   {
+    // Couleurs exactes des maquettes (design-mockups/dribbble) : ardoise légèrement bleutée
+    id: 'ardoise',
+    label: 'Ardoise',
+    colors: {
+      app: '#16181b',
+      panel: '#181a1e',
+      code: '#1a1c20',
+      page: '#1f2226',
+      raised: '#1f2226',
+      hover: '#25292e',
+      active: '#2c3137',
+      sunken: '#131417',
+      border: '#353a41',
+      text: '#e5e7ea',
+      textSecondary: '#b6bbc3',
+      textMuted: '#969da7',
+      marge: '#e45a6b',
+      accent: '#8ab0f6',
+      accentHover: '#a8c4fa',
+      accentStrong: '#3a6fd8'
+    }
+  },
+  {
     id: 'nuit',
     label: 'Nuit',
     colors: {

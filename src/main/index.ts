@@ -20,6 +20,7 @@ import { expandTemplate, NoteTemplate, TemplateContext } from '../shared/session
 import { PdfAnnotation } from '../shared/pdfAnnotations'
 import { APP_NAME, AUTHOR, AUTHOR_GITHUB, COPYRIGHT } from '../shared/credits'
 import { buildNewHtmlNote } from '../shared/newNoteTemplate'
+import { matchShortcut, sanitizeRemoteCombos, type RemoteCombo } from '../shared/shortcuts'
 import { isPdfUrl } from '../shared/pdfLink'
 import {
   isAllowedExternalUrl,
@@ -1202,6 +1203,9 @@ function createWindow(): void {
     height: 800,
     show: true,
     autoHideMenuBar: true,
+    // Barre de titre intégrée : le renderer dessine la bande (TitleBar.tsx), Windows les boutons
+    titleBarStyle: 'hidden',
+    titleBarOverlay: { color: '#19191a', symbolColor: '#b0afab', height: 32 },
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -1243,30 +1247,8 @@ function createWindow(): void {
       }
       mainWindow.webContents.send('escape-pressed')
     }
-    if (
-      (input.control || input.meta) &&
-      (input.key.toLowerCase() === 'r' || input.code === 'KeyR') &&
-      input.type === 'keyDown'
-    ) {
-      event.preventDefault()
-      mainWindow.webContents.send('shortcut-recent')
-    }
-    if (
-      (input.control || input.meta) &&
-      (input.key.toLowerCase() === 'j' || input.code === 'KeyJ') &&
-      input.type === 'keyDown'
-    ) {
-      event.preventDefault()
-      mainWindow.webContents.send('shortcut-toggle-ai')
-    }
-    if (
-      (input.control || input.meta) &&
-      (input.key.toLowerCase() === 'f' || input.code === 'KeyF') &&
-      input.type === 'keyDown'
-    ) {
-      event.preventDefault()
-      mainWindow.webContents.send('shortcut-toggle-fullscreen')
-    }
+    // Les autres raccourcis de la fenêtre sont traités par la page (registre src/shared/shortcuts.ts) :
+    // rien n'est intercepté ici, pour que Ctrl+F reste la recherche de l'éditeur
   })
 
   // Surveillance en temps réel du dossier de notes (création, suppression, renommage depuis l'explorateur Windows)
@@ -1570,29 +1552,20 @@ function createWindow(): void {
         }
         mainWindow.webContents.send('escape-pressed')
       }
-      if (
-        (input.control || input.meta) &&
-        (input.key.toLowerCase() === 'r' || input.code === 'KeyR') &&
-        input.type === 'keyDown'
-      ) {
-        event.preventDefault()
-        mainWindow.webContents.send('shortcut-recent')
-      }
-      if (
-        (input.control || input.meta) &&
-        (input.key.toLowerCase() === 'j' || input.code === 'KeyJ') &&
-        input.type === 'keyDown'
-      ) {
-        event.preventDefault()
-        mainWindow.webContents.send('shortcut-toggle-ai')
-      }
-      if (
-        (input.control || input.meta) &&
-        (input.key.toLowerCase() === 'f' || input.code === 'KeyF') &&
-        input.type === 'keyDown'
-      ) {
-        event.preventDefault()
-        mainWindow.webContents.send('shortcut-toggle-fullscreen')
+      // Raccourcis de l'app tapés dans un site (Claude, YouTube…) : renvoyés à la fenêtre
+      if (input.type === 'keyDown') {
+        const combo = matchShortcut(remoteShortcutKeys, {
+          key: input.key,
+          code: input.code,
+          ctrlKey: input.control,
+          metaKey: input.meta,
+          shiftKey: input.shift,
+          altKey: input.alt
+        })
+        if (combo) {
+          event.preventDefault()
+          mainWindow.webContents.send('shortcut-action', combo.actionId)
+        }
       }
     })
 
@@ -1754,6 +1727,41 @@ ipcMain.handle('list-markdown-files', () => {
 // Dossier retenu par la fenêtre de sélection de cette session : le seul (avec le dossier actuel et ~/Notes)
 // que finish-app-setup accepte, pour qu'un appel venu d'ailleurs ne puisse pas déplacer le dossier de notes.
 let pickedNotesFolder: string | null = null
+
+// Raccourcis utilisables dans les panneaux web : la liste vient de la page (Paramètres), validée ici
+let remoteShortcutKeys: RemoteCombo[] = []
+ipcMain.handle('set-shortcut-keys', (event, combos: unknown) => {
+  const win = globalMainWindow
+  if (!win || win.isDestroyed() || event.sender !== win.webContents) {
+    return { success: false, error: 'Fenêtre indisponible.' }
+  }
+  remoteShortcutKeys = sanitizeRemoteCombos(combos)
+  return { success: true }
+})
+
+// Couleurs des boutons de fenêtre dessinés par Windows : suivent le thème de l'app
+ipcMain.handle('set-title-bar-colors', (event, color: unknown, symbolColor: unknown) => {
+  const win = globalMainWindow
+  if (!win || win.isDestroyed() || event.sender !== win.webContents) {
+    return { success: false, error: 'Fenêtre indisponible.' }
+  }
+  const hex = /^#[0-9a-f]{6}$/i
+  if (
+    typeof color !== 'string' ||
+    typeof symbolColor !== 'string' ||
+    !hex.test(color) ||
+    !hex.test(symbolColor)
+  ) {
+    return { success: false, error: 'Couleur invalide.' }
+  }
+  try {
+    win.setTitleBarOverlay({ color, symbolColor, height: 32 })
+    return { success: true }
+  } catch (err) {
+    console.error('[TitleBar]', err)
+    return { success: false, error: err instanceof Error ? err.message : String(err) }
+  }
+})
 
 ipcMain.handle('get-app-setup', () => {
   const setup = readAppSetup(APP_SETUP_FILE)

@@ -287,6 +287,24 @@ export default function Sidebar({
       fileInputRef.current?.click()
     }
   }
+  // Raccourcis clavier (App.tsx) : nouveau dossier à la racine, import de PDF
+  useEffect(() => {
+    const onCreateFolder = (): void => {
+      setFoldersOpen(true)
+      setCreatingInFolder({ parentPath: '', type: 'folder' })
+      setNewItemName('')
+    }
+    const onImportPdf = (): void => {
+      void handleImportPdf('')
+    }
+    window.addEventListener('nf-create-folder', onCreateFolder)
+    window.addEventListener('nf-import-pdf', onImportPdf)
+    return () => {
+      window.removeEventListener('nf-create-folder', onCreateFolder)
+      window.removeEventListener('nf-import-pdf', onImportPdf)
+    }
+  })
+
 
   const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files

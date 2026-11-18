@@ -86,7 +86,7 @@ export default function TreeSortMenu({ sort, onChange }: TreeSortMenuProps): Rea
         style={{
           background: 'transparent',
           border: 'none',
-          color: isDefault ? 'var(--text-secondary)' : 'var(--accent-marge)',
+          color: isDefault ? 'var(--text-muted)' : 'var(--text-strong)',
           cursor: 'pointer',
           padding: '2px 4px',
           borderRadius: '4px',
@@ -146,7 +146,7 @@ export default function TreeSortMenu({ sort, onChange }: TreeSortMenuProps): Rea
               >
                 <span
                   aria-hidden="true"
-                  style={{ width: '12px', color: 'var(--accent-marge)', fontWeight: 700 }}
+                  style={{ width: '12px', color: 'var(--text-strong)', fontWeight: 700 }}
                 >
                   {active ? '✓' : ''}
                 </span>

@@ -7,6 +7,8 @@ interface NoteStatusBarProps {
   status: SaveStatus
   kind: 'HTML' | 'Markdown'
   words: number
+  /** Date relative de la dernière modification sur le disque (« il y a 5 jours »). */
+  modified?: string
 }
 
 const LABELS: Record<SaveStatus, string> = {
@@ -19,7 +21,8 @@ const LABELS: Record<SaveStatus, string> = {
 export default function NoteStatusBar({
   status,
   kind,
-  words
+  words,
+  modified
 }: NoteStatusBarProps): React.JSX.Element {
   return (
     <div className="ns-bar" role="status" aria-live="polite">
@@ -29,6 +32,7 @@ export default function NoteStatusBar({
       </span>
       <span>{kind}</span>
       <span className="ns-right">
+        {modified && <span>Modifiée {modified}</span>}
         <span>
           {words.toLocaleString('fr-FR')} {words > 1 ? 'mots' : 'mot'}
         </span>

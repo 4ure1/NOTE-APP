@@ -56,6 +56,10 @@ interface CustomAPI {
   openInBrowser: (relativePath: string) => Promise<boolean>
   openExternalUrl: (url: string) => Promise<boolean>
   // Premier lancement : dossier de notes (relance l'app s'il change) et visite guidée
+  setTitleBarColors: (
+    color: string,
+    symbolColor: string
+  ) => Promise<{ success: true } | { success: false; error: string }>
   getAppSetup: () => Promise<{
     success: true
     notesDir: string
@@ -98,9 +102,16 @@ interface CustomAPI {
   setActiveFolder: (folderPath: string) => Promise<boolean>
   onFullscreenChange: (callback: (isFullscreen: boolean) => void) => () => void
   onEscapePressed: (callback: () => void) => () => void
-  onShortcutRecent: (callback: () => void) => () => void
-  onShortcutToggleAi: (callback: () => void) => () => void
-  onShortcutToggleFullscreen: (callback: () => void) => () => void
+  onShortcutAction: (callback: (actionId: string) => void) => () => void
+  setShortcutKeys: (
+    combos: {
+      actionId: string
+      key: string
+      ctrlKey: boolean
+      shiftKey: boolean
+      altKey: boolean
+    }[]
+  ) => Promise<{ success: true } | { success: false; error: string }>
   onNotesUpdated: (callback: () => void) => () => void
   openGoogleLogin: (
     service?: 'youtube' | 'claude' | 'default',

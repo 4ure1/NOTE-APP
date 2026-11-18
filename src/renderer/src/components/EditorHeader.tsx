@@ -13,9 +13,10 @@ import {
   CodeIcon,
   ColumnsIcon,
   ChevronRight,
+  ChevronDown,
   ShareIcon
 } from './Icons'
-import { WORKFLOW_COLUMNS, WorkflowStatus } from './WorkflowView'
+import type { WorkflowColumn } from '../../../shared/workflow'
 
 interface EditorHeaderProps {
   currentFilePath: string
@@ -34,8 +35,10 @@ interface EditorHeaderProps {
   editorMode?: 'preview' | 'live' | 'edit'
   onToggleEditorMode?: () => void
   onChangeEditorMode?: (mode: 'preview' | 'live' | 'edit') => void
-  workflowStatus?: WorkflowStatus
-  onStatusChange?: (status: WorkflowStatus) => void
+  /** Colonne du tableau où se trouve la note ; null : note non suivie. */
+  workflowStatus?: string | null
+  workflowColumns?: WorkflowColumn[]
+  onStatusChange?: (columnId: string | null) => void
   noteContent?: string
   onDeleteNote?: () => void
   onOpenInBrowser?: () => void
@@ -73,6 +76,7 @@ export default function EditorHeader({
   onToggleEditorMode,
   onChangeEditorMode,
   workflowStatus,
+  workflowColumns,
   onStatusChange,
   noteContent = '',
   onDeleteNote,
@@ -501,105 +505,66 @@ export default function EditorHeader({
       </div>
 
       {/* Note Hero: Tags, Large Title, Meta Timestamps */}
-      <div style={{ padding: '28px 36px 12px 36px' }}>
+      <div className="eh-meta">
+        {/* Titre de la note : <title> en HTML, ligne « # » en Markdown */}
+        <input
+          className="eh-title-input"
+          value={noteTitle}
+          onChange={(e) => onTitleChange(e.target.value)}
+          placeholder="Titre de la note"
+          aria-label="Titre de la note"
+          title={
+            createdAt || modifiedAt
+              ? `Créée ${createdAt ?? '?'}, modifiée ${modifiedAt ?? '?'}`
+              : undefined
+          }
+        />
         {/* Pill tags matching screenshot */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
-          {/* Workflow Status Badge Dropdown */}
-          {workflowStatus && onStatusChange && (
-            <div style={{ position: 'relative' }}>
-              {(() => {
-                const currentCol = WORKFLOW_COLUMNS.find((c) => c.id === workflowStatus) || WORKFLOW_COLUMNS[1]
-                return (
-                  <button
-                    onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      backgroundColor: currentCol.bgBadge,
-                      border: `1px solid ${currentCol.borderBadge}`,
-                      color: currentCol.color,
-                      borderRadius: '6px',
-                      padding: '3px 10px',
-                      fontSize: 'var(--fs-sm)',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      outline: 'none',
-                      transition: 'all 0.15s'
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: '6px',
-                        height: '6px',
-                        borderRadius: '50%',
-                        backgroundColor: currentCol.color,
-                        boxShadow: `0 0 6px ${currentCol.color}`
-                      }}
-                    />
-                    <span>{currentCol.label}</span>
-                    <span style={{ fontSize: 'var(--fs-xs)', opacity: 0.7 }}>▼</span>
-                  </button>
-                )
-              })()}
-
+        <div className="eh-meta-tags">
+          {/* Statut dans le tableau : colonne actuelle, ou « Ajouter au tableau » */}
+          {workflowColumns && onStatusChange && (
+            <div className="wf-status">
+              <button
+                className={'wf-status-chip' + (workflowStatus ? '' : ' empty')}
+                aria-haspopup="menu"
+                aria-expanded={statusDropdownOpen}
+                onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+              >
+                {workflowStatus
+                  ? workflowColumns.find((c) => c.id === workflowStatus)?.label || 'Tableau'
+                  : 'Ajouter au tableau'}
+                <ChevronDown size={12} />
+              </button>
               {statusDropdownOpen && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    marginTop: '4px',
-                    backgroundColor: 'var(--surface-raised)',
-                    border: '1px solid var(--border-strong)',
-                    borderRadius: '8px',
-                    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.6)',
-                    zIndex: 50,
-                    minWidth: '150px',
-                    padding: '4px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '2px'
-                  }}
-                >
-                  {WORKFLOW_COLUMNS.map((col) => (
-                    <div
+                <div className="wf-menu wf-status-menu" role="menu">
+                  {workflowColumns.map((col) => (
+                    <button
                       key={col.id}
+                      role="menuitemradio"
+                      aria-checked={col.id === workflowStatus}
                       onClick={() => {
                         onStatusChange(col.id)
                         setStatusDropdownOpen(false)
                       }}
-                      style={{
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: 'var(--fs-sm)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        color:
-                          col.id === workflowStatus
-                            ? 'var(--text-strong)'
-                            : 'var(--text-secondary)',
-                        backgroundColor: col.id === workflowStatus ? 'rgba(255, 255, 255, 0.08)' : 'transparent'
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)')}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor =
-                          col.id === workflowStatus ? 'rgba(255, 255, 255, 0.08)' : 'transparent'
-                      }}
                     >
-                      <span
-                        style={{
-                          width: '6px',
-                          height: '6px',
-                          borderRadius: '50%',
-                          backgroundColor: col.color
-                        }}
-                      />
-                      <span>{col.label}</span>
-                    </div>
+                      {col.label}
+                      {col.id === workflowStatus && <CheckIcon size={13} />}
+                    </button>
                   ))}
+                  {workflowStatus && (
+                    <>
+                      <hr />
+                      <button
+                        role="menuitem"
+                        onClick={() => {
+                          onStatusChange(null)
+                          setStatusDropdownOpen(false)
+                        }}
+                      >
+                        Retirer du tableau
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -682,40 +647,6 @@ export default function EditorHeader({
           )}
         </div>
 
-        {/* Note Title H1 - large bold typography */}
-        <input
-          value={noteTitle}
-          onChange={(e) => onTitleChange(e.target.value)}
-          placeholder="Titre de la note..."
-          style={{
-            width: '100%',
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            fontSize: '32px',
-            fontWeight: 700,
-            color: 'var(--text-primary)',
-            letterSpacing: '-0.025em',
-            marginBottom: '8px',
-            fontFamily: 'inherit',
-            lineHeight: 1.25
-          }}
-        />
-
-        {/* Metadata timestamps matching mockup */}
-        <div
-          style={{
-            fontSize: 'var(--fs-md)',
-            color: 'var(--text-muted)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          <span>Created {createdAt}</span>
-          <span style={{ opacity: 0.5 }}>•</span>
-          <span>Last modified {modifiedAt}</span>
-        </div>
       </div>
     </div>
   )

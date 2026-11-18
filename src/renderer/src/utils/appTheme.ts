@@ -13,10 +13,18 @@ export function savedAppThemeId(): string {
 }
 
 function applyVariables(id: string): void {
-  const vars = themeVariables(getAppTheme(id))
+  const theme = getAppTheme(id)
+  const vars = themeVariables(theme)
   for (const [name, value] of Object.entries(vars)) {
     document.documentElement.style.setProperty(name, value)
   }
+  // Boutons de fenêtre (barre de titre intégrée) aux couleurs du thème
+  window.api
+    ?.setTitleBarColors?.(theme.colors.app, theme.colors.textSecondary)
+    .then((res) => {
+      if (!res.success) console.error('[Thème] Barre de titre', res.error)
+    })
+    .catch((err: unknown) => console.error('[Thème] Barre de titre', err))
 }
 
 /** Au démarrage, avant le premier rendu : pas de flash de l'autre thème. */

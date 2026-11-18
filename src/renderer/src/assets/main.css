@@ -457,3 +457,87 @@ kbd {
 .yt-url input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; color: var(--text-strong); font-size: var(--fs-md); font-family: inherit; }
 .yt-url input:focus-visible { outline: none !important; }
 .eh-btn[aria-pressed='true'] { background: var(--element-active); color: var(--text-strong); }
+
+/* ---------- Tableau (WorkflowView.tsx) ---------- */
+.wf { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--app-bg); }
+.wf-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 48px; padding: 0 16px; border-bottom: 1px solid var(--border-color); flex: none; }
+.wf-title { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.wf-title h1 { margin: 0; font-size: var(--fs-lg); font-weight: 600; color: var(--text-strong); }
+.wf-title span { font-size: var(--fs-sm); color: var(--text-muted); white-space: nowrap; }
+.wf-filters { display: flex; align-items: center; gap: 8px; }
+.wf-field { display: flex; align-items: center; gap: 8px; width: 220px; height: 28px; padding: 0 10px; border-radius: 6px; background: var(--surface-control); color: var(--text-muted); }
+.wf-field:focus-within { box-shadow: 0 0 0 2px var(--accent-color); }
+.wf-field input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; color: var(--text-strong); font-size: var(--fs-md); font-family: inherit; }
+.wf-field input:focus-visible { outline: none !important; }
+.wf-select { height: 28px; padding: 0 8px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--surface-control); color: var(--text-secondary); font-size: var(--fs-sm); font-family: inherit; }
+.wf-new { border-color: var(--border-strong); background: var(--surface-control); color: var(--text-primary); }
+.wf-board { flex: 1; display: flex; align-items: stretch; gap: 12px; padding: 14px 16px 16px; min-height: 0; overflow-x: auto; overflow-y: hidden; }
+.wf-col { position: relative; display: flex; flex-direction: column; width: 272px; flex: none; min-height: 0; border: 1px solid var(--border-color); border-radius: 8px; background: var(--sidebar-bg); }
+.wf-col.over { border-color: color-mix(in srgb, var(--accent-color) 55%, transparent); background: color-mix(in srgb, var(--accent-color) 5%, var(--sidebar-bg)); }
+.wf-col.folded { width: 44px; align-items: center; gap: 10px; padding: 12px 0; color: var(--text-secondary); cursor: pointer; font-family: inherit; }
+.wf-col.folded:hover { background: var(--element-bg-hover); }
+.wf-vertical { writing-mode: vertical-rl; transform: rotate(180deg); font-size: var(--fs-md); font-weight: 500; white-space: nowrap; }
+.wf-col-head { position: relative; display: flex; align-items: center; gap: 6px; height: 40px; padding: 0 6px 0 12px; flex: none; }
+.wf-col-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; border: none; background: none; color: var(--text-strong); font-size: var(--fs-md); font-weight: 600; font-family: inherit; text-align: left; cursor: default; }
+.wf-count { font-size: var(--fs-sm); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.wf-col-tools { margin-left: auto; display: flex; gap: 2px; }
+.wf-col-tools .eh-icon { width: 24px; height: 24px; }
+.wf-rename { flex: 1; min-width: 0; height: 26px; padding: 0 8px; border: 1px solid var(--accent-color); border-radius: 4px; background: var(--surface-input); color: var(--text-strong); font-size: var(--fs-md); font-family: inherit; outline: none; }
+.wf-new-col { padding: 8px; height: fit-content; }
+.wf-cards { display: flex; flex-direction: column; gap: 8px; padding: 0 8px 8px; overflow-y: auto; min-height: 0; }
+.wf-card { position: relative; padding: 10px 28px 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--editor-bg); cursor: pointer; }
+.wf-card:hover { border-color: var(--border-strong); }
+.wf-card.dragging { opacity: 0.4; }
+.wf-card-title { font-size: var(--fs-md); font-weight: 500; line-height: 1.35; color: var(--text-strong); overflow-wrap: anywhere; }
+.wf-card-folder { display: flex; align-items: center; gap: 4px; margin-top: 4px; font-size: var(--fs-sm); color: var(--text-muted); }
+.wf-card-meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: var(--fs-sm); color: var(--text-muted); }
+.wf-tag { padding: 0 6px; border-radius: 4px; background: var(--surface-control); color: var(--text-secondary); }
+.wf-ext { margin-left: auto; font-family: var(--font-mono); font-size: var(--fs-xs); }
+.wf-card-remove { position: absolute; top: 8px; right: 6px; display: grid; place-items: center; width: 20px; height: 20px; border: none; border-radius: 4px; background: transparent; color: var(--text-muted); cursor: pointer; opacity: 0; }
+.wf-card:hover .wf-card-remove, .wf-card:focus-within .wf-card-remove, .wf-card-remove:focus-visible { opacity: 1; }
+.wf-card-remove:hover { background: var(--element-active); color: var(--text-strong); }
+.wf-empty { padding: 8px 4px; font-size: var(--fs-sm); line-height: 1.5; color: var(--text-muted); }
+.wf-add-col { display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; flex: none; border: 1px dashed var(--border-strong); border-radius: 8px; background: transparent; color: var(--text-muted); font-size: var(--fs-sm); font-family: inherit; white-space: nowrap; cursor: pointer; }
+.wf-add-col:hover { color: var(--text-strong); border-color: var(--text-muted); }
+.wf-menu { position: absolute; top: 36px; right: 6px; z-index: 30; display: flex; flex-direction: column; min-width: 190px; padding: 4px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface-raised); box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45); }
+.wf-menu > button { height: 30px; padding: 0 10px; border: none; border-radius: 4px; background: transparent; color: var(--text-primary); font-size: var(--fs-md); font-family: inherit; text-align: left; cursor: pointer; }
+.wf-menu > button:hover:not(:disabled) { background: var(--element-bg-hover); }
+.wf-menu > button:disabled { opacity: 0.4; cursor: default; }
+.wf-menu > button.danger { color: var(--danger-color); }
+.wf-menu hr { margin: 4px 2px; border: none; border-top: 1px solid var(--border-color); }
+.wf-picker { width: 260px; left: 6px; right: auto; }
+.wf-picker-input { height: 30px; margin-bottom: 4px; padding: 0 8px; border: 1px solid var(--border-input); border-radius: 4px; background: var(--surface-input); color: var(--text-strong); font-size: var(--fs-md); font-family: inherit; outline: none; }
+.wf-picker-list { display: flex; flex-direction: column; max-height: 260px; overflow-y: auto; }
+.wf-picker-list > button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 6px 8px; border: none; border-radius: 4px; background: transparent; text-align: left; font-family: inherit; cursor: pointer; }
+.wf-picker-list > button:hover { background: var(--element-bg-hover); }
+.wf-picker-title { font-size: var(--fs-md); color: var(--text-primary); }
+.wf-picker-folder { font-size: var(--fs-xs); color: var(--text-muted); }
+
+/* Statut d'une note dans le tableau (EditorHeader.tsx) */
+.wf-status { position: relative; }
+.wf-status-chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px 0 10px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface-control); color: var(--text-primary); font-size: var(--fs-sm); font-family: inherit; cursor: pointer; }
+.wf-status-chip:hover { background: var(--element-active); color: var(--text-strong); }
+.wf-status-chip.empty { border-style: dashed; background: transparent; color: var(--text-muted); }
+.wf-status-menu { top: 30px; left: 0; right: auto; }
+.wf-status-menu > button { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+/* Ligne compacte sous la barre de la note : titre, statut du tableau, tags (EditorHeader.tsx) */
+.eh-meta { display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 4px 16px; border-bottom: 1px solid var(--border-color); background: var(--editor-bg); flex: none; }
+.eh-title-input { flex: 0 1 320px; min-width: 120px; height: 28px; padding: 0 6px; margin-left: -6px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text-strong); font-size: var(--fs-md); font-weight: 600; font-family: inherit; outline: none; }
+.eh-title-input:hover { border-color: var(--border-color); }
+.eh-title-input:focus { border-color: var(--accent-color); background: var(--surface-input); }
+.eh-meta-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+
+/* Barres de défilement des colonnes de l'interface : invisibles tant que la zone n'est pas survolée */
+.sb-body, .st-nav, .st-scroll, .wf-cards, .wf-board { scrollbar-color: transparent transparent !important; }
+.sb-body:hover, .st-nav:hover, .st-scroll:hover, .wf-cards:hover, .wf-board:hover { scrollbar-color: rgba(255, 255, 255, 0.18) transparent !important; }
+
+/* ---------- Barre de titre intégrée (TitleBar.tsx) ---------- */
+/* Zone de déplacement de la fenêtre ; à droite, 140 px laissés aux boutons dessinés par Windows */
+.app-titlebar { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 140px 0 12px; flex: none; background: var(--app-bg); border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-size: var(--fs-xs); white-space: nowrap; user-select: none; -webkit-app-region: drag; }
+.app-titlebar-name { font-weight: 600; letter-spacing: 0.04em; color: var(--text-secondary); }
+.app-titlebar-note { overflow: hidden; text-overflow: ellipsis; }
+.app-titlebar-test { padding: 1px 6px; border-radius: 4px; background: var(--danger-bg-hover); color: var(--danger-color); font-weight: 600; }
+
+/* Raccourci en conflit avec un autre (SettingsModal.tsx) */
+.st-conflict { font-size: var(--fs-xs); color: var(--danger-color); white-space: nowrap; }

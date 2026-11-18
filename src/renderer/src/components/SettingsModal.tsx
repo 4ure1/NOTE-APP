@@ -6,6 +6,7 @@ import { savedAppThemeId, setAppTheme } from '../utils/appTheme'
 import { Snippet } from '../types/snippets'
 import { getSnippetBodyText } from '../utils/snippetEngine'
 import { notifyApiError } from '../utils/apiError'
+import { findConflict } from '../../../shared/shortcuts'
 import { APP_NAME, AUTHOR, AUTHOR_GITHUB, COPYRIGHT } from '../utils/credits'
 import {
   BrainIcon,
@@ -1034,8 +1035,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <p
                     style={{ margin: 0, fontSize: 'var(--fs-md)', color: 'var(--text-secondary)' }}
                   >
-                    Configurez vos touches d’accès rapide. Cliquez sur Modifier puis appuyez sur la
-                    combinaison souhaitée.
+                    Cliquez sur Modifier puis appuyez sur la combinaison voulue. Ils marchent aussi
+                    dans l’aperçu et dans les panneaux Claude, ChatGPT, Gemini et YouTube. Ctrl+F
+                    reste la recherche dans la note.
                   </p>
                 </div>
 
@@ -1115,6 +1117,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         >
                           {recordingUuid === s.uuid ? 'Appuyez...' : formatShortcut(s)}
                         </span>
+                        {(() => {
+                          // Même combinaison qu'un autre raccourci : le premier de la liste l'emporte
+                          const other =
+                            recordingUuid === s.uuid ? undefined : findConflict(shortcuts, s)
+                          return other ? (
+                            <span className="st-conflict" role="note">
+                              Déjà pris par « {actions[other.actionId] || other.actionId} »
+                            </span>
+                          ) : null
+                        })()}
 
                         <button
                           onClick={() => setRecordingUuid(s.uuid)}

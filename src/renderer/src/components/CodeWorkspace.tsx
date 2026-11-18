@@ -38,6 +38,14 @@ import { notifyApiError } from '../utils/apiError'
 loader.config({ monaco })
 
 interface CodeWorkspaceProps {
+  /** Raccourcis utilisables depuis l'aperçu (remoteCombos, src/shared/shortcuts.ts). */
+  shortcutCombos?: {
+    actionId: string
+    key: string
+    ctrlKey: boolean
+    shiftKey: boolean
+    altKey: boolean
+  }[]
   value: string
   onChange: (val: string) => void
   currentFilePath: string
@@ -2071,7 +2079,29 @@ export const prepareHtmlPreview = (
           return { scrollY: scrollY, ratio: ratio };
         }
 
-        // Forward Esc key, Ctrl+F, and Ctrl+J / Cmd+J from inside iframe to parent window
+        // Combinaisons des raccourcis de l'app ; même règle que matchShortcut (src/shared/shortcuts.ts) :
+        // Cmd vaut Ctrl, chiffres reconnus par la touche physique (AZERTY), Maj ignorée pour « + » et « - »
+        var nfShortcuts = [];
+        function nfNormKey(k) {
+          if (k === '=') return '+';
+          if (k === '_') return '-';
+          return k && k.length === 1 ? k.toLowerCase() : k;
+        }
+        function matchNfShortcut(e) {
+          var ctrl = e.ctrlKey || e.metaKey;
+          var k = nfNormKey(e.key);
+          for (var i = 0; i < nfShortcuts.length; i++) {
+            var m = nfShortcuts[i];
+            if (!m || typeof m.key !== 'string' || m.ctrlKey !== ctrl || m.altKey !== e.altKey) continue;
+            if (k === m.key && m.shiftKey === e.shiftKey) return m;
+            if (/^[0-9]$/.test(m.key) && (e.code === 'Digit' + m.key || e.code === 'Numpad' + m.key)) return m;
+            if (m.key === '+' && (k === '+' || e.code === 'NumpadAdd')) return m;
+            if (m.key === '-' && (k === '-' || e.code === 'NumpadSubtract')) return m;
+          }
+          return null;
+        }
+
+        // Échap et raccourcis de l'app tapés dans l'aperçu : transmis à la fenêtre
         function handleKey(e) {
           if (e.key === 'Escape' || e.keyCode === 27) {
             if (snippetMenuEl && snippetMenuEl.style.display !== 'none') {
@@ -2096,40 +2126,21 @@ export const prepareHtmlPreview = (
               ratio: info.ratio
             }, '*');
           }
-          if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'f' || e.code === 'KeyF')) {
+          // Raccourcis de l'app (registre src/shared/shortcuts.ts, reçu par SET_SHORTCUTS) : renvoyés à la fenêtre
+          var nfCombo = matchNfShortcut(e);
+          if (nfCombo) {
             e.preventDefault();
             e.stopPropagation();
-            var info = getScrollInfo();
-            window.parent.postMessage({
-              type: 'HTML_TOGGLE_FULLSCREEN',
-              scrollY: info.scrollY,
-              ratio: info.ratio
-            }, '*');
-          }
-          if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'j' || e.code === 'KeyJ')) {
-            e.preventDefault();
-            e.stopPropagation();
-            window.parent.postMessage({ type: 'TOGGLE_AI_WORKSPACE' }, '*');
-          }
-          if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key.toLowerCase() === 'o' || e.code === 'KeyO')) {
-            e.preventDefault();
-            e.stopPropagation();
-            window.parent.postMessage({ type: 'TOGGLE_OUTLINE' }, '*');
-          }
-          if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '=' || e.keyCode === 187 || e.keyCode === 107)) {
-            e.preventDefault();
-            e.stopPropagation();
-            window.parent.postMessage({ type: 'REQUEST_ZOOM_CHANGE', zoomChange: 10 }, '*');
-          }
-          if ((e.ctrlKey || e.metaKey) && (e.key === '-' || e.key === '_' || e.keyCode === 189 || e.keyCode === 109)) {
-            e.preventDefault();
-            e.stopPropagation();
-            window.parent.postMessage({ type: 'REQUEST_ZOOM_CHANGE', zoomChange: -10 }, '*');
-          }
-          if ((e.ctrlKey || e.metaKey) && (e.key === '0' || e.keyCode === 48 || e.keyCode === 96)) {
-            e.preventDefault();
-            e.stopPropagation();
-            window.parent.postMessage({ type: 'REQUEST_ZOOM_RESET' }, '*');
+            if (nfCombo.actionId === 'toggle-fullscreen') {
+              var info = getScrollInfo();
+              window.parent.postMessage({
+                type: 'HTML_TOGGLE_FULLSCREEN',
+                scrollY: info.scrollY,
+                ratio: info.ratio
+              }, '*');
+            } else {
+              window.parent.postMessage({ type: 'NF_SHORTCUT', actionId: nfCombo.actionId }, '*');
+            }
           }
         }
         window.addEventListener('keydown', handleKey, true);
@@ -2309,6 +2320,8 @@ export const prepareHtmlPreview = (
             }
           } else if (event.data.type === 'SET_SCROLL') {
             startRestore(event.data.scrollY, event.data.ratio, event.data.preferRatio);
+          } else if (event.data.type === 'SET_SHORTCUTS') {
+            nfShortcuts = Array.isArray(event.data.combos) ? event.data.combos : [];
           } else if (event.data.type === 'SET_PREVIEW_THEME') {
             // Thème de l'app : feuille d'aide retirée à l'enregistrement, la note n'est pas modifiée
             var themeStyle = document.getElementById('nf-preview-theme');
@@ -2466,6 +2479,7 @@ export const prepareHtmlPreview = (
 }
 
 export default function CodeWorkspace({
+  shortcutCombos = [],
   value,
   onChange,
   currentFilePath,
@@ -3029,6 +3043,10 @@ export default function CodeWorkspace({
       // Une seule demande : l'aperçu la réapplique lui-même tant que sa hauteur évolue
       applyScroll()
       iframeRef.current?.contentWindow?.postMessage(previewThemeMessage(), '*')
+      iframeRef.current?.contentWindow?.postMessage(
+        { type: 'SET_SHORTCUTS', combos: shortcutCombosRef.current },
+        '*'
+      )
 
       if (iframeRef.current?.contentWindow && zoomLevel) {
         iframeRef.current.contentWindow.postMessage(
@@ -3043,6 +3061,16 @@ export default function CodeWorkspace({
       console.debug('[Aperçu]', err)
     }
   }
+
+  // Raccourcis modifiés dans les Paramètres : l'aperçu ouvert les reçoit tout de suite
+  const shortcutCombosRef = useRef(shortcutCombos)
+  shortcutCombosRef.current = shortcutCombos
+  useEffect(() => {
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: 'SET_SHORTCUTS', combos: shortcutCombos },
+      '*'
+    )
+  }, [shortcutCombos])
 
   // Changement de thème : Monaco et l'aperçu suivent sans recharger
   useEffect(() => {
@@ -3240,13 +3268,8 @@ export default function CodeWorkspace({
                   }
                 })
 
-                // Intercepter Ctrl+J, Ctrl+F et Échap directement dans Monaco pour éviter tout conflit d'édition
-                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyJ, () => {
-                  window.parent.postMessage({ type: 'TOGGLE_AI_WORKSPACE' }, '*')
-                })
-                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF, () => {
-                  window.parent.postMessage({ type: 'HTML_TOGGLE_FULLSCREEN' }, '*')
-                })
+                // Échap dans Monaco : sortie du plein écran. Les raccourcis de l'app passent par la fenêtre
+                // (phase de capture, App.tsx) ; Ctrl+F reste la recherche de Monaco
                 editor.addCommand(monaco.KeyCode.Escape, () => {
                   window.parent.postMessage({ type: 'HTML_EXIT_FULLSCREEN' }, '*')
                 })
@@ -3315,6 +3338,10 @@ export default function CodeWorkspace({
                 cursorSurroundingLines: isTypewriterMode ? 14 : 2,
                 automaticLayout: true,
                 lineNumbers: 'on',
+                // Gouttière étroite : numéros sur 3 chiffres, pas de marge de glyphes
+                lineNumbersMinChars: 3,
+                lineDecorationsWidth: 8,
+                glyphMargin: false,
                 formatOnPaste: false,
                 formatOnType: false,
                 bracketPairColorization: { enabled: true },

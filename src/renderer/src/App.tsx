@@ -3,7 +3,15 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Sidebar from '@renderer/components/Sidebar'
 import EditorHeader from '@renderer/components/EditorHeader'
 import PdfViewer from '@renderer/components/PdfViewer'
-import WorkflowView, { WorkflowStatus } from '@renderer/components/WorkflowView'
+import WorkflowView from '@renderer/components/WorkflowView'
+import {
+  removeColumn as removeWorkflowColumn,
+  sanitizeColumns,
+  sanitizeStatuses,
+  setNoteStatus,
+  type WorkflowColumn,
+  type WorkflowStatuses
+} from '../../shared/workflow'
 import YouTubeWorkspace from '@renderer/components/YouTubeWorkspace'
 import MDEditor from '@uiw/react-md-editor'
 import { modernCommands } from '@renderer/components/editorCommands'
@@ -43,7 +51,18 @@ import { generateDynamicSnippets } from './utils/dynamicSnippets'
 import { SnippetPalette } from './components/SnippetPalette'
 import { SettingsModal } from './components/SettingsModal'
 import NoteStatusBar, { type SaveStatus } from './components/NoteStatusBar'
+import TitleBar from './components/TitleBar'
 import { countWords } from '../../shared/wordCount'
+import {
+  DEFAULT_SHORTCUTS,
+  SHORTCUT_ACTIONS,
+  formatShortcut as formatShortcutLabel,
+  matchShortcut,
+  mergeShortcuts,
+  needsModifier,
+  remoteCombos,
+  type ShortcutMapping
+} from '../../shared/shortcuts'
 import WelcomeTour from './components/WelcomeTour'
 import { HistoryModal } from './components/HistoryModal'
 import { ExportModal } from './components/ExportModal'
@@ -91,59 +110,10 @@ declare global {
   }
 }
 
-interface ShortcutMapping {
-  uuid: string
-  actionId: string
-  key: string
-  ctrlKey: boolean
-  shiftKey: boolean
-  altKey: boolean
-}
-
-const ACTIONS: Record<string, string> = {
-  'create-note': 'Créer une nouvelle note',
-  'delete-note': 'Supprimer la note actuelle',
-  'open-settings': 'Ouvrir les paramètres',
-  'toggle-sidebar': 'Afficher/masquer la barre latérale',
-  'toggle-claude': "Afficher/masquer l'assistant IA",
-  'toggle-fullscreen': 'Basculer en plein écran',
-  'switch-ai': "Changer d'IA (Claude, ChatGPT, Gemini)",
-  'open-recent': 'Afficher les notes récentes (Ctrl+R)',
-  'open-search': 'Rechercher dans les notes (Ctrl+P)'
-}
-
-const DEFAULT_MAPPINGS: ShortcutMapping[] = [
-  { uuid: '1', actionId: 'create-note', key: 'n', ctrlKey: true, shiftKey: false, altKey: false },
-  {
-    uuid: '2',
-    actionId: 'delete-note',
-    key: 'Delete',
-    ctrlKey: false,
-    shiftKey: false,
-    altKey: false
-  },
-  { uuid: '3', actionId: 'open-settings', key: ',', ctrlKey: true, shiftKey: false, altKey: false },
-  {
-    uuid: '4',
-    actionId: 'toggle-sidebar',
-    key: 'b',
-    ctrlKey: true,
-    shiftKey: false,
-    altKey: false
-  },
-  { uuid: '5', actionId: 'toggle-claude', key: 'j', ctrlKey: true, shiftKey: false, altKey: false },
-  {
-    uuid: '6',
-    actionId: 'toggle-fullscreen',
-    key: 'f',
-    ctrlKey: true,
-    shiftKey: false,
-    altKey: false
-  },
-  { uuid: '7', actionId: 'switch-ai', key: 'i', ctrlKey: true, shiftKey: false, altKey: false },
-  { uuid: '8', actionId: 'open-recent', key: 'r', ctrlKey: true, shiftKey: false, altKey: false },
-  { uuid: '9', actionId: 'open-search', key: 'p', ctrlKey: true, shiftKey: false, altKey: false }
-]
+// Raccourcis : registre unique (src/shared/shortcuts.ts), partagé avec l'aperçu et le main
+const SHORTCUT_ACTION_LABELS: Record<string, string> = Object.fromEntries(
+  SHORTCUT_ACTIONS.map((a) => [a.id, a.label])
+)
 
 const AI_SPY_SCRIPT = `(function() {
 if (window.__aiSpyInjected) return;
@@ -315,27 +285,36 @@ function App() {
       setHasOpenedYouTube(true)
     }
   }, [activeView])
-  const [noteWorkflowStatuses, setNoteWorkflowStatuses] = useState<Record<string, WorkflowStatus>>(
-    () => {
-      try {
-        const saved = localStorage.getItem('note_workflow_statuses')
-        return saved ? JSON.parse(saved) : {}
-      } catch {
-        return {}
-      }
-    }
+  // Tableau : colonnes et statuts des notes suivies, enregistrés dans .config.json (src/shared/workflow.ts)
+  const [workflowColumns, setWorkflowColumns] = useState<WorkflowColumn[]>(() =>
+    sanitizeColumns(undefined)
   )
+  const [noteWorkflowStatuses, setNoteWorkflowStatuses] = useState<WorkflowStatuses>({})
+  const workflowMigratedRef = useRef(false)
 
-  const handleUpdateWorkflowStatus = (file: string, status: WorkflowStatus) => {
-    setNoteWorkflowStatuses((prev) => {
-      const updated = { ...prev, [file]: status }
-      try {
-        localStorage.setItem('note_workflow_statuses', JSON.stringify(updated))
-      } catch {
-        // ignore
-      }
-      return updated
-    })
+  const saveWorkflow = (patch: {
+    workflowColumns?: WorkflowColumn[]
+    workflowStatuses?: WorkflowStatuses
+  }): void => {
+    window.api.saveConfig(patch).catch((err) => notifyApiError('Tableau', err))
+  }
+
+  const handleUpdateWorkflowStatus = (file: string, columnId: string | null): void => {
+    const next = setNoteStatus(noteWorkflowStatuses, file, columnId)
+    setNoteWorkflowStatuses(next)
+    saveWorkflow({ workflowStatuses: next })
+  }
+
+  const handleChangeWorkflowColumns = (columns: WorkflowColumn[]): void => {
+    setWorkflowColumns(columns)
+    saveWorkflow({ workflowColumns: columns })
+  }
+
+  const handleRemoveWorkflowColumn = (columnId: string): void => {
+    const res = removeWorkflowColumn(workflowColumns, noteWorkflowStatuses, columnId)
+    setWorkflowColumns(res.columns)
+    setNoteWorkflowStatuses(res.statuses)
+    saveWorkflow({ workflowColumns: res.columns, workflowStatuses: res.statuses })
   }
 
   const [noteTags, setNoteTags] = useState<Record<string, string[]>>({})
@@ -572,30 +551,15 @@ function App() {
   }
 
   const [shortcuts, setShortcuts] = useState<ShortcutMapping[]>(() => {
-    const stored = localStorage.getItem('note-app-shortcuts')
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        if (Array.isArray(parsed)) {
-          const merged = parsed.map((m: ShortcutMapping) => {
-            if (m.actionId === 'toggle-fullscreen' && (m.key === 'F11' || !m.ctrlKey)) {
-              return { ...m, key: 'f', ctrlKey: true, shiftKey: false, altKey: false }
-            }
-            return m
-          })
-          DEFAULT_MAPPINGS.forEach((def) => {
-            if (!merged.find((m) => m.actionId === def.actionId)) {
-              merged.push(def)
-            }
-          })
-          return merged
-        }
-      } catch (e) {
-        console.error(e)
-      }
+    try {
+      return mergeShortcuts(JSON.parse(localStorage.getItem('note-app-shortcuts') || 'null'))
+    } catch (err) {
+      console.error('[Raccourcis]', err)
+      return mergeShortcuts(null)
     }
-    return DEFAULT_MAPPINGS
   })
+  const shortcutsRef = useRef(shortcuts)
+  shortcutsRef.current = shortcuts
   const [recordingUuid, setRecordingUuid] = useState<string | null>(null)
 
   // Claude Save Modal states
@@ -656,6 +620,34 @@ function App() {
       }
       if (config?.tags && typeof config.tags === 'object') {
         setNoteTags(config.tags)
+      }
+      if (config) {
+        const columns = sanitizeColumns(config.workflowColumns)
+        setWorkflowColumns((prev) =>
+          JSON.stringify(prev) === JSON.stringify(columns) ? prev : columns
+        )
+        if (config.workflowStatuses !== undefined) {
+          const statuses = sanitizeStatuses(config.workflowStatuses, columns)
+          setNoteWorkflowStatuses((prev) =>
+            JSON.stringify(prev) === JSON.stringify(statuses) ? prev : statuses
+          )
+        } else if (!workflowMigratedRef.current) {
+          // Reprise unique des statuts gardés autrefois dans le stockage local de la fenêtre
+          workflowMigratedRef.current = true
+          let legacy: unknown = null
+          try {
+            legacy = JSON.parse(localStorage.getItem('note_workflow_statuses') || 'null')
+          } catch (err) {
+            console.error('[Tableau]', err)
+          }
+          const statuses = sanitizeStatuses(legacy, columns)
+          setNoteWorkflowStatuses(statuses)
+          if (Object.keys(statuses).length > 0) {
+            window.api
+              .saveConfig({ workflowStatuses: statuses })
+              .catch((err) => notifyApiError('Tableau', err))
+          }
+        }
       }
       setDeletedNotes(deleted || [])
       if (flat) {
@@ -839,9 +831,11 @@ function App() {
       setSelectedFiles([relPath])
     })
 
-    // Raccourci global Ctrl+R pour afficher les notes récentes
-    const unsubRecent = window.api?.onShortcutRecent?.(() => {
-      setActiveView((prev) => (prev === 'recent' ? 'all' : 'recent'))
+    // Raccourcis tapés dans un panneau web (Claude, YouTube…) : reconnus par le main, qui renvoie l'action
+    const unsubRecent = window.api?.onShortcutAction?.((actionId) => {
+      if (SHORTCUT_ACTIONS.some((a) => a.id === actionId && a.remote)) {
+        runShortcutActionRef.current(actionId)
+      }
     })
 
     return () => {
@@ -1876,17 +1870,11 @@ function App() {
         .saveConfig({ tags: updatedTags })
         .catch((err) => notifyApiError('Mise à jour des tags', err))
     }
-    setNoteWorkflowStatuses((prev) => {
-      const next = remapMovedKeys(prev, oldPath, newPath)
-      if (next !== prev) {
-        try {
-          localStorage.setItem('note_workflow_statuses', JSON.stringify(next))
-        } catch (err) {
-          console.error('[Statuts]', err)
-        }
-      }
-      return next
-    })
+    const movedStatuses = remapMovedKeys(noteWorkflowStatuses, oldPath, newPath)
+    if (movedStatuses !== noteWorkflowStatuses) {
+      setNoteWorkflowStatuses(movedStatuses)
+      saveWorkflow({ workflowStatuses: movedStatuses })
+    }
   }
 
   const handleApplyRenamePlan = async (plan: RenameOperationPlan) => {
@@ -2274,55 +2262,7 @@ function App() {
           return
         }
       }
-      // Ctrl+F / Cmd+F : Basculer en plein écran
-      if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'f' || e.code === 'KeyF')) {
-        e.preventDefault()
-        e.stopPropagation()
-        if (isRenderFullscreenRef.current) {
-          captureCurrentFullscreenScroll()
-        }
-        handleToggleRenderFullscreen()
-        return
-      }
-      // Ctrl+J / Cmd+J : Basculer l'IA
-      if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'j' || e.code === 'KeyJ')) {
-        e.preventDefault()
-        e.stopPropagation()
-        handleToggleAi()
-        return
-      }
-      // Ctrl+Shift+O / Cmd+Shift+O : Basculer le plan du document
-      if (
-        (e.ctrlKey || e.metaKey) &&
-        e.shiftKey &&
-        (e.key.toLowerCase() === 'o' || e.code === 'KeyO')
-      ) {
-        e.preventDefault()
-        e.stopPropagation()
-        handleToggleOutline()
-        return
-      }
-      // Raccourcis clavier universels de zoom dans le fichier : Ctrl+Plus, Ctrl+Moins, Ctrl+0
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key === '+' || e.key === '=' || e.code === 'NumpadAdd' || e.code === 'Equal') {
-          e.preventDefault()
-          e.stopPropagation()
-          applyZoom((prev) => prev + 10)
-          return
-        }
-        if (e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract' || e.code === 'Minus') {
-          e.preventDefault()
-          e.stopPropagation()
-          applyZoom((prev) => prev - 10)
-          return
-        }
-        if (e.key === '0' || e.code === 'Digit0' || e.code === 'Numpad0') {
-          e.preventDefault()
-          e.stopPropagation()
-          applyZoom(100)
-          return
-        }
-      }
+      // Les autres raccourcis passent par le registre (handleGlobalKeyDown, src/shared/shortcuts.ts)
     }
 
     const handleMessage = (event: MessageEvent) => {
@@ -2370,6 +2310,15 @@ function App() {
           captureCurrentFullscreenScroll()
         }
         handleToggleRenderFullscreen()
+      } else if (event.data?.type === 'NF_SHORTCUT') {
+        // Raccourci tapé dans un aperçu : seules les actions autorisées à distance (jamais la suppression)
+        const actionId = event.data.actionId
+        if (
+          typeof actionId === 'string' &&
+          SHORTCUT_ACTIONS.some((a) => a.id === actionId && a.remote)
+        ) {
+          runShortcutActionRef.current(actionId)
+        }
       } else if (event.data?.type === 'TOGGLE_AI_WORKSPACE') {
         handleToggleAi()
       } else if (event.data?.type === 'TOGGLE_OUTLINE') {
@@ -2486,12 +2435,6 @@ function App() {
         exitRenderFullscreen()
       }
     })
-    const unsubToggleFs = window.api?.onShortcutToggleFullscreen?.(() => {
-      handleToggleRenderFullscreen()
-    })
-    const unsubToggleAi = window.api?.onShortcutToggleAi?.(() => {
-      handleToggleAi()
-    })
     const unsubGoogle = window.api?.onGoogleLoginSuccess?.((service) => {
       if (service) {
         const wv = getActiveWebview()
@@ -2507,8 +2450,6 @@ function App() {
     })
     return () => {
       unsubEscape?.()
-      unsubToggleFs?.()
-      unsubToggleAi?.()
       unsubGoogle?.()
     }
   }, [exitRenderFullscreen, handleToggleRenderFullscreen, currentFile, isHtml])
@@ -2746,6 +2687,120 @@ function App() {
   )
 
   // Global keyboard shortcuts logic
+  // Action d'un raccourci, quelle que soit son origine (fenêtre, aperçu, panneau web via le main)
+  const runShortcutAction = (actionId: string): void => {
+    const toggleView = (view: 'recent' | 'workflow' | 'youtube'): void =>
+      setActiveView((prev) => (prev === view ? 'all' : view))
+    switch (actionId) {
+      case 'create-note':
+        handleCreateNote()
+        break
+      case 'create-folder':
+        setIsSidebarCollapsed(false)
+        window.dispatchEvent(new Event('nf-create-folder'))
+        break
+      case 'import-pdf':
+        setIsSidebarCollapsed(false)
+        window.dispatchEvent(new Event('nf-import-pdf'))
+        break
+      case 'delete-note':
+        if (selectedFiles.length > 0) handleDeleteNotes(selectedFiles)
+        break
+      case 'open-search':
+        setIsSearchOpen(true)
+        break
+      case 'open-recent':
+        toggleView('recent')
+        break
+      case 'open-board':
+        toggleView('workflow')
+        break
+      case 'open-youtube':
+        toggleView('youtube')
+        break
+      case 'toggle-favorite':
+        if (currentFile) {
+          showClaudeToast(
+            favorites.includes(currentFile) ? 'Retirée des favoris' : 'Ajoutée aux favoris'
+          )
+          void handleToggleFavorite(currentFile)
+        }
+        break
+      case 'cycle-editor-mode':
+        setEditorMode((prev) => (prev === 'edit' ? 'live' : prev === 'live' ? 'preview' : 'edit'))
+        break
+      case 'mode-code':
+        setEditorMode('edit')
+        break
+      case 'mode-split':
+        setEditorMode('live')
+        break
+      case 'mode-preview':
+        setEditorMode('preview')
+        break
+      case 'open-history':
+        if (currentFile && !isPdf) setIsHistoryOpen(true)
+        break
+      case 'open-export':
+        if (currentFile && !isPdf) setIsExportOpen(true)
+        break
+      case 'toggle-outline':
+        handleToggleOutline()
+        break
+      case 'toggle-zen':
+        setIsZenMode((prev) => !prev)
+        break
+      case 'toggle-fullscreen':
+        handleToggleRenderFullscreen()
+        break
+      case 'toggle-sidebar':
+        setIsSidebarCollapsed((prev) => !prev)
+        break
+      case 'toggle-claude':
+        handleToggleAi()
+        break
+      case 'switch-ai': {
+        const order: AIProvider[] = ['agent', 'claude', 'chatgpt', 'gemini']
+        const names: Record<AIProvider, string> = {
+          agent: 'Agent local',
+          claude: 'Claude',
+          chatgpt: 'ChatGPT',
+          gemini: 'Gemini'
+        }
+        const next = order[(order.indexOf(activeAI) + 1) % order.length]
+        handleSelectAI(next)
+        setShowAIWorkspace(true)
+        showClaudeToast(`Assistant : ${names[next]}`)
+        break
+      }
+      case 'send-to-ai':
+        if (!currentFile || isPdf) break
+        if (activeAI === 'agent') {
+          showClaudeToast('L’envoi de la note se fait vers Claude, ChatGPT ou Gemini')
+          break
+        }
+        setShowAIWorkspace(true)
+        void sendToClaude(fileContent)
+        break
+      case 'zoom-in':
+        applyZoom((prev) => prev + 10)
+        break
+      case 'zoom-out':
+        applyZoom((prev) => prev - 10)
+        break
+      case 'zoom-reset':
+        applyZoom(100)
+        break
+      case 'open-settings':
+        setIsSettingsOpen((prev) => !prev)
+        break
+      default:
+        console.debug('[Raccourcis] action inconnue', actionId)
+    }
+  }
+  const runShortcutActionRef = useRef(runShortcutAction)
+  runShortcutActionRef.current = runShortcutAction
+
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if (notesToDelete.length > 0) {
@@ -2761,7 +2816,6 @@ function App() {
       }
 
       if (recordingUuid || isSettingsOpen) return
-      if (!Array.isArray(shortcuts)) return
 
       const activeEl = document.activeElement
       const isTyping =
@@ -2771,97 +2825,22 @@ function App() {
           (activeEl as HTMLElement).isContentEditable ||
           Boolean(activeEl.closest?.('.monaco-editor')))
 
-      const match = shortcuts.find((s) => {
-        if (!s.key) return false
-        const keyMatches = e.key.toLowerCase() === s.key.toLowerCase()
-        const ctrlMatches = e.ctrlKey === s.ctrlKey
-        const shiftMatches = e.shiftKey === s.shiftKey
-        const altMatches = e.altKey === s.altKey
-        return keyMatches && ctrlMatches && shiftMatches && altMatches
-      })
-
+      const match = matchShortcut(shortcutsRef.current, e)
       if (match) {
-        const hasModifiers = match.ctrlKey || match.altKey || match.shiftKey
-        if (isTyping && !hasModifiers) {
-          return
-        }
-
+        // Une touche seule (Suppr) n'agit pas pendant la saisie
+        if (isTyping && needsModifier(match)) return
         e.preventDefault()
         e.stopPropagation()
-
-        if (match.actionId === 'create-note') {
-          handleCreateNote()
-        } else if (match.actionId === 'delete-note') {
-          if (selectedFiles.length > 0) {
-            handleDeleteNotes(selectedFiles)
-          }
-        } else if (match.actionId === 'open-settings') {
-          setIsSettingsOpen((prev) => !prev)
-        } else if (match.actionId === 'toggle-sidebar') {
-          setIsSidebarCollapsed((prev) => !prev)
-        } else if (match.actionId === 'toggle-claude') {
-          handleToggleAi()
-        } else if (match.actionId === 'toggle-fullscreen') {
-          handleToggleRenderFullscreen()
-        } else if (match.actionId === 'switch-ai') {
-          const order: AIProvider[] = ['agent', 'claude', 'chatgpt', 'gemini']
-          setActiveAI((prev) => {
-            const idx = order.indexOf(prev)
-            const next = order[(idx + 1) % order.length]
-            try {
-              localStorage.setItem('selected_ai_provider', next)
-            } catch (err) {
-              console.debug('[App]', err)
-            }
-            setShowAIWorkspace(true)
-            const names: Record<AIProvider, string> = {
-              agent: 'Agent IA',
-              claude: 'Claude',
-              chatgpt: 'ChatGPT',
-              gemini: 'Gemini'
-            }
-            showClaudeToast(`IA → ${names[next]}`)
-            return next
-          })
-        } else if (match.actionId === 'open-recent') {
-          setActiveView((prev) => (prev === 'recent' ? 'all' : 'recent'))
-        } else if (match.actionId === 'open-search') {
-          setIsSearchOpen(true)
-        }
-      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'z') {
-        e.preventDefault()
-        e.stopPropagation()
-        setIsZenMode((prev) => !prev)
-      } else if (
-        (e.ctrlKey || e.metaKey) &&
-        e.shiftKey &&
-        (e.key.toLowerCase() === 'o' || e.code === 'KeyO')
-      ) {
-        e.preventDefault()
-        e.stopPropagation()
-        handleToggleOutline()
-      } else if (e.key === 'Escape' && isZenMode) {
-        setIsZenMode(false)
-      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'r') {
-        e.preventDefault()
-        e.stopPropagation()
-        setActiveView((prev) => (prev === 'recent' ? 'all' : 'recent'))
+        runShortcutActionRef.current(match.actionId)
+        return
       }
+      if (e.key === 'Escape' && isZenMode) setIsZenMode(false)
     }
 
-    window.addEventListener('keydown', handleGlobalKeyDown)
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
-  }, [
-    shortcuts,
-    selectedFiles,
-    isSettingsOpen,
-    recordingUuid,
-    notesToDelete,
-    activeAI,
-    activeView,
-    isZenMode,
-    handleToggleOutline
-  ])
+    // Phase de capture : avant Monaco, qui garde pour lui certaines combinaisons (Ctrl+Maj+O…)
+    window.addEventListener('keydown', handleGlobalKeyDown, true)
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown, true)
+  }, [isSettingsOpen, recordingUuid, notesToDelete, isZenMode, confirmDeleteNotes])
 
   // Recording shortcut combination keydown handler
   useEffect(() => {
@@ -2919,21 +2898,18 @@ function App() {
     }
   }, [isSettingsOpen])
 
-  const formatShortcut = (s: ShortcutMapping) => {
-    if (!s.key) return 'Non configuré (cliquez pour enregistrer)'
-    const parts: string[] = []
-    if (s.ctrlKey) parts.push('Ctrl')
-    if (s.altKey) parts.push('Alt')
-    if (s.shiftKey) parts.push('Shift')
+  const formatShortcut = (s: ShortcutMapping): string => formatShortcutLabel(s)
 
-    let keyDisplay = s.key
-    if (keyDisplay === ' ') keyDisplay = 'Espace'
-    else if (keyDisplay.length === 1) keyDisplay = keyDisplay.toUpperCase()
-    else if (keyDisplay === 'Delete') keyDisplay = 'Suppr'
-
-    parts.push(keyDisplay)
-    return parts.join(' + ')
-  }
+  // Combinaisons utilisables depuis l'aperçu et les panneaux web (jamais la suppression)
+  const shortcutCombos = useMemo(() => remoteCombos(shortcuts), [shortcuts])
+  useEffect(() => {
+    window.api
+      ?.setShortcutKeys?.(shortcutCombos)
+      .then((res) => {
+        if (!res.success) console.error('[Raccourcis]', res.error)
+      })
+      .catch((err: unknown) => console.error('[Raccourcis]', err))
+  }, [shortcutCombos])
 
   const [isExportingClaude, setIsExportingClaude] = useState(false)
   const [isSavingClaudeOffline, setIsSavingClaudeOffline] = useState(false)
@@ -3668,6 +3644,7 @@ function App() {
     <div
       style={{
         display: 'flex',
+        flexDirection: 'column',
         height: '100vh',
         width: '100vw',
         backgroundColor: 'var(--app-bg)',
@@ -3675,10 +3652,30 @@ function App() {
         fontFamily: 'inherit',
         margin: 0,
         padding: 0,
-        overflow: 'hidden',
-        position: 'relative'
+        overflow: 'hidden'
       }}
     >
+      {!isRenderFullscreen && (
+        <TitleBar
+          noteName={
+            currentFile
+              ? currentFile
+                  .split('/')
+                  .pop()
+                  ?.replace(/\.(html|htm|md|pdf)$/i, '')
+              : undefined
+          }
+        />
+      )}
+      <div
+        style={{
+          display: 'flex',
+          flex: 1,
+          minHeight: 0,
+          overflow: 'hidden',
+          position: 'relative'
+        }}
+      >
       {/* Overlay transparent global pendant le resize pour empêcher le webview et les iframes de bloquer la souris */}
       {(isResizing || isSidebarResizing) && (
         <div
@@ -3870,12 +3867,21 @@ function App() {
               {activeView === 'workflow' ? (
                 <WorkflowView
                   files={files}
+                    columns={workflowColumns}
+                    statuses={noteWorkflowStatuses}
+                    onChangeColumns={handleChangeWorkflowColumns}
+                    onRemoveColumn={handleRemoveWorkflowColumn}
+                    onSetStatus={handleUpdateWorkflowStatus}
                   onOpenNote={(file) => {
                     setSelectedFiles([file])
                     setActiveView('all')
                   }}
                   onCreateNote={handleCreateNote}
-                  onDeleteNote={(file) => handleDeleteNotes([file])}
+                    noteTags={noteTags}
+                    modifiedLabel={(file) => {
+                      const mtime = findNode(treeNodes, file)?.mtime
+                      return mtime ? timeAgo(mtime) : undefined
+                    }}
                 />
               ) : activeView === 'deleted' ? (
                 <div
@@ -4619,7 +4625,8 @@ function App() {
                             onToggleEditorMode={() =>
                               setEditorMode((prev) => (prev === 'preview' ? 'live' : 'preview'))
                             }
-                            workflowStatus={noteWorkflowStatuses[currentFile] || 'todo'}
+                              workflowStatus={noteWorkflowStatuses[currentFile] ?? null}
+                              workflowColumns={workflowColumns}
                             onStatusChange={(status) =>
                               handleUpdateWorkflowStatus(currentFile, status)
                             }
@@ -4677,6 +4684,7 @@ function App() {
                           {isHtml ? (
                             /* HTML Code Workspace: Monaco Editor + Live Sandboxed Preview */
                             <CodeWorkspace
+                                shortcutCombos={shortcutCombos}
                               value={fileContent}
                               onChange={handleContentChange}
                               currentFilePath={currentFile}
@@ -4926,6 +4934,9 @@ function App() {
                             status={saveStatus}
                             kind={isHtml ? 'HTML' : 'Markdown'}
                             words={noteWordCount}
+                              modified={
+                                timeAgo(findNode(treeNodes, currentFile)?.mtime) || undefined
+                              }
                           />
                         </>
                       )}
@@ -5585,8 +5596,8 @@ function App() {
         snippets={snippets}
         shortcuts={shortcuts}
         setShortcuts={setShortcuts}
-        defaultShortcuts={DEFAULT_MAPPINGS}
-        actions={ACTIONS}
+          defaultShortcuts={DEFAULT_SHORTCUTS}
+          actions={SHORTCUT_ACTION_LABELS}
         formatShortcut={formatShortcut}
         activeAI={activeAI}
         onSelectAI={handleSelectAI}
@@ -6293,6 +6304,10 @@ function App() {
                     previewThemeMessage(),
                     '*'
                   )
+                    fullscreenHtmlIframeRef.current?.contentWindow?.postMessage(
+                      { type: 'SET_SHORTCUTS', combos: shortcutCombos },
+                      '*'
+                    )
                   if (fullscreenHtmlIframeRef.current?.contentWindow && zoomLevel) {
                     fullscreenHtmlIframeRef.current.contentWindow.postMessage(
                       {
@@ -6665,6 +6680,7 @@ function App() {
           </button>
         </div>
       )}
+      </div>
     </div>
   )
 }

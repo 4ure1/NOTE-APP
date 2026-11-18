@@ -461,10 +461,10 @@ export function GeminiIcon({ size = 15, ...props }: IconProps) {
 export function PdfIcon({ size = 15, ...props }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#ef4444" />
-      <polyline points="14 2 14 8 20 8" stroke="#ef4444" />
-      <path d="M9 13h1.5a1.5 1.5 0 0 0 0-3H9v6" stroke="#ef4444" strokeWidth={1.6} />
-      <path d="M13 10v6m0-6h1.5a2 2 0 0 1 0 4H13" stroke="#ef4444" strokeWidth={1.6} />
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <path d="M9 13h1.5a1.5 1.5 0 0 0 0-3H9v6" strokeWidth={1.6} />
+      <path d="M13 10v6m0-6h1.5a2 2 0 0 1 0 4H13" strokeWidth={1.6} />
     </svg>
   )
 }
@@ -537,14 +537,28 @@ export function MoonIcon({ size = 14, strokeWidth = 1.8, ...props }: IconProps) 
   )
 }
 
-export function YouTubeIcon({ size = 16, ...props }: { size?: number; style?: React.CSSProperties }) {
+export function YouTubeIcon({
+  size = 16,
+  ...props
+}: {
+  size?: number
+  style?: React.CSSProperties
+}): React.JSX.Element {
+  // Au trait, dans la couleur du texte (le rouge de l'interface est réservé à l'élément actif)
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...props}>
-      <path
-        d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"
-        fill="#FF0000"
-      />
-      <polygon points="9.545,15.568 15.818,12 9.545,8.432" fill="#FFFFFF" />
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <rect x="2" y="5" width="20" height="14" rx="4" />
+      <path d="m10 9 5 3-5 3z" />
     </svg>
   )
 }
