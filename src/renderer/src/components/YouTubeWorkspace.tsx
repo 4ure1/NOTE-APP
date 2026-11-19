@@ -702,6 +702,18 @@ export default function YouTubeWorkspace() {
         <div className="eh-actions">
           <button
             className="eh-btn"
+            onClick={() => {
+              // Fenêtre Google dédiée (main : openGoogleLoginWindow) ; à la réussite, le panneau se recharge
+              window.api
+                .openGoogleLogin('youtube')
+                .catch((err: unknown) => notifyApiError('Connexion à YouTube', err))
+            }}
+            title="Se connecter à YouTube dans une fenêtre Google dédiée"
+          >
+            Se connecter
+          </button>
+          <button
+            className="eh-btn"
             aria-pressed={isHistoryDrawerOpen}
             onClick={() => setIsHistoryDrawerOpen((prev) => !prev)}
             title="Historique de visionnage par date et heure"

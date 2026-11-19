@@ -536,7 +536,9 @@ kbd {
 /* Cachée au-dessus de l'écran ; glisse par-dessus l'app quand la souris touche le bord haut */
 .app-titlebar-trigger { position: fixed; top: 0; left: 0; right: 0; height: 6px; z-index: 2147483000; }
 .app-titlebar { position: fixed; top: 0; left: 0; right: 0; z-index: 2147483001; display: flex; align-items: center; gap: 10px; height: 34px; padding-left: 12px; background: var(--app-bg); border-bottom: 1px solid var(--border-color); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); color: var(--text-muted); font-size: var(--fs-xs); white-space: nowrap; user-select: none; -webkit-app-region: drag; transform: translateY(-100%); transition: transform 0.16s ease; }
-.app-titlebar.visible { transform: translateY(0); }
+/* Cachée : ni visible ni zone de déplacement, sinon elle avalerait les clics en haut de la fenêtre */
+.app-titlebar:not(.visible) { visibility: hidden; -webkit-app-region: no-drag; transition: transform 0.16s ease, visibility 0s linear 0.16s; }
+.app-titlebar.visible { transform: translateY(0); visibility: visible; }
 /* Fenêtre réduite : barre toujours là, l'app commence sous elle */
 html.nf-titlebar-pinned .app-titlebar { box-shadow: none; }
 html.nf-titlebar-pinned #root > div { height: calc(100vh - 34px) !important; margin-top: 34px; }

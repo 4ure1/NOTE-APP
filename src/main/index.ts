@@ -510,6 +510,7 @@ async function openGoogleLoginWindow(
     show: true,
     webPreferences: {
       session: targetSession,
+      preload: join(__dirname, '../preload/googleLogin.js'),
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false
@@ -517,7 +518,15 @@ async function openGoogleLoginWindow(
   })
 
   activeGoogleLoginWindow = loginWin
-  loginWin.webContents.setUserAgent(CHROME_UA)
+  // Même UA que les en-têtes réécrits pour accounts.google (onBeforeSendHeaders : Firefox).
+  // Avec l'UA Chrome côté page, /v3/signin/identifier se rechargeait en boucle (fenêtre blanche).
+  const loginUa = FIREFOX_UA
+  loginWin.webContents.setUserAgent(loginUa)
+  loginWin.center()
+  loginWin.focus()
+
+  // Google demande d'emblée une passkey : la boîte Windows « Choose a passkey » figeait la page.
+  // Le preload googleLogin.js les désactive avant les scripts de Google, dans cette fenêtre seulement.
 
   return new Promise((resolve) => {
     let resolved = false
@@ -602,7 +611,7 @@ async function openGoogleLoginWindow(
     }, 1000)
 
     loginWin.webContents.on('did-navigate', (_e, navUrl) => {
-      loginWin.webContents.setUserAgent(CHROME_UA)
+      loginWin.webContents.setUserAgent(loginUa)
       checkSuccessAndClose(navUrl)
     })
 
