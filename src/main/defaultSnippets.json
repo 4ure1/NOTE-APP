@@ -116,6 +116,18 @@
     },
     {
       "prefix": "divider",
+      "name": "Ligne de séparation",
+      "description": "Trait horizontal sur toute la largeur",
+      "category": "Structure",
+      "scope": "html",
+      "body": [
+        "<hr class=\"rule\">",
+        "$0"
+      ],
+      "id": "divider"
+    },
+    {
+      "prefix": "chapitre",
       "name": "Séparateur de chapitre",
       "description": "Ligne pleine largeur avec le titre du chapitre ; nouvelle page à l'export PDF",
       "category": "Structure",
@@ -124,7 +136,7 @@
         "<div class=\"chapter-break\">${1:Chapitre}</div>",
         "$0"
       ],
-      "id": "divider"
+      "id": "chapitre"
     },
     {
       "prefix": "footer",

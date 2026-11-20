@@ -3,7 +3,8 @@
  * et pose des classes du thème des notes, jamais de style en ligne :
  * - couleur du texte : .b .t .y .o .l .g .p .a .r (et .base pour la couleur normale) ;
  * - surlignage : .hl-yellow .hl-green .hl-blue .hl-pink .hl-orange ;
- * - police : .ff-serif .ff-sans .ff-mono ; taille : .fs-small .fs-large .fs-xlarge ;
+ * - police : .ff-serif .ff-sans .ff-mono ; taille en points comme dans Word : .fs-8 … .fs-72 (menu des
+ *   tailles, A− / A+ passent à la taille voisine) ; .fs-small .fs-large .fs-xlarge restent reconnues ;
  * - gras, italique, souligné : <strong>, <em>, <u> (bascule).
  * Le texte mis en forme est un <span> que le halo bleu de l'aperçu entoure quand le curseur y est,
  * et dont Tab fait sortir (CodeWorkspace.tsx). Un texte déjà mis en forme sélectionné en entier est
@@ -37,7 +38,12 @@ export function installFormatToolbar(doc: Document, options: FormatToolbarOption
     font: ['ff-serif', 'ff-sans', 'ff-mono'],
     size: ['fs-small', 'fs-large', 'fs-xlarge']
   }
-  const SIZE_STEPS = ['fs-small', '', 'fs-large', 'fs-xlarge']
+  // Tailles en points, comme dans Word ; le texte sans classe vaut 12 pt
+  const WORD_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72]
+  WORD_SIZES.forEach((n) => GROUPS.size.push('fs-' + n))
+  const DEFAULT_SIZE = 12
+  // Anciennes classes : taille la plus proche, pour que A− / A+ continuent depuis là
+  const LEGACY_SIZES: Record<string, number> = { 'fs-small': 10, 'fs-large': 14, 'fs-xlarge': 18 }
   const TOGGLE_TAGS: Record<string, string> = { bold: 'STRONG', italic: 'EM', underline: 'U' }
   const BLOCK_TAGS = [
     'P',
@@ -157,11 +163,34 @@ export function installFormatToolbar(doc: Document, options: FormatToolbarOption
     if (el.getAttribute('class') === '') el.removeAttribute('class')
   }
 
+  // Taille (en points) portée par la classe du texte ; DEFAULT_SIZE sans classe de taille
+  function sizeOf(el: Element | null): number {
+    if (!el) return DEFAULT_SIZE
+    for (const n of WORD_SIZES) if (el.classList.contains('fs-' + n)) return n
+    for (const c in LEGACY_SIZES) if (el.classList.contains(c)) return LEGACY_SIZES[c]
+    return DEFAULT_SIZE
+  }
+
+  function sizeClass(n: number): string {
+    return n === DEFAULT_SIZE ? '' : 'fs-' + n
+  }
+
   function nextSize(el: Element | null, direction: string): string {
-    const current = el ? SIZE_STEPS.find((c) => c && el.classList.contains(c)) || '' : ''
-    const i = SIZE_STEPS.indexOf(current)
-    const j = Math.max(0, Math.min(SIZE_STEPS.length - 1, direction === 'down' ? i - 1 : i + 1))
-    return SIZE_STEPS[j]
+    const current = sizeOf(el)
+    let i = WORD_SIZES.indexOf(current)
+    if (direction === 'down') i = i - 1
+    else i = i + 1
+    i = Math.max(0, Math.min(WORD_SIZES.length - 1, i))
+    return sizeClass(WORD_SIZES[i])
+  }
+
+  // Valeur reçue pour la taille : 'up' / 'down', 'none', 'fs-14' ou '14'
+  function sizeValue(el: Element | null, value: string): string {
+    if (value === 'up' || value === 'down') return nextSize(el, value)
+    if (value === 'none') return ''
+    const n = parseInt(value.replace(/^fs-/, ''), 10)
+    if (WORD_SIZES.indexOf(n) === -1) return 'invalid'
+    return sizeClass(n)
   }
 
   function apply(kind: FormatKind, value: string): Element[] {
@@ -194,7 +223,7 @@ export function installFormatToolbar(doc: Document, options: FormatToolbarOption
       if (!group) return []
       texts.forEach((t) => {
         const span = wholeWrapper(t, 'SPAN')
-        const cls = kind === 'size' ? nextSize(span, value) : value === 'none' ? '' : value
+        const cls = kind === 'size' ? sizeValue(span, value) : value === 'none' ? '' : value
         if (cls && group.indexOf(cls) === -1) return
         if (span) {
           setGroupClass(span, group, cls)
@@ -242,7 +271,13 @@ export function installFormatToolbar(doc: Document, options: FormatToolbarOption
       '.nf-fmt button:hover{background:rgba(255,255,255,.1);}',
       '.nf-fmt .nf-sep{width:1px;height:18px;margin:0 3px;background:#3a3f46;}',
       '.nf-fmt .nf-a{font-weight:700;}',
-      '.nf-fmt .nf-hl{width:16px;height:16px;min-width:0;padding:0;border-radius:3px;}'
+      '.nf-fmt .nf-hl{width:16px;height:16px;min-width:0;padding:0;border-radius:3px;}',
+      '.nf-fmt .nf-size{min-width:46px;justify-content:space-between;display:flex;gap:4px;',
+      'border:1px solid #3a3f46;font-variant-numeric:tabular-nums;}',
+      '.nf-size-list{position:absolute;top:calc(100% + 4px);max-height:240px;overflow:auto;padding:4px;',
+      'border-radius:8px;background:#26292e;border:1px solid #3a3f46;box-shadow:0 10px 26px rgba(0,0,0,.45);}',
+      '.nf-size-list button{display:block;width:56px;height:24px;text-align:left;padding:0 8px;}',
+      '.nf-size-list button.nf-on{color:#38bdf8;}'
     ].join('')
     doc.head.appendChild(style)
   }
@@ -267,6 +302,55 @@ export function installFormatToolbar(doc: Document, options: FormatToolbarOption
     const s = doc.createElement('span')
     s.className = 'nf-sep'
     container.appendChild(s)
+  }
+
+  // Taille du texte sélectionné (classe du <span> qui l'entoure en entier), pour le menu des tailles
+  function selectedSize(): number {
+    const sel = doc.getSelection()
+    if (!sel || !sel.rangeCount) return DEFAULT_SIZE
+    // Lecture seule : on remonte depuis le début de la sélection jusqu'au bloc, sans rien découper
+    let n: Node | null = sel.getRangeAt(0).startContainer
+    if (n && n.nodeType === 3) n = n.parentNode
+    while (n && isElement(n) && BLOCK_TAGS.indexOf(n.nodeName.toUpperCase()) === -1) {
+      if (
+        sizeOf(n) !== DEFAULT_SIZE ||
+        GROUPS.size.some((c) => (n as Element).classList.contains(c))
+      )
+        return sizeOf(n)
+      n = n.parentNode
+    }
+    return DEFAULT_SIZE
+  }
+
+  // Menu déroulant des tailles (8 à 72 pt) : ouvert sous le bouton, la sélection du texte est gardée
+  function sizePicker(barEl: HTMLElement): HTMLButtonElement {
+    let list: HTMLElement | null = null
+    const label = (): string => selectedSize() + ' &#9662;'
+    const toggle = (): void => {
+      if (list) {
+        list.remove()
+        list = null
+        return
+      }
+      const current = selectedSize()
+      const l = doc.createElement('div')
+      l.className = 'nf-size-list'
+      WORD_SIZES.forEach((n) => {
+        const it = button(String(n), n + ' points', () => {
+          apply('size', String(n))
+          picker.innerHTML = label()
+          if (list) list.remove()
+          list = null
+        })
+        if (n === current) it.className = 'nf-on'
+        l.appendChild(it)
+      })
+      l.style.left = picker.offsetLeft + 'px'
+      barEl.appendChild(l)
+      list = l
+    }
+    const picker = button(label(), 'Taille du texte (points)', toggle, 'nf-size')
+    return picker
   }
 
   function build(): HTMLElement {
@@ -334,8 +418,9 @@ export function installFormatToolbar(doc: Document, options: FormatToolbarOption
     )
     b.appendChild(button('Ag', 'Police normale', () => apply('font', 'none')))
     separator(b)
-    b.appendChild(button('A&#8722;', 'Texte plus petit', () => apply('size', 'down')))
-    b.appendChild(button('A+', 'Texte plus grand', () => apply('size', 'up')))
+    b.appendChild(sizePicker(b))
+    b.appendChild(button('A&#8722;', 'Diminuer la taille', () => apply('size', 'down')))
+    b.appendChild(button('A+', 'Augmenter la taille', () => apply('size', 'up')))
     separator(b)
     b.appendChild(button('<b>G</b>', 'Gras', () => apply('bold', '')))
     b.appendChild(button('<i>I</i>', 'Italique', () => apply('italic', '')))

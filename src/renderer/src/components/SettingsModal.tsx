@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { askConfirm } from './ConfirmDialog'
 import Modal from './Modal'
+import VaultManager from './VaultManager'
 import { APP_THEMES } from '../../../shared/appThemes'
 import { savedAppThemeId, savedNoteFontId, setAppTheme, setNoteFont } from '../utils/appTheme'
 import { NOTE_FONTS } from '../../../shared/noteFonts'
@@ -103,9 +104,9 @@ const NAV_GROUPS: {
       },
       {
         id: 'vault',
-        label: 'Dossier de notes',
+        label: 'Coffres',
         icon: FolderIcon,
-        keywords: 'coffre corbeille historique emplacement'
+        keywords: 'coffre coffres dossier de notes corbeille historique emplacement'
       }
     ]
   },
@@ -369,27 +370,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   }
   const activeLabel =
     NAV_GROUPS.flatMap((g) => g.items).find((item) => item.id === activeTab)?.label || ''
-
-  const changeNotesFolder = async (): Promise<void> => {
-    try {
-      const picked = await window.api.chooseNotesFolder()
-      if (!picked.success) {
-        if (!picked.canceled && picked.error)
-          notifyApiError('Dossier de notes', new Error(picked.error))
-        return
-      }
-      const ok = await askConfirm({
-        title: 'Changer de dossier de notes ?',
-        message: `NOTE-APP va redémarrer sur ${picked.path}. Les notes de l’ancien dossier restent où elles sont.`,
-        confirmLabel: 'Changer et redémarrer'
-      })
-      if (!ok) return
-      const res = await window.api.finishAppSetup(picked.path)
-      if (!res.success) notifyApiError('Dossier de notes', new Error(res.error))
-    } catch (err) {
-      notifyApiError('Dossier de notes', err)
-    }
-  }
 
   const row = (
     title: string,
@@ -671,7 +651,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             {activeTab === 'vault' && (
               <>
                 <div className="st-section">
-                  <h3>Emplacement</h3>
+                  <h3>Coffre actif</h3>
                   <div className="st-card">
                     {row(
                       'Dossier de notes',
@@ -679,21 +659,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         {notesCount} note(s). Tout ce que l’app enregistre (corbeille, historique,
                         thème des notes) est rangé dans ce dossier.
                         {appSetup && <code className="st-path">{appSetup.notesDir}</code>}
-                      </>,
-                      <button
-                        className="st-btn"
-                        onClick={changeNotesFolder}
-                        disabled={!appSetup || appSetup.fromEnv}
-                        title={
-                          appSetup?.fromEnv
-                            ? 'Mode test : le dossier est imposé par NOTE_APP_NOTES_DIR'
-                            : undefined
-                        }
-                      >
-                        Changer de dossier…
-                      </button>
+                      </>
                     )}
                   </div>
+                </div>
+                <div className="st-section">
+                  <h3>Coffres</h3>
+                  <p className="vault-lead">
+                    Chaque coffre est un dossier de notes. Changer de coffre redémarre l’app ;
+                    retirer un coffre de la liste ne supprime aucun fichier.
+                  </p>
+                  <VaultManager />
                 </div>
                 <div className="st-section">
                   <h3>Sauvegarde</h3>

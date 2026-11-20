@@ -36,3 +36,31 @@ export function mergeDefaultSnippets<T extends SnippetLike>(
   )
   return [...userSnippets, ...missing]
 }
+
+/**
+ * Anciennes versions de snippets par défaut, recopiées telles quelles dans le fichier de l'utilisateur
+ * au premier lancement (identifiant → corps d'origine, lignes jointes par \n).
+ */
+export const RETIRED_DEFAULT_BODIES: Record<string, string[]> = {
+  divider: ['<div class="divider">⸻</div>', '<div class="chapter-break">${1:Chapitre}</div>\n$0']
+}
+
+/**
+ * Remplace, en mémoire seulement, un snippet de l'utilisateur resté identique à une ancienne version
+ * par défaut (jamais modifié par lui) par la version actuelle. Un snippet personnalisé est gardé.
+ */
+export function replaceRetiredDefaults<T extends SnippetLike & { body?: unknown }>(
+  userSnippets: T[],
+  defaultSnippets: T[],
+  retired: Record<string, string[]> = RETIRED_DEFAULT_BODIES
+): T[] {
+  const bodyText = (body: unknown): string =>
+    Array.isArray(body) ? body.join('\n') : String(body ?? '')
+  return userSnippets.map((s) => {
+    const id = String(s.id || s.prefix || '').toLowerCase()
+    const old = retired[id]
+    if (!old || old.indexOf(bodyText(s.body)) === -1) return s
+    const current = defaultSnippets.find((d) => String(d.id || d.prefix).toLowerCase() === id)
+    return current || s
+  })
+}

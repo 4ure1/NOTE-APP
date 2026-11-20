@@ -2,6 +2,7 @@
 import { RenameOperationPlan } from '../shared/linkUpdater'
 import { NoteTemplate, TemplateContext } from '../shared/sessionDetector'
 import { PdfAnnotation } from '../shared/pdfAnnotations'
+import type { VaultInfo } from '../shared/vaults'
 
 export type ExternalChangeReason = 'changed' | 'deleted' | 'unknown'
 
@@ -73,6 +74,38 @@ interface CustomAPI {
   finishAppSetup: (
     notesDir?: string
   ) => Promise<{ success: true; relaunching: boolean } | { success: false; error: string }>
+  // Coffres-forts (changer de coffre relance l'app ; retirer ne supprime aucun fichier)
+  listVaults: () => Promise<
+    | {
+        success: true
+        fromEnv: boolean
+        activeMissing: boolean
+        activeVaultId: string
+        vaults: VaultInfo[]
+      }
+    | { success: false; error: string }
+  >
+  pickVaultFolder: (
+    mode: 'create' | 'open'
+  ) => Promise<
+    { success: true; path: string } | { success: false; canceled?: boolean; error?: string }
+  >
+  addVault: (request: {
+    mode: 'create' | 'open'
+    path: string
+    name?: string
+  }) => Promise<
+    | { success: true; vault: { id: string; name: string; path: string }; alreadyListed: boolean }
+    | { success: false; error: string }
+  >
+  switchVault: (
+    id: string
+  ) => Promise<{ success: true; relaunching: boolean } | { success: false; error: string }>
+  removeVault: (id: string) => Promise<{ success: true } | { success: false; error: string }>
+  renameVault: (
+    id: string,
+    name: string
+  ) => Promise<{ success: true } | { success: false; error: string }>
   importPdfDialog: (targetFolder?: string) => Promise<string[]>
   importDroppedFile: (file: File, targetFolder?: string) => Promise<string | null>
   readBinaryFile: (relativePath: string) => Promise<string | null>

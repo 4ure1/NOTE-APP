@@ -5,6 +5,7 @@ import { treeKeyAction } from '../../../shared/treeKeys'
 import { DEFAULT_TREE_SORT, parseTreeSort, sortTree, type TreeSort } from '../utils/treeSort'
 import MoveToModal from './MoveToModal'
 import TreeSortMenu from './TreeSortMenu'
+import VaultSwitcher from './VaultSwitcher'
 import {
   FolderIcon,
   FolderOpenIcon,
@@ -1023,8 +1024,9 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Pied : Corbeille, Paramètres, Aide */}
+      {/* Pied : coffre actif, Corbeille, Paramètres, Aide */}
       <div className="sb-foot">
+        <VaultSwitcher />
         {/* <div> et non <button> : contient le bouton « Vider » ; rendu accessible au clavier */}
         <div
           className="sb-row"

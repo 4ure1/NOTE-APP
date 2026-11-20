@@ -23,7 +23,42 @@ export const NOTE_FONTS: NoteFont[] = [
   { id: 'calibri', label: 'Calibri', stack: "Calibri, 'Segoe UI', sans-serif" },
   { id: 'trebuchet', label: 'Trebuchet MS', stack: "'Trebuchet MS', 'Segoe UI', sans-serif" },
   { id: 'verdana', label: 'Verdana', stack: "Verdana, 'Segoe UI', sans-serif" },
-  { id: 'consolas', label: 'Consolas (chasse fixe)', stack: "Consolas, 'Courier New', monospace" }
+  { id: 'consolas', label: 'Consolas (chasse fixe)', stack: "Consolas, 'Courier New', monospace" },
+  // Autres polices livrées avec Windows 11
+  { id: 'arial', label: 'Arial', stack: 'Arial, Helvetica, sans-serif' },
+  { id: 'times', label: 'Times New Roman', stack: "'Times New Roman', Times, serif" },
+  { id: 'garamond', label: 'Garamond', stack: "Garamond, 'Book Antiqua', Georgia, serif" },
+  { id: 'book-antiqua', label: 'Book Antiqua', stack: "'Book Antiqua', Palatino, Georgia, serif" },
+  {
+    id: 'palatino',
+    label: 'Palatino Linotype',
+    stack: "'Palatino Linotype', 'Book Antiqua', Palatino, serif"
+  },
+  { id: 'constantia', label: 'Constantia', stack: 'Constantia, Cambria, Georgia, serif' },
+  { id: 'sitka', label: 'Sitka Text', stack: "'Sitka Text', Cambria, Georgia, serif" },
+  {
+    id: 'century-gothic',
+    label: 'Century Gothic',
+    stack: "'Century Gothic', 'Segoe UI', sans-serif"
+  },
+  { id: 'tahoma', label: 'Tahoma', stack: "Tahoma, 'Segoe UI', sans-serif" },
+  { id: 'candara', label: 'Candara', stack: "Candara, 'Segoe UI', sans-serif" },
+  { id: 'corbel', label: 'Corbel', stack: "Corbel, 'Segoe UI', sans-serif" },
+  {
+    id: 'franklin',
+    label: 'Franklin Gothic',
+    stack: "'Franklin Gothic Medium', 'Franklin Gothic', 'Segoe UI', sans-serif"
+  },
+  { id: 'bahnschrift', label: 'Bahnschrift', stack: "Bahnschrift, 'Segoe UI', sans-serif" },
+  { id: 'lucida', label: 'Lucida Sans', stack: "'Lucida Sans Unicode', 'Lucida Sans', sans-serif" },
+  { id: 'comic', label: 'Comic Sans MS', stack: "'Comic Sans MS', 'Segoe Print', cursive" },
+  { id: 'segoe-print', label: 'Segoe Print (manuscrite)', stack: "'Segoe Print', cursive" },
+  {
+    id: 'cascadia',
+    label: 'Cascadia Code (chasse fixe)',
+    stack: "'Cascadia Code', Consolas, monospace"
+  },
+  { id: 'courier', label: 'Courier New (chasse fixe)', stack: "'Courier New', Courier, monospace" }
 ]
 
 export function getNoteFont(id: string | null | undefined): NoteFont {

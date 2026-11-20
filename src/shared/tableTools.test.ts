@@ -281,3 +281,70 @@ describe('installTableTools : diviser et fusionner', () => {
     ])
   })
 })
+
+describe('installTableTools : listes', () => {
+  const setList = (html: string): Element => {
+    document.body.innerHTML = html
+    return document.querySelector('ul, ol')!
+  }
+
+  it('forme des puces : classe du thème, rien pour la forme par défaut', () => {
+    const ul = setList('<ul><li>a</li><li>b</li></ul>')
+    const same = tools.setListStyle(ul, 'square')
+    expect(same).toBe(ul)
+    expect(ul.className).toBe('ls-square')
+    tools.setListStyle(ul, 'disc')
+    expect(ul.hasAttribute('class')).toBe(false)
+  })
+
+  it('une forme numérotée change <ul> en <ol> en gardant attributs et éléments', () => {
+    const ul = setList('<ul id="x" class="mk-red"><li>a</li><li><b>b</b></li></ul>')
+    const ol = tools.setListStyle(ul, 'upper-alpha')
+    expect(ol.nodeName).toBe('OL')
+    expect(ol.id).toBe('x')
+    expect(ol.className).toBe('mk-red ls-upper-alpha')
+    expect(ol.innerHTML).toBe('<li>a</li><li><b>b</b></li>')
+    expect(document.querySelector('ul')).toBeNull()
+    const back = tools.setListStyle(ol, 'circle')
+    expect(back.nodeName).toBe('UL')
+    expect(back.className).toBe('mk-red ls-circle')
+  })
+
+  it('couleur des puces : une seule classe .mk-*, retirée avec ""', () => {
+    const ul = setList('<ul><li>a</li></ul>')
+    tools.setListMarkerColor(ul, 'blue')
+    tools.setListMarkerColor(ul, 'green')
+    expect(ul.className).toBe('mk-green')
+    tools.setListMarkerColor(ul, 'inconnue')
+    expect(ul.hasAttribute('class')).toBe(false)
+  })
+
+  it('clic droit dans une liste : menu de forme, choix appliqué et annulable', () => {
+    setList('<ul><li>un</li><li>deux</li></ul>')
+    document
+      .querySelector('li')!
+      .dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    const menu = document.querySelector('.nf-ctx')!
+    expect(menu.textContent).toContain('Forme de la liste')
+    const items = Array.from(menu.querySelectorAll('.nf-ctx-item'))
+    const current = items.find((i) => i.classList.contains('nf-on'))!
+    expect(current.textContent).toContain('Puce pleine')
+    items
+      .find((i) => (i.textContent || '').includes('Chiffres romains'))!
+      .dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    expect(beforeChange).toHaveBeenCalled()
+    expect(onChange).toHaveBeenCalled()
+    expect(document.querySelector('ol.ls-lower-roman')).not.toBeNull()
+    expect(document.querySelector('.nf-ctx')).toBeNull()
+  })
+
+  it('dans une case de tableau, le menu des cases reste seul', () => {
+    document.body.innerHTML = '<table><tr><td><ul><li>x</li></ul></td></tr></table>'
+    document
+      .querySelector('li')!
+      .dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    const menu = document.querySelector('.nf-ctx')!
+    expect(menu.textContent).not.toContain('Forme de la liste')
+    menu.remove()
+  })
+})

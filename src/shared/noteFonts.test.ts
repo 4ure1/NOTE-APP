@@ -19,4 +19,10 @@ describe('police des notes', () => {
   it('n’utilise que des polices installées avec Windows (aucune ressource réseau)', () => {
     for (const f of NOTE_FONTS) expect(f.stack).not.toMatch(/url\(|https?:/)
   })
+
+  it('propose plus de polices, sans doublon d’identifiant', () => {
+    expect(NOTE_FONTS.length).toBeGreaterThanOrEqual(20)
+    expect(new Set(NOTE_FONTS.map((f) => f.id)).size).toBe(NOTE_FONTS.length)
+    expect(noteFontCss('times')).toContain("'Times New Roman'")
+  })
 })

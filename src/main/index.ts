@@ -36,13 +36,26 @@ import { runAgentLoop, checkOllamaModelAvailable } from './agent/ollamaAgent'
 import { globalUndoManager } from './agent/undoManager'
 import { AgentRunParams } from './agent/types'
 import {
-  resolveNotesDir,
   NOTES_DIR_ENV,
   APP_SETUP_FILE_NAME,
   readAppSetup,
   writeAppSetup,
-  validateNotesFolder
+  validateNotesFolder,
+  loadVaultState,
+  resolveVaultNotesDir,
+  type AppSetup,
+  type VaultState
 } from './notesDir'
+import {
+  addVault,
+  removeVault,
+  renameVault,
+  findVaultById,
+  sameVaultPath,
+  sanitizeVaultFolderName,
+  type Vault
+} from '../shared/vaults'
+import { randomUUID } from 'crypto'
 import {
   assertSafeNotePath,
   assertSafeFileName,
@@ -55,7 +68,7 @@ import { writeFileAtomic, copyFileAtomic, cleanupTempFiles } from './atomicWrite
 import { readConfig, mergeConfig } from './configStore'
 import { noteFingerprints, externalChangeMessage } from './noteFingerprints'
 import { NOTES_THEME_FILE, NOTES_THEME_HEADER, stripNotesThemeLink } from '../shared/notesTheme'
-import { mergeDefaultSnippets } from '../shared/snippetsMerge'
+import { mergeDefaultSnippets, replaceRetiredDefaults } from '../shared/snippetsMerge'
 // Thème des notes, source unique : le même fichier que celui injecté dans l'aperçu
 import bundledThemeCss from '../renderer/src/assets/theme.css?raw'
 
@@ -64,13 +77,45 @@ const APP_SETUP_FILE = join(app.getPath('userData'), APP_SETUP_FILE_NAME)
 // Dossier de notes : NOTE_APP_NOTES_DIR si défini (ex. ./test-vault via `npm run dev:safe`), sinon le dossier
 // choisi au premier lancement, sinon ~/Notes. Résolu une fois : en changer relance l'app.
 const NOTES_DIR_FROM_ENV = !!process.env[NOTES_DIR_ENV]?.trim()
-const NOTES_DIR = resolveNotesDir(
+// Coffres : liste et coffre actif dans app-setup.json (l'ancien notesDir y est repris au premier passage)
+function loadVaults(persist: boolean): VaultState {
+  const setup = readAppSetup(APP_SETUP_FILE)
+  const state = loadVaultState(setup, os.homedir(), () => randomUUID())
+  if (persist && state.changed && !NOTES_DIR_FROM_ENV) {
+    try {
+      saveVaults(setup, state.vaults, state.active.id)
+    } catch (err) {
+      console.error('[Vaults] enregistrement de la liste impossible :', err)
+    }
+  }
+  return state
+}
+function saveVaults(setup: AppSetup, vaults: Vault[], activeVaultId: string | undefined): void {
+  const next: AppSetup = { ...setup, vaults }
+  delete next.notesDir
+  if (activeVaultId) next.activeVaultId = activeVaultId
+  else delete next.activeVaultId
+  writeAppSetup(APP_SETUP_FILE, next)
+}
+const STARTUP_VAULT = NOTES_DIR_FROM_ENV ? null : loadVaults(true).active
+const STARTUP_RESOLUTION = resolveVaultNotesDir(
   process.env[NOTES_DIR_ENV],
   os.homedir(),
   process.cwd(),
-  readAppSetup(APP_SETUP_FILE).notesDir
+  STARTUP_VAULT ?? undefined,
+  (p) => {
+    try {
+      return fs.statSync(p).isDirectory()
+    } catch {
+      return false
+    }
+  }
 )
+const NOTES_DIR = STARTUP_RESOLUTION.notesDir
+// Coffre actif introuvable : l'app tourne sur ~/Notes et l'interface affiche l'écran de choix
+const ACTIVE_VAULT_MISSING = STARTUP_RESOLUTION.missing
 const DEFAULT_NOTES_DIR = join(os.homedir(), 'Notes')
+if (ACTIVE_VAULT_MISSING) console.warn(`[Vaults] coffre actif introuvable : ${STARTUP_VAULT?.path}`)
 console.log(`[Notes] dossier actif : ${NOTES_DIR}`)
 const TRASH_DIR = join(NOTES_DIR, '.trash')
 const CONFIG_FILE = join(NOTES_DIR, '.config.json')
@@ -1823,14 +1868,18 @@ ipcMain.handle('finish-app-setup', (_event, requestedDir: unknown) => {
       }
       const check = validateNotesFolder(target)
       if (!check.ok) return { success: false, error: check.error }
-      if (!same(check.path, NOTES_DIR)) {
+      if (!same(check.path, NOTES_DIR) || ACTIVE_VAULT_MISSING) {
         fs.mkdirSync(check.path, { recursive: true })
         relaunch = true
       }
-      if (same(check.path, DEFAULT_NOTES_DIR)) delete setup.notesDir
-      else setup.notesDir = check.path
+      // Le dossier choisi devient (ou reste) le coffre actif
+      const state = loadVaultState(setup, os.homedir(), () => randomUUID())
+      const added = addVault(state.vaults, check.path, () => randomUUID())
+      setup.onboardingDone = true
+      saveVaults(setup, added.vaults, added.vault.id)
+    } else {
+      writeAppSetup(APP_SETUP_FILE, setup)
     }
-    writeAppSetup(APP_SETUP_FILE, setup)
     if (relaunch) {
       // Le dossier de notes est résolu au démarrage : relance (la fermeture enregistre la saisie en attente)
       console.log('[AppSetup] nouveau dossier de notes, relance')
@@ -1842,6 +1891,232 @@ ipcMain.handle('finish-app-setup', (_event, requestedDir: unknown) => {
     return { success: true, relaunching: relaunch }
   } catch (err) {
     console.error('[AppSetup]', err)
+    return { success: false, error: err instanceof Error ? err.message : String(err) }
+  }
+})
+
+// --- Coffres-forts : plusieurs dossiers de notes enregistrés (app-setup.json, hors des notes) ---
+// Seuls sont acceptés les dossiers rendus par la fenêtre de sélection du main (pickedVaultFolder) ou déjà
+// présents dans la liste (désignés par leur id). Retirer un coffre ne touche à aucun fichier. Changer de
+// coffre relance l'app (NOTES_DIR est résolu au démarrage). En mode test, tout est en lecture seule.
+let pickedVaultFolder: { path: string; mode: 'create' | 'open' } | null = null
+const TEST_MODE_VAULT_ERROR = 'Mode test : le dossier est imposé par NOTE_APP_NOTES_DIR.'
+
+function vaultFolderExists(p: string): boolean {
+  try {
+    return fs.statSync(p).isDirectory()
+  } catch {
+    return false
+  }
+}
+
+function scheduleRelaunch(reason: string): void {
+  console.log(`[Vaults] ${reason}, relance`)
+  // La fermeture enregistre la saisie en attente (before-close)
+  setTimeout(() => {
+    app.relaunch()
+    app.quit()
+  }, 400)
+}
+
+function isMainSender(event: Electron.IpcMainInvokeEvent): boolean {
+  const win = globalMainWindow
+  return !!win && !win.isDestroyed() && event.sender === win.webContents
+}
+
+ipcMain.handle('list-vaults', () => {
+  try {
+    if (NOTES_DIR_FROM_ENV) {
+      // Coffre de test : affiché seul, rien n'est modifiable
+      return {
+        success: true,
+        fromEnv: true,
+        activeMissing: false,
+        activeVaultId: 'test-vault',
+        vaults: [
+          {
+            id: 'test-vault',
+            name: path.basename(NOTES_DIR) || 'test-vault',
+            path: NOTES_DIR,
+            active: true,
+            exists: true
+          }
+        ]
+      }
+    }
+    const state = loadVaults(true)
+    return {
+      success: true,
+      fromEnv: false,
+      activeMissing: ACTIVE_VAULT_MISSING,
+      activeVaultId: state.active.id,
+      vaults: state.vaults.map((v) => ({
+        ...v,
+        active: v.id === state.active.id,
+        exists: sameVaultPath(v.path, DEFAULT_NOTES_DIR) || vaultFolderExists(v.path)
+      }))
+    }
+  } catch (err) {
+    console.error('[Vaults]', err)
+    return { success: false, error: err instanceof Error ? err.message : String(err) }
+  }
+})
+
+// Fenêtre de sélection : 'create' = emplacement où créer le dossier du coffre, 'open' = dossier existant
+ipcMain.handle('pick-vault-folder', async (event, mode: unknown) => {
+  if (NOTES_DIR_FROM_ENV) return { success: false, error: TEST_MODE_VAULT_ERROR }
+  if (!isMainSender(event)) return { success: false, error: 'Fenêtre indisponible.' }
+  if (mode !== 'create' && mode !== 'open') return { success: false, error: 'Mode inconnu.' }
+  const win = globalMainWindow!
+  const options: Electron.OpenDialogOptions =
+    mode === 'create'
+      ? {
+          title: 'Où créer le coffre ?',
+          buttonLabel: 'Créer ici',
+          defaultPath: path.dirname(NOTES_DIR),
+          properties: ['openDirectory', 'createDirectory']
+        }
+      : {
+          title: 'Ouvrir un dossier comme coffre',
+          buttonLabel: 'Ouvrir ce dossier',
+          defaultPath: path.dirname(NOTES_DIR),
+          properties: ['openDirectory']
+        }
+  const res = await dialog.showOpenDialog(win, options)
+  if (res.canceled || !res.filePaths[0]) return { success: false, canceled: true }
+  const picked = path.resolve(res.filePaths[0])
+  // Emplacement de création : la racine d'un disque est permise (le coffre sera un sous-dossier)
+  if (mode === 'open') {
+    const check = validateNotesFolder(picked)
+    if (!check.ok) return { success: false, error: check.error }
+  }
+  pickedVaultFolder = { path: picked, mode }
+  return { success: true, path: picked }
+})
+
+// Ajoute le dossier choisi à la liste ; 'create' crée <emplacement>/<nom>. Ne change pas de coffre.
+ipcMain.handle('add-vault', (event, request: unknown) => {
+  try {
+    if (NOTES_DIR_FROM_ENV) return { success: false, error: TEST_MODE_VAULT_ERROR }
+    if (!isMainSender(event)) return { success: false, error: 'Fenêtre indisponible.' }
+    const req = (request && typeof request === 'object' ? request : {}) as Record<string, unknown>
+    const mode = req.mode
+    const requested = typeof req.path === 'string' ? path.resolve(req.path) : ''
+    if (
+      !pickedVaultFolder ||
+      pickedVaultFolder.mode !== mode ||
+      path.relative(pickedVaultFolder.path, requested) !== ''
+    ) {
+      logSecurityRefusal('add-vault', requested || String(req.path))
+      return {
+        success: false,
+        error: 'Ce dossier n’a pas été choisi dans la fenêtre de sélection.'
+      }
+    }
+    let target = requested
+    let name = typeof req.name === 'string' ? req.name : ''
+    if (mode === 'create') {
+      const folderName = sanitizeVaultFolderName(name)
+      if (!folderName) return { success: false, error: 'Donne un nom valide au coffre.' }
+      target = path.join(requested, folderName)
+      const check = validateNotesFolder(target)
+      if (!check.ok) return { success: false, error: check.error }
+      target = check.path
+      if (fs.existsSync(target)) {
+        if (!vaultFolderExists(target)) {
+          return { success: false, error: 'Un fichier porte déjà ce nom à cet emplacement.' }
+        }
+        if (fs.readdirSync(target).length > 0) {
+          return {
+            success: false,
+            error: 'Un dossier non vide porte déjà ce nom : utilise « Ouvrir un dossier ».'
+          }
+        }
+      } else {
+        fs.mkdirSync(target, { recursive: true })
+      }
+    } else {
+      const check = validateNotesFolder(target)
+      if (!check.ok) return { success: false, error: check.error }
+      target = check.path
+      if (!vaultFolderExists(target)) return { success: false, error: 'Dossier introuvable.' }
+      if (!name.trim()) name = path.basename(target)
+    }
+    pickedVaultFolder = null
+    const setup = readAppSetup(APP_SETUP_FILE)
+    const state = loadVaultState(setup, os.homedir(), () => randomUUID())
+    const added = addVault(state.vaults, target, () => randomUUID(), name)
+    saveVaults(setup, added.vaults, state.active.id)
+    return { success: true, vault: added.vault, alreadyListed: !added.added }
+  } catch (err) {
+    console.error('[Vaults]', err)
+    return { success: false, error: err instanceof Error ? err.message : String(err) }
+  }
+})
+
+ipcMain.handle('switch-vault', (event, id: unknown) => {
+  try {
+    if (NOTES_DIR_FROM_ENV) return { success: false, error: TEST_MODE_VAULT_ERROR }
+    if (!isMainSender(event)) return { success: false, error: 'Fenêtre indisponible.' }
+    const setup = readAppSetup(APP_SETUP_FILE)
+    const state = loadVaultState(setup, os.homedir(), () => randomUUID())
+    const vault = findVaultById(state.vaults, id)
+    if (!vault) return { success: false, error: 'Coffre inconnu.' }
+    const check = validateNotesFolder(vault.path)
+    if (!check.ok) return { success: false, error: check.error }
+    const isDefault = sameVaultPath(check.path, DEFAULT_NOTES_DIR)
+    if (!isDefault && !vaultFolderExists(check.path)) {
+      return { success: false, error: `Dossier introuvable : ${check.path}` }
+    }
+    if (vault.id === state.active.id && !ACTIVE_VAULT_MISSING) {
+      return { success: true, relaunching: false }
+    }
+    saveVaults(setup, state.vaults, vault.id)
+    const relaunching = ACTIVE_VAULT_MISSING || path.relative(check.path, NOTES_DIR) !== ''
+    if (relaunching) scheduleRelaunch(`coffre « ${vault.name} »`)
+    return { success: true, relaunching }
+  } catch (err) {
+    console.error('[Vaults]', err)
+    return { success: false, error: err instanceof Error ? err.message : String(err) }
+  }
+})
+
+// Retire un coffre de la liste, sans supprimer aucun fichier. Le coffre actif ne peut être retiré que
+// s'il est introuvable (l'app tourne alors sur ~/Notes) ; le premier restant devient actif.
+ipcMain.handle('remove-vault', (event, id: unknown) => {
+  try {
+    if (NOTES_DIR_FROM_ENV) return { success: false, error: TEST_MODE_VAULT_ERROR }
+    if (!isMainSender(event)) return { success: false, error: 'Fenêtre indisponible.' }
+    const setup = readAppSetup(APP_SETUP_FILE)
+    const state = loadVaultState(setup, os.homedir(), () => randomUUID())
+    const vault = findVaultById(state.vaults, id)
+    if (!vault) return { success: false, error: 'Coffre inconnu.' }
+    if (vault.id === state.active.id && !ACTIVE_VAULT_MISSING) {
+      return { success: false, error: 'Ouvre d’abord un autre coffre pour retirer celui-ci.' }
+    }
+    const remaining = removeVault(state.vaults, vault.id)
+    const activeId = vault.id === state.active.id ? undefined : state.active.id
+    saveVaults(setup, remaining, activeId)
+    return { success: true }
+  } catch (err) {
+    console.error('[Vaults]', err)
+    return { success: false, error: err instanceof Error ? err.message : String(err) }
+  }
+})
+
+ipcMain.handle('rename-vault', (event, id: unknown, name: unknown) => {
+  try {
+    if (NOTES_DIR_FROM_ENV) return { success: false, error: TEST_MODE_VAULT_ERROR }
+    if (!isMainSender(event)) return { success: false, error: 'Fenêtre indisponible.' }
+    if (typeof id !== 'string') return { success: false, error: 'Coffre inconnu.' }
+    const setup = readAppSetup(APP_SETUP_FILE)
+    const state = loadVaultState(setup, os.homedir(), () => randomUUID())
+    const res = renameVault(state.vaults, id, name)
+    if (!res.ok) return { success: false, error: res.error }
+    saveVaults(setup, res.vaults, state.active.id)
+    return { success: true }
+  } catch (err) {
+    console.error('[Vaults]', err)
     return { success: false, error: err instanceof Error ? err.message : String(err) }
   }
 })
@@ -2318,8 +2593,9 @@ function loadSnippets(): { snippets: any[]; trigger: string; error?: string } {
       // Snippets par défaut ajoutés depuis la création du fichier : proposés aussi (fusion en mémoire,
       // le fichier n'est pas modifié ; "disabledDefaults" permet d'en masquer)
       return {
+        // Ancien snippet par défaut jamais modifié (ex. /divider) : version actuelle, en mémoire
         snippets: mergeDefaultSnippets(
-          sanitizedUserSnippets,
+          replaceRetiredDefaults(sanitizedUserSnippets, defaults.snippets || []),
           defaults.snippets || [],
           parsed.disabledDefaults
         ),

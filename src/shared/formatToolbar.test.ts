@@ -49,14 +49,40 @@ describe('formatToolbar : couleurs, surlignage, police, taille', () => {
     expect(document.querySelector('p')!.innerHTML).toBe('Un effet ici')
   })
 
-  it('police et taille par paliers', () => {
+  it('police et taille par paliers de Word (12 pt sans classe)', () => {
     document.body.innerHTML = '<p>mot</p>'
     select(text('p'), 0, text('p'), 3)
     tools.apply('font', 'ff-mono')
     tools.apply('size', 'up')
-    expect(document.querySelector('p')!.innerHTML).toBe('<span class="ff-mono fs-large">mot</span>')
+    expect(document.querySelector('p')!.innerHTML).toBe('<span class="ff-mono fs-14">mot</span>')
+    tools.apply('size', 'up')
+    expect(document.querySelector('span')!.className).toBe('ff-mono fs-16')
+    tools.apply('size', 'down')
     tools.apply('size', 'down')
     expect(document.querySelector('p')!.innerHTML).toBe('<span class="ff-mono">mot</span>')
+    tools.apply('size', 'down')
+    expect(document.querySelector('span')!.className).toBe('ff-mono fs-11')
+  })
+
+  it('taille choisie dans le menu, bornée de 8 à 72 pt', () => {
+    document.body.innerHTML = '<p>mot</p>'
+    select(text('p'), 0, text('p'), 3)
+    tools.apply('size', '36')
+    expect(document.querySelector('p')!.innerHTML).toBe('<span class="fs-36">mot</span>')
+    tools.apply('size', 'fs-72')
+    tools.apply('size', 'up')
+    expect(document.querySelector('span')!.className).toBe('fs-72')
+    tools.apply('size', '13')
+    expect(document.querySelector('span')!.className).toBe('fs-72')
+    tools.apply('size', 'none')
+    expect(document.querySelector('p')!.innerHTML).toBe('mot')
+  })
+
+  it('les anciennes tailles continuent par paliers', () => {
+    document.body.innerHTML = '<p><span class="fs-large">mot</span></p>'
+    select(text('span'), 0, text('span'), 3)
+    tools.apply('size', 'up')
+    expect(document.querySelector('span')!.className).toBe('fs-16')
   })
 
   it('refuse une classe inconnue', () => {

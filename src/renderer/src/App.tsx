@@ -46,6 +46,7 @@ import {
 } from '@renderer/components/Icons'
 import AutonomousAgentWorkspace from './components/AutonomousAgentWorkspace'
 import { askConfirm, ConfirmHost } from './components/ConfirmDialog'
+import { VaultPickerScreen } from './components/VaultSwitcher'
 import Modal from './components/Modal'
 import defaultSnippetsJson from '@renderer/assets/snippets.default.json'
 import { Snippet } from './types/snippets'
@@ -3605,6 +3606,14 @@ function App() {
       fullscreenSrcDocFileRef.current = null
       return PREVIEW_LOADING_SRCDOC
     }
+    // Hors plein écran, l'iframe n'existe pas : en y revenant, elle est neuve et doit recevoir le contenu
+    // actuel, jamais le srcDoc gelé d'avant (sinon le texte tapé entre-temps n'apparaissait pas)
+    if (!isRenderFullscreen) {
+      lastFullscreenSrcDocRef.current = ''
+      lastFullscreenEmittedHtmlRef.current = ''
+      lastFullscreenMutationTimeRef.current = 0
+      return PREVIEW_LOADING_SRCDOC
+    }
     // Si la modification provient directement de l'iframe plein écran, figer le srcDoc pour ne pas
     // recharger l'iframe, mais seulement pour la même note
     const isRecentlyEditedInFullscreen = Date.now() - lastFullscreenMutationTimeRef.current < 3000
@@ -3641,7 +3650,7 @@ function App() {
     lastFullscreenSrcDocRef.current = prepared
     fullscreenSrcDocFileRef.current = currentFile
     return prepared
-  }, [fileContent, currentFile, snippets, loadedContentFile])
+  }, [fileContent, currentFile, snippets, loadedContentFile, isRenderFullscreen])
 
   return (
     <div
@@ -5757,6 +5766,8 @@ function App() {
         </Modal>
       )}
 
+        {/* Coffre actif introuvable : choix d'un coffre avant tout */}
+        <VaultPickerScreen />
       <ConfirmHost />
 
       {/* Modal Claude Save */}

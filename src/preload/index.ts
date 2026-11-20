@@ -40,6 +40,14 @@ const api = {
   },
   chooseNotesFolder: () => ipcRenderer.invoke('choose-notes-folder'),
   finishAppSetup: (notesDir?: string) => ipcRenderer.invoke('finish-app-setup', notesDir),
+  // Coffres-forts : liste, ajout (dossier choisi dans la fenêtre du main), changement (relance), retrait
+  listVaults: () => ipcRenderer.invoke('list-vaults'),
+  pickVaultFolder: (mode: 'create' | 'open') => ipcRenderer.invoke('pick-vault-folder', mode),
+  addVault: (request: { mode: 'create' | 'open'; path: string; name?: string }) =>
+    ipcRenderer.invoke('add-vault', request),
+  switchVault: (id: string) => ipcRenderer.invoke('switch-vault', id),
+  removeVault: (id: string) => ipcRenderer.invoke('remove-vault', id),
+  renameVault: (id: string, name: string) => ipcRenderer.invoke('rename-vault', id, name),
   importPdfDialog: (targetFolder?: string) => ipcRenderer.invoke('import-pdf-dialog', targetFolder),
   // Le chemin disque n'est lu que depuis un vrai File (glisser-déposer ou <input type="file">) :
   // une page ne peut pas fabriquer un File qui pointe vers un fichier arbitraire du disque

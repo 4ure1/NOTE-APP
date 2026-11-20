@@ -2,6 +2,7 @@
 import fs from 'fs'
 import path from 'path'
 import { writeFileAtomic } from './atomicWrite'
+import { ensureVaults, sanitizeVaults, type Vault } from '../shared/vaults'
 
 // Variable d'environnement qui remplace le dossier de notes par défaut (~/Notes)
 export const NOTES_DIR_ENV = 'NOTE_APP_NOTES_DIR'
@@ -11,8 +12,11 @@ export const NOTES_DIR_ENV = 'NOTE_APP_NOTES_DIR'
 export const APP_SETUP_FILE_NAME = 'app-setup.json'
 
 export interface AppSetup {
-  // Dossier de notes choisi par l'utilisateur (absolu) ; absent = ~/Notes
+  // Ancien réglage (avant les coffres) : dossier choisi au premier lancement. Repris comme coffre puis retiré.
   notesDir?: string
+  // Coffres enregistrés et coffre actif
+  vaults?: Vault[]
+  activeVaultId?: string
   // Visite guidée de premier lancement terminée ou passée
   onboardingDone?: boolean
 }
@@ -73,6 +77,8 @@ export function readAppSetup(file: string): AppSetup {
     const setup: AppSetup = {}
     if (typeof data.notesDir === 'string') setup.notesDir = data.notesDir
     if (data.onboardingDone === true) setup.onboardingDone = true
+    if (Array.isArray(data.vaults)) setup.vaults = sanitizeVaults(data.vaults)
+    if (typeof data.activeVaultId === 'string') setup.activeVaultId = data.activeVaultId
     return setup
   } catch (err) {
     console.error('[AppSetup] lecture impossible, valeurs par défaut :', err)
@@ -83,4 +89,50 @@ export function readAppSetup(file: string): AppSetup {
 export function writeAppSetup(file: string, setup: AppSetup): void {
   fs.mkdirSync(path.dirname(file), { recursive: true })
   writeFileAtomic(file, JSON.stringify(setup, null, 2) + '\n')
+}
+
+export interface VaultState {
+  vaults: Vault[]
+  active: Vault
+  // La liste a été complétée (ancien notesDir repris, ~/Notes ajouté) : à enregistrer
+  changed: boolean
+}
+
+// Liste effective des coffres à partir du fichier de réglages (ancien notesDir migré)
+export function loadVaultState(setup: AppSetup, homeDir: string, makeId: () => string): VaultState {
+  const before = setup.vaults ?? []
+  const { vaults, active } = ensureVaults(
+    before,
+    setup.activeVaultId,
+    setup.notesDir,
+    path.join(homeDir, 'Notes'),
+    makeId
+  )
+  const changed =
+    vaults.length !== before.length || active.id !== setup.activeVaultId || !!setup.notesDir
+  return { vaults, active, changed }
+}
+
+/**
+ * Dossier de notes au démarrage : la variable de test, sinon le coffre actif. Un coffre actif
+ * introuvable (disque débranché, dossier supprimé) ou invalide donne `missing: true` : l'app retombe
+ * sur ~/Notes et l'interface affiche l'écran de choix d'un coffre.
+ */
+export function resolveVaultNotesDir(
+  envValue: string | undefined,
+  homeDir: string,
+  cwd: string,
+  active: Vault | undefined,
+  exists: (p: string) => boolean
+): { notesDir: string; missing: boolean } {
+  const raw = envValue?.trim()
+  if (raw) return { notesDir: path.resolve(cwd, raw), missing: false }
+  const fallback = path.join(homeDir, 'Notes')
+  if (!active) return { notesDir: fallback, missing: false }
+  const check = validateNotesFolder(active.path)
+  if (!check.ok) return { notesDir: fallback, missing: true }
+  if (isDefaultNotesDir(check.path, homeDir) || exists(check.path)) {
+    return { notesDir: check.path, missing: false }
+  }
+  return { notesDir: fallback, missing: true }
 }

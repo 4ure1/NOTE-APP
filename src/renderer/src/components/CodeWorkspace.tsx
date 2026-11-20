@@ -32,6 +32,7 @@ import { installTableTools } from '../utils/tableTools'
 import { installFormatToolbar } from '../utils/formatToolbar'
 import { sanitizePastedHtml } from '../utils/pasteSanitize'
 import { rankSnippets } from '../utils/snippetRanking'
+import { enterJumpsToNextListField } from '../utils/listFieldEnter'
 import { notesThemeHref } from '../utils/notesTheme'
 import { previewMatchesNote } from '../utils/noteSaveGuard'
 import { notifyApiError } from '../utils/apiError'
@@ -467,6 +468,8 @@ export const prepareHtmlPreview = (
         var generateDynamicSnippets = ${generateDynamicSnippets.toString()};
         // Tri du menu « / » : source de src/shared/snippetRanking.ts (fonction autonome)
         var rankSnippets = ${rankSnippets.toString()};
+        // Entrée dans un snippet de liste : source de src/shared/listFieldEnter.ts (fonction autonome)
+        var enterJumpsToNextListField = ${enterJumpsToNextListField.toString()};
         // Saisie (Entrée, sortie des colorations) et canvas : src/shared/previewEditing.ts,
         // canvasGeometry.ts et canvasEditor.ts (fonctions autonomes)
         var createPreviewEditing = ${createPreviewEditing.toString()};
@@ -998,9 +1001,25 @@ export const prepareHtmlPreview = (
           }
           snippetSession = { groups: built.groups, finalMarker: built.finalMarker, current: -1 };
           built.groups.forEach(function(g) {
-            g.occurrences.forEach(function(o) { if (o.kind === 'text') refreshField(o.element); });
+            g.occurrences.forEach(function(o) {
+              if (o.kind === 'text') {
+                refreshField(o.element);
+                // Texte d'origine : Entrée saute au champ suivant d'une liste tant qu'il n'a pas changé
+                o.initialText = fieldText(o.element);
+              }
+            });
           });
           activateField(0);
+        }
+
+        // Entrée dans un snippet de liste : aller à l'élément suivant encore intact (voir listFieldEnter.ts)
+        function enterGoesToNextListField() {
+          var s = snippetSession;
+          if (!s || s.current < 0 || !s.groups[s.current + 1]) return false;
+          var cur = s.groups[s.current].occurrences[0];
+          var nxt = s.groups[s.current + 1].occurrences[0];
+          if (!cur || !nxt || cur.kind !== 'text' || nxt.kind !== 'text') return false;
+          return enterJumpsToNextListField(cur.element, nxt.element, nxt.initialText, fieldText(nxt.element));
         }
 
         function activateField(position) {
@@ -1340,7 +1359,8 @@ export const prepareHtmlPreview = (
               applyChoice(choiceIndex + (e.key === 'ArrowDown' ? 1 : -1));
               return;
             }
-            if (e.key === 'Tab' || (e.key === 'Enter' && choiceMenuEl)) {
+            if (e.key === 'Tab' || (e.key === 'Enter' && choiceMenuEl) ||
+                (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && enterGoesToNextListField())) {
               e.preventDefault();
               e.stopPropagation();
               moveField(e.shiftKey && e.key === 'Tab' ? -1 : 1);
@@ -2044,59 +2064,8 @@ export const prepareHtmlPreview = (
           }
         }, true);
 
-        // Clic dans les espaces vides entre ou sous les blocs (Obsidian Live Preview)
-        document.addEventListener('click', function(e) {
-          if (!isLiveEditEnabled) return;
-          if (snippetMenuEl && snippetMenuEl.style.display !== 'none') return;
-
-          var target = e.target;
-          var container = document.querySelector('.container') || document.body;
-
-          if (target === document.body || target === container || (target.classList && target.classList.contains('container'))) {
-            var y = e.clientY + window.scrollY;
-            var children = Array.from(container.children).filter(function(el) {
-              return el.id !== 'preview-snippet-menu' && !el.hasAttribute('data-injected-preview-helpers');
-            });
-
-            var insertAfter = null;
-            for (var i = 0; i < children.length; i++) {
-              var rect = children[i].getBoundingClientRect();
-              var bottom = rect.bottom + window.scrollY;
-              if (bottom <= y) {
-                insertAfter = children[i];
-              }
-            }
-
-            if (insertAfter && insertAfter.nodeName !== 'FOOTER') {
-              var next = insertAfter.nextElementSibling;
-              if (next && next.nodeName === 'P' && (next.textContent.trim() === '' || next.innerHTML === '<br>')) {
-                var r = document.createRange();
-                r.selectNodeContents(next);
-                r.collapse(false);
-                var s = window.getSelection();
-                s.removeAllRanges();
-                s.addRange(r);
-                return;
-              }
-              // Paragraphe provisoire : marqué, non enregistré tant qu'on n'y tape rien
-              // (cleanPreviewDocument le retire s'il est resté vide). Un seul à la fois.
-              var stale = document.querySelectorAll('p[data-nf-pending]');
-              for (var k = 0; k < stale.length; k++) {
-                if (stale[k].textContent.trim() === '') stale[k].remove();
-              }
-              var p = document.createElement('p');
-              p.setAttribute('data-nf-pending', '');
-              p.innerHTML = '<br>';
-              insertAfter.after(p);
-              var r2 = document.createRange();
-              r2.setStart(p, 0);
-              r2.collapse(true);
-              var s2 = window.getSelection();
-              s2.removeAllRanges();
-              s2.addRange(r2);
-            }
-          }
-        });
+        // Un clic dans un espace vide (marge, entre deux blocs) ne crée plus de ligne : il en ajoutait
+        // sans raison et cassait les sélections commencées dans la marge.
 
         function getScrollInfo() {
           var scrollY = window.scrollY || (document.documentElement ? document.documentElement.scrollTop : 0) || (document.body ? document.body.scrollTop : 0);
@@ -2717,6 +2686,11 @@ export default function CodeWorkspace({
   useEffect(() => {
     if (editorMode === 'edit') {
       wasCodeOnlyRef.current = true
+      // L'iframe est retirée en mode Code seul : en revenant, elle est neuve et doit recevoir le
+      // contenu actuel, pas le srcDoc gelé pendant la dernière saisie dans l'aperçu
+      lastMemoizedSrcDocRef.current = ''
+      lastEmittedPreviewHtmlRef.current = ''
+      lastPreviewMutationTimeRef.current = 0
       return
     }
     const now = Date.now()

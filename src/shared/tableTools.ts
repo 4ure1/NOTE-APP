@@ -41,6 +41,13 @@ export interface TableTools {
   cellAfterTab(cell: Element, backwards: boolean): Element | null
   /** Couleur d'une carte (.node : red…brown, '' = gris ; .step : purple, orange, green, red, '' = bleu). */
   setCardColor(card: Element, color: string): void
+  /**
+   * Forme des puces ou des numéros d'une liste (classe .ls-* du thème ; '' = forme par défaut). Une forme
+   * numérotée change un <ul> en <ol> et inversement : renvoie la liste (nouvel élément si la balise change).
+   */
+  setListStyle(list: Element, style: string): Element
+  /** Couleur des puces / numéros d'une liste (classe .mk-* du thème ; '' = couleur du texte). */
+  setListMarkerColor(list: Element, color: string): void
   /** Cases actuellement sélectionnées. */
   selection(): Element[]
 }
@@ -61,6 +68,18 @@ export function installTableTools(doc: Document, options: TableToolsOptions): Ta
   }
   const NODE_COLORS = ['red', 'orange', 'yellow', 'green', 'purple', 'teal', 'blue', 'brown']
   const STEP_COLORS = ['purple', 'orange', 'green', 'red']
+  // Formes de liste : [classe, libellé, numérotée ?]
+  const LIST_STYLES: Array<[string, string, boolean]> = [
+    ['disc', '•  Puce pleine', false],
+    ['circle', '◦  Puce creuse', false],
+    ['square', '▪  Carré', false],
+    ['none', '    Sans puce', false],
+    ['decimal', '1.  Chiffres', true],
+    ['lower-alpha', 'a.  Lettres minuscules', true],
+    ['upper-alpha', 'A.  Lettres majuscules', true],
+    ['lower-roman', 'i.  Chiffres romains', true],
+    ['upper-roman', 'I.  Romains majuscules', true]
+  ]
   const view = doc.defaultView
   const NL = String.fromCharCode(10)
 
@@ -165,6 +184,40 @@ export function installTableTools(doc: Document, options: TableToolsOptions): Ta
       if (color && BG.indexOf(color) !== -1) c.classList.add('bg-' + color)
       cleanClass(c)
     })
+  }
+
+  function setListStyle(list: Element, style: string): Element {
+    const entry = LIST_STYLES.find((s) => s[0] === style)
+    let target = list
+    if (entry) {
+      // Forme numérotée sur une liste à puces (ou l'inverse) : la balise suit
+      const wanted = entry[2] ? 'OL' : 'UL'
+      if (list.nodeName !== wanted && list.parentNode) {
+        const replacement = doc.createElement(wanted.toLowerCase())
+        Array.from(list.attributes).forEach((a) => replacement.setAttribute(a.name, a.value))
+        while (list.firstChild) replacement.appendChild(list.firstChild)
+        list.parentNode.replaceChild(replacement, list)
+        target = replacement
+      }
+    }
+    LIST_STYLES.forEach((s) => target.classList.remove('ls-' + s[0]))
+    // La forme par défaut de la balise n'a pas besoin de classe
+    const isDefault = !entry || (target.nodeName === 'UL' ? style === 'disc' : style === 'decimal')
+    if (entry && !isDefault) target.classList.add('ls-' + style)
+    cleanClass(target)
+    return target
+  }
+
+  function setListMarkerColor(list: Element, color: string): void {
+    BG.forEach((b) => list.classList.remove('mk-' + b))
+    if (color && BG.indexOf(color) !== -1) list.classList.add('mk-' + color)
+    cleanClass(list)
+  }
+
+  function currentListStyle(list: Element): string {
+    const found = LIST_STYLES.find((s) => list.classList.contains('ls-' + s[0]))
+    if (found) return found[0]
+    return list.nodeName === 'OL' ? 'decimal' : 'disc'
   }
 
   function setCardColor(card: Element, color: string): void {
@@ -430,6 +483,7 @@ export function installTableTools(doc: Document, options: TableToolsOptions): Ta
       '.nf-ctx-item:hover{background:rgba(56,189,248,0.14);}',
       '.nf-ctx-item.nf-danger:hover{background:rgba(239,68,68,0.18);}',
       '.nf-ctx-item.nf-off{opacity:.4;pointer-events:none;}',
+      '.nf-ctx-item.nf-on{color:#38bdf8;}',
       '.nf-ctx-sep{height:1px;margin:4px 6px;background:rgba(255,255,255,0.08);}'
     ].join('')
     doc.head.appendChild(style)
@@ -556,7 +610,13 @@ export function installTableTools(doc: Document, options: TableToolsOptions): Ta
     return cells.every((c) => !BG.some((b) => c.classList.contains('bg-' + b))) ? '' : '?'
   }
 
-  function openMenu(x: number, y: number, cells: Element[], card: Element | null): void {
+  function openMenu(
+    x: number,
+    y: number,
+    cells: Element[],
+    card: Element | null,
+    list: Element | null = null
+  ): void {
     closeMenu()
     ensureStyle()
     const m = doc.createElement('div')
@@ -598,13 +658,24 @@ export function installTableTools(doc: Document, options: TableToolsOptions): Ta
       item(m, 'Supprimer la ligne', () => deleteRow(first), 'nf-danger ' + off)
       item(m, 'Supprimer la colonne', () => deleteColumn(first), 'nf-danger')
     }
+    if (list) {
+      const current = currentListStyle(list)
+      title(m, 'Forme de la liste')
+      LIST_STYLES.forEach((s) =>
+        item(m, s[1], () => setListStyle(list, s[0]), s[0] === current ? 'nf-on' : '')
+      )
+      separator(m)
+      const marker = BG.find((c) => list.classList.contains('mk-' + c)) || ''
+      title(m, 'Couleur des puces')
+      swatches(m, BG, marker, 'Couleur du texte', (c) => setListMarkerColor(list, c))
+    }
     if (card) {
-      if (cells.length) separator(m)
+      if (cells.length || list) separator(m)
       const isNode = card.classList.contains('node')
-      const list = isNode ? NODE_COLORS : STEP_COLORS
-      const current = list.find((c) => card.classList.contains(c)) || ''
+      const cardColors = isNode ? NODE_COLORS : STEP_COLORS
+      const current = cardColors.find((c) => card.classList.contains(c)) || ''
       title(m, 'Couleur de la carte')
-      swatches(m, list, current, isNode ? 'Gris' : 'Bleu', (c) => setCardColor(card, c))
+      swatches(m, cardColors, current, isNode ? 'Gris' : 'Bleu', (c) => setCardColor(card, c))
     }
     doc.documentElement.appendChild(m)
     // Reste dans la fenêtre
@@ -663,7 +734,10 @@ export function installTableTools(doc: Document, options: TableToolsOptions): Ta
     if (!target || !target.closest || target.closest('[' + HELPER + ']')) return
     const cell = cellOf(target)
     const card = target.closest('.node, .step')
-    if (!cell && !card) return
+    // Liste : seulement hors tableau (dans une case, le menu des cases reste prioritaire)
+    const listEl = cell ? null : target.closest('ul, ol')
+    const list = listEl && doc.body && doc.body.contains(listEl) ? listEl : null
+    if (!cell && !card && !list) return
     e.preventDefault()
     let cells: Element[] = []
     if (cell) {
@@ -673,7 +747,7 @@ export function installTableTools(doc: Document, options: TableToolsOptions): Ta
         cells = fromText.length > 1 && fromText.indexOf(cell) !== -1 ? fromText : [cell]
       }
     }
-    openMenu(e.clientX, e.clientY, cells, card)
+    openMenu(e.clientX, e.clientY, cells, card, list)
   }
 
   function cellAfterTab(cell: Element, backwards: boolean): Element | null {
@@ -746,6 +820,8 @@ export function installTableTools(doc: Document, options: TableToolsOptions): Ta
     mergeCells,
     cellAfterTab,
     setCardColor,
+    setListStyle,
+    setListMarkerColor,
     selection: () => selected.slice()
   }
 }
